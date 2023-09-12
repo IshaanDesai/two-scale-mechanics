@@ -1,0 +1,388 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].ConstrainedSketch(name='__profile__', sheetSize=10.0)
+mdb.models['Model-1'].sketches['__profile__'].rectangle(point1=(-2.35, 0.85), 
+    point2=(1.95, -1.0))
+mdb.models['Model-1'].sketches['__profile__'].Line(point1=(-0.2, 0.85), point2=
+    (-0.2, -1.0))
+mdb.models['Model-1'].sketches['__profile__'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__profile__'].geometry[6])
+mdb.models['Model-1'].sketches['__profile__'].PerpendicularConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[5], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[6])
+mdb.models['Model-1'].sketches['__profile__'].CoincidentConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[4], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[5])
+mdb.models['Model-1'].sketches['__profile__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[3], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[0], midpoint=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[4])
+mdb.models['Model-1'].sketches['__profile__'].CoincidentConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[5], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[3])
+mdb.models['Model-1'].sketches['__profile__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[1], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[2], midpoint=
+    mdb.models['Model-1'].sketches['__profile__'].vertices[5])
+mdb.models['Model-1'].sketches['__profile__'].delete(objectList=(
+    mdb.models['Model-1'].sketches['__profile__'].geometry[2], 
+    mdb.models['Model-1'].sketches['__profile__'].geometry[3], 
+    mdb.models['Model-1'].sketches['__profile__'].geometry[4], 
+    mdb.models['Model-1'].sketches['__profile__'].geometry[5], 
+    mdb.models['Model-1'].sketches['__profile__'].geometry[6], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[18], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[19], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[20], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[21], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[22], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[25], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[26], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[27], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[28], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[29], 
+    mdb.models['Model-1'].sketches['__profile__'].constraints[30]))
+mdb.models['Model-1'].sketches['__profile__'].rectangle(point1=(-5.0, -2.5), 
+    point2=(5.0, 2.5))
+mdb.models['Model-1'].Part(dimensionality=THREE_D, name='Part_Laminate', type=
+    DEFORMABLE_BODY)
+mdb.models['Model-1'].parts['Part_Laminate'].BaseSolidExtrude(depth=0.73152, 
+    sketch=mdb.models['Model-1'].sketches['__profile__'])
+del mdb.models['Model-1'].sketches['__profile__']
+mdb.models['Model-1'].ConstrainedSketch(name='__edit__', objectToCopy=
+    mdb.models['Model-1'].parts['Part_Laminate'].features['Solid extrude-1'].sketch)
+mdb.models['Model-1'].parts['Part_Laminate'].projectReferencesOntoSketch(
+    filter=COPLANAR_EDGES, sketch=mdb.models['Model-1'].sketches['__edit__'], 
+    upToFeature=
+    mdb.models['Model-1'].parts['Part_Laminate'].features['Solid extrude-1'])
+mdb.models['Model-1'].sketches['__edit__'].dragEntity(entity=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[7], points=((-5.0, 
+    2.5), (-5.0, 2.5), (-1.1, 1.85), (-0.7, 1.8), (-0.6, 1.3), (-0.85, 1.15), (
+    -1.15, 1.05), (-1.45, 1.1)))
+mdb.models['Model-1'].sketches['__edit__'].dragEntity(entity=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[9], points=((5.0, 
+    -2.5), (5.0, -2.5), (2.65, -1.05), (2.3, -0.75), (2.4, -0.8), (2.55, 
+    -0.85)))
+mdb.models['Model-1'].sketches['__edit__'].Line(point1=(0.55, 1.1), point2=(
+    0.55, -0.85))
+mdb.models['Model-1'].sketches['__edit__'].VerticalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__edit__'].geometry[11])
+mdb.models['Model-1'].sketches['__edit__'].PerpendicularConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].geometry[8], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].geometry[11])
+mdb.models['Model-1'].sketches['__edit__'].CoincidentConstraint(addUndoState=
+    False, entity1=mdb.models['Model-1'].sketches['__edit__'].vertices[10], 
+    entity2=mdb.models['Model-1'].sketches['__edit__'].geometry[8])
+mdb.models['Model-1'].sketches['__edit__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[7], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[8], midpoint=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[10])
+mdb.models['Model-1'].sketches['__edit__'].CoincidentConstraint(addUndoState=
+    False, entity1=mdb.models['Model-1'].sketches['__edit__'].vertices[11], 
+    entity2=mdb.models['Model-1'].sketches['__edit__'].geometry[10])
+mdb.models['Model-1'].sketches['__edit__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[9], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[6], midpoint=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[11])
+mdb.models['Model-1'].sketches['__edit__'].Line(point1=(-1.45, 0.125), point2=(
+    2.55, 0.125))
+mdb.models['Model-1'].sketches['__edit__'].HorizontalConstraint(addUndoState=
+    False, entity=mdb.models['Model-1'].sketches['__edit__'].geometry[12])
+mdb.models['Model-1'].sketches['__edit__'].PerpendicularConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].geometry[7], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].geometry[12])
+mdb.models['Model-1'].sketches['__edit__'].CoincidentConstraint(addUndoState=
+    False, entity1=mdb.models['Model-1'].sketches['__edit__'].vertices[12], 
+    entity2=mdb.models['Model-1'].sketches['__edit__'].geometry[7])
+mdb.models['Model-1'].sketches['__edit__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[6], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[7], midpoint=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[12])
+mdb.models['Model-1'].sketches['__edit__'].CoincidentConstraint(addUndoState=
+    False, entity1=mdb.models['Model-1'].sketches['__edit__'].vertices[13], 
+    entity2=mdb.models['Model-1'].sketches['__edit__'].geometry[9])
+mdb.models['Model-1'].sketches['__edit__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[8], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[9], midpoint=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[13])
+mdb.models['Model-1'].sketches['__edit__'].Spot(point=(0.55, 0.125))
+mdb.models['Model-1'].sketches['__edit__'].CoincidentConstraint(addUndoState=
+    False, entity1=mdb.models['Model-1'].sketches['__edit__'].vertices[14], 
+    entity2=mdb.models['Model-1'].sketches['__edit__'].geometry[11])
+mdb.models['Model-1'].sketches['__edit__'].EqualDistanceConstraint(
+    addUndoState=False, entity1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[10], entity2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[11], midpoint=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[14])
+mdb.models['Model-1'].sketches['__edit__'].setAsConstruction(objectList=(
+    mdb.models['Model-1'].sketches['__edit__'].geometry[11], 
+    mdb.models['Model-1'].sketches['__edit__'].geometry[12]))
+mdb.models['Model-1'].sketches['__edit__'].dragEntity(entity=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[14], points=((0.55, 
+    0.125), (0.55, 0.1), (0.15, 0.0), (0.05, 0.0), (0.05, 0.0), (0.0, 0.0)))
+mdb.models['Model-1'].sketches['__edit__'].FixedConstraint(entity=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[14])
+mdb.models['Model-1'].sketches['__edit__'].ObliqueDimension(textPoint=(
+    -0.201143890619278, -1.40459060668945), value=1.8288, vertex1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[9], vertex2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[6])
+mdb.models['Model-1'].sketches['__edit__'].ObliqueDimension(textPoint=(
+    2.36131238937378, 0.157960891723633), value=0.9144, vertex1=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[8], vertex2=
+    mdb.models['Model-1'].sketches['__edit__'].vertices[9])
+mdb.models['Model-1'].parts['Part_Laminate'].features['Solid extrude-1'].setValues(
+    sketch=mdb.models['Model-1'].sketches['__edit__'])
+del mdb.models['Model-1'].sketches['__edit__']
+mdb.models['Model-1'].parts['Part_Laminate'].regenerate()
+mdb.models['Model-1'].ConstrainedSketch(gridSpacing=0.1, name='__profile__', 
+    sheetSize=4.04, transform=
+    mdb.models['Model-1'].parts['Part_Laminate'].MakeSketchTransform(
+    sketchPlane=mdb.models['Model-1'].parts['Part_Laminate'].faces[3], 
+    sketchPlaneSide=SIDE1, 
+    sketchUpEdge=mdb.models['Model-1'].parts['Part_Laminate'].edges[8], 
+    sketchOrientation=RIGHT, origin=(0.0, -0.4572, 0.36576)))
+mdb.models['Model-1'].parts['Part_Laminate'].projectReferencesOntoSketch(
+    filter=COPLANAR_EDGES, sketch=
+    mdb.models['Model-1'].sketches['__profile__'])
+mdb.models['Model-1'].sketches['__profile__'].rectangle(point1=(-1.025, 0.2), 
+    point2=(1.15, -0.2))
+mdb.models['Model-1'].sketches['__profile__'].DistanceDimension(entity1=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[7], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[5], textPoint=(
+    1.02934861183167, -0.295090497980118), value=0.18288)
+mdb.models['Model-1'].sketches['__profile__'].DistanceDimension(entity1=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[3], entity2=
+    mdb.models['Model-1'].sketches['__profile__'].geometry[9], textPoint=(
+    1.09196591377258, 0.302290289154053), value=0.18288)
+mdb.models['Model-1'].parts['Part_Laminate'].PartitionFaceBySketch(faces=
+    mdb.models['Model-1'].parts['Part_Laminate'].faces.getSequenceFromMask((
+    '[#8 ]', ), ), sketch=mdb.models['Model-1'].sketches['__profile__'], 
+    sketchUpEdge=mdb.models['Model-1'].parts['Part_Laminate'].edges[8])
+del mdb.models['Model-1'].sketches['__profile__']
+mdb.models['Model-1'].parts['Part_Laminate'].PartitionCellByPlanePointNormal(
+    cells=
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#1 ]', ), ), normal=mdb.models['Model-1'].parts['Part_Laminate'].edges[5]
+    , point=mdb.models['Model-1'].parts['Part_Laminate'].vertices[1])
+mdb.models['Model-1'].parts['Part_Laminate'].PartitionCellByPlanePointNormal(
+    cells=
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#2 ]', ), ), normal=mdb.models['Model-1'].parts['Part_Laminate'].edges[5]
+    , point=mdb.models['Model-1'].parts['Part_Laminate'].vertices[4])
+mdb.models['Model-1'].parts['Part_Laminate'].DatumCsysByThreePoints(
+    coordSysType=CARTESIAN, name='Datum csys-1', origin=(0.0, 0.0, 0.0), 
+    point1=(1.0, 0.0, 0.0), point2=(0.0, 1.0, 0.0))
+mdb.models['Model-1'].parts['Part_Laminate'].Set(cells=
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#4 ]', ), ), name='Set_0_plies')
+mdb.models['Model-1'].parts['Part_Laminate'].Set(cells=
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#3 ]', ), ), name='Set_90_plies')
+# Save by aero_waas_2018_1 on 2023_08_14-11.54.09; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].Material(name='Mat_LAMINA')
+mdb.models['Model-1'].materials['Mat_LAMINA'].Density(table=((1.5e-09, ), ))
+mdb.models['Model-1'].materials['Mat_LAMINA'].Depvar(deleteVar=7, n=8)
+mdb.models['Model-1'].materials['Mat_LAMINA'].UserMaterial(mechanicalConstants=
+    (160000.0, 9000.0, 5700.0, 0.34, 0.46))
+mdb.models['Model-1'].HomogeneousSolidSection(material='Mat_LAMINA', name=
+    'Sec_LAMINA', thickness=None)
+# Save by aero_waas_2018_1 on 2023_08_14-12.09.13; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].parts['Part_Laminate'].Set(cells=
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#7 ]', ), ), name='Set_ALL')
+mdb.models['Model-1'].parts['Part_Laminate'].SectionAssignment(offset=0.0, 
+    offsetField='', offsetType=MIDDLE_SURFACE, region=
+    mdb.models['Model-1'].parts['Part_Laminate'].sets['Set_ALL'], sectionName=
+    'Sec_LAMINA', thicknessAssignment=FROM_SECTION)
+mdb.models['Model-1'].parts['Part_Laminate'].MaterialOrientation(
+    additionalRotationType=ROTATION_NONE, axis=AXIS_1, fieldName='', localCsys=
+    None, orientationType=GLOBAL, region=
+    mdb.models['Model-1'].parts['Part_Laminate'].sets['Set_0_plies'], 
+    stackDirection=STACK_3)
+mdb.models['Model-1'].parts['Part_Laminate'].MaterialOrientation(
+    additionalRotationField='', additionalRotationType=ROTATION_ANGLE, angle=
+    90.0, axis=AXIS_3, fieldName='', localCsys=None, orientationType=SYSTEM, 
+    region=mdb.models['Model-1'].parts['Part_Laminate'].sets['Set_90_plies'], 
+    stackDirection=STACK_3)
+# Save by aero_waas_2018_1 on 2023_08_14-12.11.25; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].rootAssembly.DatumCsysByDefault(CARTESIAN)
+mdb.models['Model-1'].rootAssembly.Instance(dependent=ON, name=
+    'Part_Laminate-1', part=mdb.models['Model-1'].parts['Part_Laminate'])
+mdb.models['Model-1'].rootAssembly.features.changeKey(fromName=
+    'Part_Laminate-1', toName='Inst_Laminate')
+# Save by aero_waas_2018_1 on 2023_08_14-12.12.36; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].parts['Part_Laminate'].setElementType(elemTypes=(
+    ElemType(elemCode=C3D8R, elemLibrary=EXPLICIT, secondOrderAccuracy=OFF, 
+    kinematicSplit=AVERAGE_STRAIN, hourglassControl=ENHANCED, 
+    distortionControl=DEFAULT), ElemType(elemCode=C3D6, elemLibrary=EXPLICIT), 
+    ElemType(elemCode=C3D4, elemLibrary=EXPLICIT)), regions=(
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#7 ]', ), ), ))
+mdb.models['Model-1'].parts['Part_Laminate'].seedPart(deviationFactor=0.1, 
+    minSizeFactor=0.1, size=0.18288)
+mdb.models['Model-1'].parts['Part_Laminate'].generateMesh()
+mdb.models['Model-1'].parts['Part_Laminate'].deleteMesh(regions=
+    mdb.models['Model-1'].parts['Part_Laminate'].cells.getSequenceFromMask((
+    '[#7 ]', ), ))
+mdb.models['Model-1'].parts['Part_Laminate'].seedEdgeByNumber(constraint=FINER, 
+    edges=
+    mdb.models['Model-1'].parts['Part_Laminate'].edges.getSequenceFromMask((
+    '[#884510a ]', ), ), number=5)
+mdb.models['Model-1'].parts['Part_Laminate'].generateMesh()
+# Save by aero_waas_2018_1 on 2023_08_14-12.20.22; build 2022 2021_09_15-13.57.30 176069
+# Save by aero_waas_2018_1 on 2023_08_14-12.20.24; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].rootAssembly.regenerate()
+mdb.Job(activateLoadBalancing=False, atTime=None, contactPrint=OFF, 
+    description='', echoPrint=OFF, explicitPrecision=SINGLE, 
+    getMemoryFromAnalysis=True, historyPrint=OFF, memory=90, memoryUnits=
+    PERCENTAGE, model='Model-1', modelPrint=OFF, multiprocessingMode=DEFAULT, 
+    name='Crossply_macro', nodalOutputPrecision=SINGLE, numCpus=1, numDomains=1
+    , numGPUs=0, numThreadsPerMpiProcess=1, parallelizationMethodExplicit=
+    DOMAIN, queue=None, resultsFormat=ODB, scratch='', type=ANALYSIS, 
+    userSubroutine='', waitHours=0, waitMinutes=0)
+mdb.jobs['Crossply_macro'].setValues(explicitPrecision=DOUBLE_PLUS_PACK, 
+    nodalOutputPrecision=FULL, numThreadsPerMpiProcess=1)
+mdb.models['Model-1'].setValues(noPartsInputFile=ON)
+# Save by aero_waas_2018_1 on 2023_08_14-12.22.01; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].rootAssembly.Set(faces=
+    mdb.models['Model-1'].rootAssembly.instances['Inst_Laminate'].faces.getSequenceFromMask(
+    ('[#482 ]', ), ), name='Set_X0')
+mdb.models['Model-1'].rootAssembly.Set(faces=
+    mdb.models['Model-1'].rootAssembly.instances['Inst_Laminate'].faces.getSequenceFromMask(
+    ('[#1028 ]', ), ), name='Set_X1')
+mdb.models['Model-1'].DisplacementBC(amplitude=UNSET, createStepName='Initial', 
+    distributionType=UNIFORM, fieldName='', localCsys=None, name='BC_X0', 
+    region=mdb.models['Model-1'].rootAssembly.sets['Set_X0'], u1=SET, u2=UNSET, 
+    u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+mdb.models['Model-1'].ExplicitDynamicsStep(improvedDtMethod=ON, massScaling=((
+    SEMI_AUTOMATIC, MODEL, THROUGHOUT_STEP, 0.0, 1e-05, BELOW_MIN, 10, 0, 0.0, 
+    0.0, 0, None), ), name='Step_Loading', previous='Initial')
+mdb.models['Model-1'].SmoothStepAmplitude(data=((0.0, 0.0), (2.0, 2.0)), name=
+    'Amp_Loading', timeSpan=STEP)
+mdb.models['Model-1'].DisplacementBC(amplitude='Amp_Loading', createStepName=
+    'Step_Loading', distributionType=UNIFORM, fieldName='', fixed=OFF, 
+    localCsys=None, name='BC_X1', region=
+    mdb.models['Model-1'].rootAssembly.sets['Set_X1'], u1=0.0036576, u2=UNSET, 
+    u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+mdb.models['Model-1'].fieldOutputRequests['F-Output-1'].setValues(variables=(
+    'LE', 'S', 'U', 'V', 'SDV', 'STATUS'))
+mdb.models['Model-1'].fieldOutputRequests['F-Output-1'].setValues(variables=(
+    'LE', 'S', 'SDV', 'STATUS', 'U'))
+# Save by aero_waas_2018_1 on 2023_08_14-12.31.00; build 2022 2021_09_15-13.57.30 176069
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+mdb.models['Model-1'].boundaryConditions['BC_X1'].setValues(u1=0.036576)
+mdb.models['Model-1'].materials['Mat_LAMINA'].userMaterial.setValues(
+    mechanicalConstants=(160000.0, 9000.0, 5700.0, 0.32, 0.44))
+# Save by aero_waas_2018_1 on 2023_08_14-13.11.43; build 2022 2021_09_15-13.57.30 176069

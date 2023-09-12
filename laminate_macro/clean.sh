@@ -1,0 +1,13 @@
+rm -fv *.abq
+rm -fv *.com
+rm -fv *.dat
+rm -fv *mdl
+rm -fv *.msg
+rm -fv *.odb
+rm -fv *.pac
+rm -fv *.prt
+rm -fv *.res
+rm -fv *.sel
+rm -fv *.sta
+rm -fv *.stt
+rm -fv output/*
