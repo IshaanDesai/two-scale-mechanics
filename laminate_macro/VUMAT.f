@@ -84,9 +84,11 @@
       coords_share = SMAFloatArrayCreate(1001,(nblock,*), 0.0)
       coords_share = coordMp
 
-      numberOfQuantitiesToShare = 1
+      numberOfQuantitiesToShare = 3
       intsToShare = SMAIntArrayCreate(1,numberOfQuantitiesToShare,0.0)
       intsToShare(1) = nblock
+      intsToShare(2) = ndir
+      intsToShare(3) = nshr
 
 ! = Loop through points =========================================================================================================
       

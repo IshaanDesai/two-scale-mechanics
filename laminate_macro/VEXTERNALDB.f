@@ -41,12 +41,11 @@
       character*50 meshName, readDataName, writeDataName
       integer :: rank, size, ongoing, dimensions, bool, numberOfVertices
       double precision :: preCICE_dt
-      double precision, dimension(:), allocatable :: couplingVertices, writeData, readData
+      double precision, dimension(:), allocatable :: couplingVertices, stresses, strains
       integer, dimension(:), allocatable :: vertexIDs
-      integer, dimension(1) :: numberOfVerticesArray
+      integer, dimension(3) :: intsFromVUMATArray
 
-      double precision, dimension(:), allocatable :: coords_local, coords_global
-    
+
       ! Note that you  can use the MPI communication between parallel Abaqus processes to gather 
       ! and scatter the data.
     
@@ -56,6 +55,11 @@
             call GETNUMCPUS(size)
             call GETRANK(rank)
 
+            ! Define names of mesh, read data and write data
+            meshName = "laminate-macro-mesh"
+            readDataName = "stresses"
+            writeDataName = "strains"
+
             ! Create preCICE participant
             call precicef_create("laminate_3ply", "../precice-config.xml", rank, size)
 
@@ -63,9 +67,14 @@
             call precicef_get_mesh_dimensions(meshName, dimensions)
 
             ! Get number of vertices from VUMAT global array
-            pointer(ptrNumberOfvertices, numberOfVerticesArray)
-            ptrNumberOfvertices =  SMAIntArrayAccess(1)
-            numberOfVertices = numberOfVerticesArray(1)
+            pointer(ptrIntsFromVUMATArray, intsFromVUMATArray)
+            ptrIntsFromVUMATArray =  SMAIntArrayAccess(1)
+            nblock = intsFromVUMATArray(1)
+            ndir = intsFromVUMATArray(2)
+            nshr = intsFromVUMATArray(3)
+
+            ! Change from VUMAT terminology to preCICE terminology
+            numberOfVertices = nblock
 
             allocate(vertices(numberOfVertices*dimensions))
             allocate(vertexIDs(numberOfVertices))
@@ -77,15 +86,24 @@
             pointer(ptrcouplingVertices, couplingVertices)
             ptrcouplingVertices = SMAFloatArrayAccess(1001)
 
-      !      continuation from a previous analysis (restart)
-             if (kStep .ne. 0) then 
-             end if 
+            ! Set coupling mesh vertices in preCICE
+            call precicef_set_vertices(meshName, numberOfVertices, couplingVertices, vertexIDs)
+            deallocate(couplingVertices)
+
+      !     continuation from a previous analysis (restart)
+            if (kStep .ne. 0) then 
+            end if 
     
-      !   Start of the step
-          else if (lOp .eq. j_int_StartStep) then
-    
-      !    Set up or exchange (import and export) initial values with external programs.      
-          
+      ! Start of the step
+        else if (lOp .eq. j_int_StartStep) then
+            ! Set up or exchange (import and export) initial values with external programs.
+            call precicef_requires_initial_data(bool)
+            if (bool.eq.1) then
+                call precicef_write_data(meshName, writeDataName, numberOfVertices, vertexIDs, stresses)
+            end if
+
+
+            
       !    The initial values may need to match those at the point of restart.
               if ( kInc .ne. 0) then
               end if 
