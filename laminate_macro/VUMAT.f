@@ -1,6 +1,4 @@
 ! mhoangn and desaii
-#include <SMAAspUserSubroutines.hdr>
-
       SUBROUTINE VUMAT(
 ! Read only (unmodifiable)variables -
      1  nblock, ndir, nshr, nstatev, nfieldv, nprops, lanneal,
@@ -13,6 +11,7 @@
      7  stressNew, stateNew, enerInternNew, enerInelasNew )
 !
       include 'vaba_param.inc'
+      #include <SMAAspUserSubroutines.hdr>
 !
       dimension props(nprops), density(nblock), coordMp(nblock,*),
      1  charLength(nblock), strainInc(nblock,ndir+nshr),
@@ -57,8 +56,12 @@
       
       real*8 :: E11, E220, E33, nu12, nu23, nu13, G13, G23, nu31, nu21
       
-      double precision :: coords_share(nblock,*)
-      integer :: numberOfQuantitiesToShare
+      double precision, dimension(nblock,*) :: coordsToShare
+      pointer(ptr_coordsToShare, coordsToShare)
+      double precision, dimension(nblock,ndir+nshr) :: stressesToShare
+      pointer(ptr_stressesToShare, stressesToShare)
+      integer, dimension(3) :: intsToShare
+      pointer(ptr_intsToShare, intsToShare)
 
 ! - Variables --nu32 ---------------------------------------------------------------------------------
       
@@ -81,14 +84,14 @@
       nu32 = nu23*E33/E22
 
 ! - Get coordinates of Gauss points and put them in a global array --------------------------------
-      coords_share = SMAFloatArrayCreate(1001,(nblock,*), 0.0)
-      coords_share = coordMp
 
-      numberOfQuantitiesToShare = 3
-      intsToShare = SMAIntArrayCreate(1,numberOfQuantitiesToShare,0.0)
+      intsToShare = SMAIntArrayCreate(1000,3,0.0)
       intsToShare(1) = nblock
       intsToShare(2) = ndir
       intsToShare(3) = nshr
+
+      ptr_coordsToShare = SMAFloatArrayCreate(1001,(nblock,*), 0.0)
+      coordsToShare = coordMp
 
 ! = Loop through points =========================================================================================================
       

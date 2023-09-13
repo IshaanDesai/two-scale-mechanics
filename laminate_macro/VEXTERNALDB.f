@@ -1,8 +1,7 @@
 ! Ishaan Desai (desaii)
-#include <SMAAspUserSubroutines.hdr>
-
       subroutine vexternaldb(lOp, i_Array, niArray, r_Array, nrArray)
       include 'vaba_param.inc'
+      #include <SMAAspUserSubroutines.hdr>
 
       !   Contents of i_Array
       parameter( i_int_nTotalNodes     = 1,
@@ -41,14 +40,17 @@
       character*50 meshName, readDataName, writeDataName
       integer :: rank, size, ongoing, dimensions, bool, numberOfVertices
       double precision :: preCICE_dt
-      double precision, dimension(:), allocatable :: couplingVertices, stresses, strains
       integer, dimension(:), allocatable :: vertexIDs
+
+      ! Variables acquired from VUMAT
+      integer :: nblock, ndir, nshr
       integer, dimension(3) :: intsFromVUMATArray
-
-
-      ! Note that you  can use the MPI communication between parallel Abaqus processes to gather 
-      ! and scatter the data.
-    
+      pointer(ptr_intsFromVUMATArray, intsFromVUMATArray)
+      double precision, dimension(:), allocatable :: couplingVertices, stresses, strains
+      pointer(ptr_couplingVertices, couplingVertices)
+      pointer(ptr_stresses)
+      pointer(ptr_strains, strains)
+  
       ! Start of the analysis
       if (lOp .eq. j_int_StartAnalysis) then
             ! Get MPI rank and size (total number of MPI processors in this job)
@@ -67,8 +69,7 @@
             call precicef_get_mesh_dimensions(meshName, dimensions)
 
             ! Get number of vertices from VUMAT global array
-            pointer(ptrIntsFromVUMATArray, intsFromVUMATArray)
-            ptrIntsFromVUMATArray =  SMAIntArrayAccess(1)
+            ptrIntsFromVUMATArray =  SMAIntArrayAccess(1000)
             nblock = intsFromVUMATArray(1)
             ndir = intsFromVUMATArray(2)
             nshr = intsFromVUMATArray(3)
@@ -83,7 +84,6 @@
             allocate(couplingVertices(numberOfVertices,dimensions))
             
             ! Get coordinates of vertices from VUMAT global array
-            pointer(ptrcouplingVertices, couplingVertices)
             ptrcouplingVertices = SMAFloatArrayAccess(1001)
 
             ! Set coupling mesh vertices in preCICE
@@ -99,10 +99,9 @@
             ! Set up or exchange (import and export) initial values with external programs.
             call precicef_requires_initial_data(bool)
             if (bool.eq.1) then
+                ptr_stresses = SMAFloatArrayAccess(1002)
                 call precicef_write_data(meshName, writeDataName, numberOfVertices, vertexIDs, stresses)
             end if
-
-
             
       !    The initial values may need to match those at the point of restart.
               if ( kInc .ne. 0) then
