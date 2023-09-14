@@ -93,12 +93,12 @@
       ptr_coordsToShare = SMAFloatArrayCreate(1001,(nblock,*), 0.0)
       coordsToShare = coordMp
 
+      ptr_stressesToShare = SMAFloatArrayCreate(1002,(nblock,ndir+nshr),0.0)
+
 ! = Loop through points =========================================================================================================
-      
       DO k = 1,nblock
          
          ! --- Initialize ----------------------------------------------------------------------------------------------
-
          state = stateOld(k,:)
 
          if (totalTime < 2.*dt) then
@@ -142,31 +142,13 @@
          ! ---------------------------------
          
          stressNew(k, :) = stresses
+
+         ! To send stresses to VEXTERNALDB
+         stressesToShare(k, :) = stresses
+         
          stateNew(k, :)  = state
          
       END DO ! nBlock
-      
-      
 
       RETURN
       END ! SUBROUTINE
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -28,8 +28,8 @@
     
       !    Contents of r_Array
       parameter( i_flt_TotalTime   = 1,
-         *       i_flt_StepTime    = 2,
-         *       i_flt_dTime       = 3 )
+      *          i_flt_StepTime    = 2,
+      *          i_flt_dTime       = 3 )
 
       dimension i_Array(niArray), r_Array(nrArray)
     
@@ -37,7 +37,6 @@
       kInc  = i_Array(i_int_kInc)
 
       ! preCICE variables
-      character*50 meshName, readDataName, writeDataName
       integer :: rank, size, ongoing, dimensions, bool, numberOfVertices
       double precision :: preCICE_dt
       integer, dimension(:), allocatable :: vertexIDs
@@ -53,74 +52,100 @@
   
       ! Start of the analysis
       if (lOp .eq. j_int_StartAnalysis) then
-            ! Get MPI rank and size (total number of MPI processors in this job)
-            call GETNUMCPUS(size)
-            call GETRANK(rank)
+         ! Get MPI rank and size (total number of MPI processors in this job)
+         call getnumcpus(size)
+         call getrank(rank)
 
-            ! Define names of mesh, read data and write data
-            meshName = "laminate-macro-mesh"
-            readDataName = "stresses"
-            writeDataName = "strains"
+         ! Create preCICE participant
+         call precicef_create("laminate_3ply", "../precice-config.xml", rank, size)
 
-            ! Create preCICE participant
-            call precicef_create("laminate_3ply", "../precice-config.xml", rank, size)
+         ! Get problem dimensions from preCICE
+         call precicef_get_mesh_dimensions("laminate-macro-mesh", dimensions)
 
-            ! Get problem dimensions from preCICE
-            call precicef_get_mesh_dimensions(meshName, dimensions)
+         ! Get number of vertices from VUMAT global array
+         ptrIntsFromVUMATArray =  SMAIntArrayAccess(1000)
+         nblock = intsFromVUMATArray(1)
+         ndir = intsFromVUMATArray(2)
+         nshr = intsFromVUMATArray(3)
 
-            ! Get number of vertices from VUMAT global array
-            ptrIntsFromVUMATArray =  SMAIntArrayAccess(1000)
-            nblock = intsFromVUMATArray(1)
-            ndir = intsFromVUMATArray(2)
-            nshr = intsFromVUMATArray(3)
+         ! Change from VUMAT terminology to preCICE terminology
+         numberOfVertices = nblock
 
-            ! Change from VUMAT terminology to preCICE terminology
-            numberOfVertices = nblock
-
-            allocate(vertices(numberOfVertices*dimensions))
-            allocate(vertexIDs(numberOfVertices))
-            allocate(readData(numberOfVertices*dimensions))
-            allocate(writeData(numberOfVertices*dimensions))
-            allocate(couplingVertices(numberOfVertices,dimensions))
+         allocate(vertices(numberOfVertices*dimensions))
+         allocate(vertexIDs(numberOfVertices))
+         allocate(readData(numberOfVertices*dimensions))
+         allocate(writeData(numberOfVertices*dimensions))
+         allocate(couplingVertices(numberOfVertices,dimensions))
             
-            ! Get coordinates of vertices from VUMAT global array
-            ptrcouplingVertices = SMAFloatArrayAccess(1001)
+         ! Get coordinates of vertices from VUMAT global array
+         ptrcouplingVertices = SMAFloatArrayAccess(1001)
 
-            ! Set coupling mesh vertices in preCICE
-            call precicef_set_vertices(meshName, numberOfVertices, couplingVertices, vertexIDs)
-            deallocate(couplingVertices)
+         ! Set coupling mesh vertices in preCICE
+         call precicef_set_vertices("laminate-macro-mesh", numberOfVertices, couplingVertices, vertexIDs)
+         deallocate(couplingVertices)
 
-      !     continuation from a previous analysis (restart)
-            if (kStep .ne. 0) then 
-            end if 
+         ! Continuation from a previous analysis (restart)
+         if (kStep .ne. 0) then 
+         end if 
     
       ! Start of the step
-        else if (lOp .eq. j_int_StartStep) then
-            ! Set up or exchange (import and export) initial values with external programs.
-            call precicef_requires_initial_data(bool)
-            if (bool.eq.1) then
-                ptr_stresses = SMAFloatArrayAccess(1002)
-                call precicef_write_data(meshName, writeDataName, numberOfVertices, vertexIDs, stresses)
-            end if
+      else if (lOp .eq. j_int_StartStep) then
+         ! Set up or exchange (import and export) initial values with external programs.
+         call precicef_requires_initial_data(bool)
+         if (bool.eq.1) then
+            ptr_stresses = SMAFloatArrayAccess(1002)
+            call precicef_write_data("laminate-macro-mesh", "strains", numberOfVertices, vertexIDs, strains)
+         end if
             
-      !    The initial values may need to match those at the point of restart.
-              if ( kInc .ne. 0) then
-              end if 
+         ! Initialize preCICE
+         call precicef_initialize()
+         call precicef_get_max_time_step_size(preCICE_dt)
+
+      !  The initial values may need to match those at the point of restart.
+         if ( kInc .ne. 0) then
+         end if 
         
-      !     Setup the increment       
-          else if (lOp .eq. j_int_SetupIncrement) then        
+      !   Setup the increment
+      else if (lOp .eq. j_int_SetupIncrement) then        
       !    Change i_Array(i_int_lWriteRestart) and i_Array(i_int_iStatus) if desired.      
       !    Change r_Array(i_flt_dTime) if desired.      
           
       !     Start of the increment
-          else if (lOp .eq. j_int_StartIncrement) then
-    
-      !    The time increment is finalized.  Use r_Array(i_flt_dTime) if desired.
-      !    If needed, gather and export data  from the configuration at the end of the previous                               increment to external programs.      
-      !    Import and scatter data from external program to influence the current Abaqus increment.      
+      else if (lOp .eq. j_int_StartIncrement) then
+
+         ! Check if coupling is still going on
+         call precicef_is_coupling_ongoing(ongoing)
+
+         if (ongoing.ne.0) then
+            ! Read stresses from preCICE
+            call precicef_read_data("laminate-macro-mesh", "stresses",
+            *    numberOfVertices, vertexIDs, dt, stresses)
+         end if
     
       !    End of the increment
-          else if (lOp .eq. j_int_EndIncrement) then
+      else if (lOp .eq. j_int_EndIncrement) then
+
+         ! Check if coupling is still going on
+         call precicef_is_coupling_ongoing(ongoing)
+
+         if (ongoing.ne.0) then
+            ! Write strains to preCICE
+            call precicef_write_data("laminate-macro-mesh", "strains",
+            *    numberOfVertices, vertexIDs, writeData)
+
+            ! Get preCICE time step
+            call precicef_get_max_time_step_size(preCICE_dt)
+
+            ! Get Abaqus time step
+            dt = r_Array(i_flt_dTime)
+
+            ! Reset Abaqus time step (origial value or preCICE_dt, whichever is smaller)
+            dt = min(dt, preCICE_dt)
+            r_Array(i_flt_dTime) = dt
+
+            ! Advance the coupling
+            call precicef_advance(dt)
+         end if
     
       !    Change i_Array(i_int_iStatus) if desired.       
       !    Gather and export data  from the configuration at the end of the current increment 
@@ -134,10 +159,10 @@
     
       !     End of the analysis
           else if (lOp .eq. j_int_EndAnalysis) then
-    
-      !    User coding to close  files and disconnect any external programs, etc.      
-    
+            ! Finalize the coupling
+            call precicef_finalize()
+   
           end if 
     
           return
-          end
+      end
