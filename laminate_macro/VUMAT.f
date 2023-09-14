@@ -1,31 +1,31 @@
 ! mhoangn and desaii
       SUBROUTINE VUMAT(
 ! Read only (unmodifiable)variables -
-1     nblock, ndir, nshr, nstatev, nfieldv, nprops, lanneal,
-2     stepTime, totalTime, dt, cmname, coordMp, charLength,
-3     props, density, strainInc, relSpinInc,
-4     tempOld, stretchOld, defgradOld, fieldOld,
-5     stressOld, stateOld, enerInternOld, enerInelasOld,
-6     tempNew, stretchNew, defgradNew, fieldNew,
+     1     nblock, ndir, nshr, nstatev, nfieldv, nprops, lanneal,
+     2     stepTime, totalTime, dt, cmname, coordMp, charLength,
+     3     props, density, strainInc, relSpinInc,
+     4     tempOld, stretchOld, defgradOld, fieldOld,
+     5     stressOld, stateOld, enerInternOld, enerInelasOld,
+     6     tempNew, stretchNew, defgradNew, fieldNew,
 ! Write only (modifiable) variables -
-7     stressNew, stateNew, enerInternNew, enerInelasNew)
+     7     stressNew, stateNew, enerInternNew, enerInelasNew)
 !
       include 'vaba_param.inc'
 #include <SMAAspUserSubroutines.hdr>
 !
       dimension props(nprops), density(nblock), coordMp(nblock, *),
-1     charLength(nblock), strainInc(nblock, ndir + nshr),
-2     relSpinInc(nblock, nshr), tempOld(nblock),
-3     stretchOld(nblock, ndir + nshr),
-4     defgradOld(nblock, ndir + nshr + nshr),
-5     fieldOld(nblock, nfieldv), stressOld(nblock, ndir + nshr),
-6     stateOld(nblock, nstatev), enerInternOld(nblock),
-7     enerInelasOld(nblock), tempNew(nblock),
-8     stretchNew(nblock, ndir + nshr),
-8     defgradNew(nblock, ndir + nshr + nshr),
-9     fieldNew(nblock, nfieldv),
-1     stressNew(nblock, ndir + nshr), stateNew(nblock, nstatev),
-2     enerInternNew(nblock), enerInelasNew(nblock)
+     1     charLength(nblock), strainInc(nblock, ndir + nshr),
+     2     relSpinInc(nblock, nshr), tempOld(nblock),
+     3     stretchOld(nblock, ndir + nshr),
+     4     defgradOld(nblock, ndir + nshr + nshr),
+     5     fieldOld(nblock, nfieldv), stressOld(nblock, ndir + nshr),
+     6     stateOld(nblock, nstatev), enerInternOld(nblock),
+     7     enerInelasOld(nblock), tempNew(nblock),
+     8     stretchNew(nblock, ndir + nshr),
+     8     defgradNew(nblock, ndir + nshr + nshr),
+     9     fieldNew(nblock, nfieldv),
+     1     stressNew(nblock, ndir + nshr), stateNew(nblock, nstatev),
+     2     enerInternNew(nblock), enerInelasNew(nblock)
 !
       character*80 cmname
 
@@ -35,19 +35,24 @@
       parameter(pi=3.14159265358979323846264)
 
       parameter(i_prp_E11=1,
-      *i_prp_E22 = 2,
-      *i_prp_G12 = 3,
-      *i_prp_nu12 = 4,
-      *i_prp_nu23 = 5)
+     * i_prp_E22 = 2,
+     * i_prp_G12 = 3,
+     * i_prp_nu12 = 4,
+     * i_prp_nu23 = 5)
 
       parameter(i_sdv_eps11=1,
-      *i_sdv_eps22 = 2,
-      *i_sdv_eps33 = 3,
-      *i_sdv_gamma12 = 4,
-      *i_sdv_gamma23 = 5,
-      *i_sdv_gamma13 = 6,
-      *i_sdv_active = 7,
-      *i_sdv_t_f = 8)
+     * i_sdv_eps22 = 2,
+     * i_sdv_eps33 = 3,
+     * i_sdv_gamma12 = 4,
+     * i_sdv_gamma23 = 5,
+     * i_sdv_gamma13 = 6,
+     * i_sdv_active = 7,
+     * i_sdv_t_f = 8)
+
+     ! For defining shared arrays
+      parameter(maxMaterialPts=1000,
+     * directComponents=3,
+     * indirectComponents=3)
 
 ! - Variables --------------------------------------------------------- [11, 22, 33, 12, 23, 13]
 
@@ -56,30 +61,30 @@
 
       real*8 :: E11, E220, E33, nu12, nu23, nu13, G13, G23, nu31, nu21
 
-      double precision, dimension(nblock, *) :: coordsToShare
+      integer :: i, j
+
+      double precision, dimension(maxMaterialPts, directComponents) :: coordsToShare
       pointer(ptr_coordsToShare, coordsToShare)
-      double precision, dimension(nblock, ndir + nshr) :: stressesToShare
-      pointer(ptr_stressesToShare, stressesToShare)
+      double precision, dimension(maxMaterialPts, directComponents + indirectComponents) :: strainsToWrite
+      pointer(ptr_strainsToWrite, strainsToWrite)
+      double precision, dimension(maxMaterialPts, directComponents + indirectComponents) :: stressesToRead
+      pointer(ptr_stressesToRead, stressesToRead)
       integer, dimension(3) :: intsToShare
       pointer(ptr_intsToShare, intsToShare)
 
-! - Variables --nu32 ---------------------------------------------------------------------------------
+! - Share initial integers and  --------------------------------
 
-
-! - Initialize ----------------------------------------------------------------------------------
-      
-
-! - Get coordinates of Gauss points and put them in a global array --------------------------------
-
-      intsToShare = SMAIntArrayCreate(1000, 3, 0.0)
+      ptr_intsToShare = SMALocalIntArrayCreate(1000, 3, 0)
       intsToShare(1) = nblock
       intsToShare(2) = ndir
       intsToShare(3) = nshr
 
-      ptr_coordsToShare = SMAFloatArrayCreate(1001, (nblock, *), 0.0)
+      ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
+     * (maxMaterialPts, directComponents), 0.0)
       coordsToShare = coordMp
 
-      ptr_stressesToShare = SMAFloatArrayCreate(1002, (nblock, ndir + nshr), 0.0)
+      ptr_strainsToWrite = SMALocalFloatArrayCreate(1002,
+     * (maxMaterialPts, directComponents + indirectComponents), 0.0)
 
 ! = Loop through points =========================================================================================================
       DO k = 1, nblock
@@ -109,19 +114,18 @@
          strains_total(6) = state(i_sdv_gamma13) + two*strainInc(k, 6)
          state(i_sdv_eps11:i_sdv_gamma13) = strains_total
 
-         ! Calculate stresses
-         
-         stresses = ! from RUC
-         ! ---------------------------------
+         do i = 1, 6
+            strainsToWrite(i) = strains_total(i)
+         end do
+
+         ! Get stresses from VEXTERNALDB
+         ptr_stressesToRead = SMALocalFloatArrayAccess(1003)
+         stresses(k, :) = stressesToRead(k, :)
 
          stressNew(k, :) = stresses
-
-         ! To send stresses to VEXTERNALDB
-         stressesToShare(k, :) = stresses
-
          stateNew(k, :) = state
 
       END DO ! nBlock
 
       RETURN
-   END ! SUBROUTINE
+      END ! SUBROUTINE

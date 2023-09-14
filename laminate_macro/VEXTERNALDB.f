@@ -5,31 +5,31 @@
 
          !   Contents of i_Array
          parameter(i_int_nTotalNodes=1,
-         *i_int_nTotalElements = 2,
-         *i_int_kStep = 3,
-         *i_int_kInc = 4,
-         *i_int_iStatus = 5,
-         *i_int_lWriteRestart = 6,
-         *i_int_ExtraOutputFrame = 7)
+     *             i_int_nTotalElements = 2,
+     *             i_int_kStep = 3,
+     *             i_int_kInc = 4,
+     *             i_int_iStatus = 5,
+     *             i_int_lWriteRestart = 6,
+     *             i_int_ExtraOutputFrame = 7)
 
          !   Possible values for the lOp argument
          parameter(j_int_StartAnalysis=0,
-         *j_int_StartStep = 1,
-         *j_int_SetupIncrement = 2,
-         *j_int_StartIncrement = 3,
-         *j_int_EndIncrement = 4,
-         *j_int_EndStep = 5,
-         *j_int_EndAnalysis = 6)
+     *             j_int_StartStep = 1,
+     *             j_int_SetupIncrement = 2,
+     *             j_int_StartIncrement = 3,
+     *             j_int_EndIncrement = 4,
+     *             j_int_EndStep = 5,
+     *             j_int_EndAnalysis = 6)
 
          !    Possible values for i_Array(i_int_iStatus)
          parameter(j_int_Continue=0,
-         *j_int_TerminateStep = 1,
-         *j_int_TerminateAnalysis = 2)
+     *             j_int_TerminateStep = 1,
+     *             j_int_TerminateAnalysis = 2)
 
          !    Contents of r_Array
          parameter(i_flt_TotalTime=1,
-         *i_flt_StepTime = 2,
-         *i_flt_dTime = 3)
+     *             i_flt_StepTime = 2,
+     *             i_flt_dTime = 3)
 
          dimension i_Array(niArray), r_Array(nrArray)
 
@@ -45,10 +45,16 @@
          integer :: nblock, ndir, nshr
          integer, dimension(3) :: intsFromVUMATArray
          pointer(ptr_intsFromVUMATArray, intsFromVUMATArray)
-         double precision, dimension(:), allocatable :: couplingVertices, stresses, strains
+         double precision, dimension(:), allocatable :: couplingVerticesCoords
+         double precision, dimension(:), allocatable :: stresses, strains
          pointer(ptr_couplingVertices, couplingVertices)
-         pointer(ptr_stresses)
+         pointer(ptr_stresses, stresses)
          pointer(ptr_strains, strains)
+
+         ! For defining shared arrays (same as VUMAT)
+         parameter(maxMaterialPts=5000,
+     *             directComponents=3,
+     *             indirectComponents=3)
 
          ! Start of the analysis
          if (lOp .eq. j_int_StartAnalysis) then
@@ -93,13 +99,18 @@
             ! Set up or exchange (import and export) initial values with external programs.
             call precicef_requires_initial_data(bool)
             if (bool .eq. 1) then
-               ptr_strains = SMAFloatArrayAccess(1002)
-               call precicef_write_data("laminate-macro-mesh", "strains", numberOfVertices, vertexIDs, strains)
+               ptr_strains = SMALocalFloatArrayAccess(1002)
+               call precicef_write_data("laminate-macro-mesh",
+     *              "strains", numberOfVertices, vertexIDs, strains)
             end if
 
             ! Initialize preCICE
             call precicef_initialize()
             call precicef_get_max_time_step_size(preCICE_dt)
+
+            ! Create the stress array to share with VUMAT
+            ptr_stresses = SMALocalFloatArrayCreate(1003,
+     *      (maxMaterialPts, directComponents + indirectComponents), 0.0)
 
             !  The initial values may need to match those at the point of restart.
             if (kInc .ne. 0) then
@@ -118,8 +129,9 @@
 
             if (ongoing .ne. 0) then
                ! Read stresses from preCICE
-               call precicef_read_data("laminate-macro-mesh", "stresses",
-               *numberOfVertices, vertexIDs, dt, stresses)
+               call precicef_read_data("laminate-macro-mesh",
+     *              "stresses", numberOfVertices, vertexIDs, dt, stresses)
+               
             end if
 
             !    End of the increment
