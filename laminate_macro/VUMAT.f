@@ -1,5 +1,5 @@
 ! mhoangn and desaii
-      SUBROUTINE VUMAT(
+      subroutine vumat(
 ! Read only (unmodifiable)variables -
      1     nblock, ndir, nshr, nstatev, nfieldv, nprops, lanneal,
      2     stepTime, totalTime, dt, cmname, coordMp, charLength,
@@ -12,7 +12,7 @@
 !
       include 'vaba_param.inc'
 #include <SMAAspUserSubroutines.hdr>
-!
+
       dimension props(nprops), density(nblock), coordMp(nblock, *),
      1     charLength(nblock), strainInc(nblock, ndir + nshr),
      2     relSpinInc(nblock, nshr), tempOld(nblock),
@@ -51,6 +51,7 @@
 
      ! For defining shared arrays
       parameter(maxMaterialPts=1000,
+     * maxTensorComps=6,
      * directComponents=3,
      * indirectComponents=3)
 
@@ -65,34 +66,24 @@
 
       double precision, dimension(maxMaterialPts, directComponents) :: coordsToShare
       pointer(ptr_coordsToShare, coordsToShare)
-      double precision, dimension(maxMaterialPts, directComponents + indirectComponents) :: strainsToWrite
+      double precision, dimension(maxTensorComps) :: strainsToWrite
       pointer(ptr_strainsToWrite, strainsToWrite)
       double precision, dimension(maxMaterialPts, directComponents + indirectComponents) :: stressesToRead
       pointer(ptr_stressesToRead, stressesToRead)
       integer, dimension(3) :: intsToShare
       pointer(ptr_intsToShare, intsToShare)
 
-! - Share initial integers and  --------------------------------
-
-      ptr_intsToShare = SMALocalIntArrayCreate(1000, 3, 0)
-      intsToShare(1) = nblock
-      intsToShare(2) = ndir
-      intsToShare(3) = nshr
-
-      ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
-     * (maxMaterialPts, directComponents), 0.0)
-      coordsToShare = coordMp
-
+      ! Create shared array to share strains with VEXTERNALDB
       ptr_strainsToWrite = SMALocalFloatArrayCreate(1002,
      * (maxMaterialPts, directComponents + indirectComponents), 0.0)
 
 ! = Loop through points =========================================================================================================
-      DO k = 1, nblock
+      do k = 1, nblock
 
          ! --- Initialize ----------------------------------------------------------------------------------------------
          state = stateOld(k, :)
 
-         if (totalTime < 2.*dt) then
+         if (totalTime < 2.*dt) then ! First increment (run only once)
 
             state(i_sdv_eps11) = zero
             state(i_sdv_eps22) = zero
@@ -103,6 +94,17 @@
 
             state(i_sdv_active) = one
             state(i_sdv_t_f) = zero
+
+            ! Share integers nblock, ndir, nshr
+            ptr_intsToShare = SMALocalIntArrayCreate(1000, 3, 0)
+            intsToShare(1) = nblock
+            intsToShare(2) = ndir
+            intsToShare(3) = nshr
+      
+            ! Share coordinates of material points
+            ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
+     *      (maxMaterialPts, directComponents), 0.0)
+            coordsToShare = coordMp
 
          end if
 
@@ -118,14 +120,14 @@
             strainsToWrite(i) = strains_total(i)
          end do
 
-         ! Get stresses from VEXTERNALDB
+         ! Get stresses from VEXTERNALDB via shared array
          ptr_stressesToRead = SMALocalFloatArrayAccess(1003)
          stresses(k, :) = stressesToRead(k, :)
 
          stressNew(k, :) = stresses
          stateNew(k, :) = state
 
-      END DO ! nBlock
+      end do ! nBlock
 
-      RETURN
-      END ! SUBROUTINE
+      return
+      end ! SUBROUTINE

@@ -131,7 +131,6 @@
                ! Read stresses from preCICE
                call precicef_read_data("laminate-macro-mesh",
      *              "stresses", numberOfVertices, vertexIDs, dt, stresses)
-               
             end if
 
             !    End of the increment
