@@ -49,26 +49,26 @@
      * i_sdv_active = 7,
      * i_sdv_t_f = 8)
 
+! - Variables --------------------------------------------------------- [11, 22, 33, 12, 23, 13]
+
       ! For defining shared arrays
       ! maxMaterialPts == nblock, directComponents == ndir, indirectComponents == nshr
       ! maxTensorComponents == ndir + nshr
       parameter(maxMaterialPts=1000,
      * directComponents=3,
      * indirectComponents=3,
-     * maxTensorComponents=6)
-
-! - Variables --------------------------------------------------------- [11, 22, 33, 12, 23, 13]
+     * maxTensorComponents=6,
+     * max3Dsize=3000,
+     * max6Dsize=6000)
 
       real*8 :: state(nstatev), strains_total(6)
       real*8 :: E11, E220, E33, nu12, nu23, nu13, G13, G23, nu31, nu21
+      integer :: d, ArraySize2D
 
-      integer :: d
-
-      double precision, dimension(maxMaterialPts, directComponents) :: coordsToShare
+      double precision, dimension(max3Dsize) :: coordsToShare
       pointer(ptr_coordsToShare, coordsToShare)
 
-      double precision, dimension(maxMaterialPts, maxTensorComponents) :: strainsToWrite,
-     * stressesToRead
+      double precision, dimension(max6Dsize) :: strainsToWrite, stressesToRead
 
       pointer(ptr_strainsToWrite, strainsToWrite)
       pointer(ptr_stressesToRead, stressesToRead)
@@ -78,7 +78,7 @@
 
       ! Create shared array to share strains with VEXTERNALDB
       ptr_strainsToWrite = SMALocalFloatArrayCreate(1002,
-     * (maxMaterialPts, maxTensorComponents), 0.0)
+     * max6Dsize, 0.0)
 
       ! Initialize -- run only once
       if (totalTime < 2.*dt) then
@@ -100,8 +100,8 @@
       
          ! Create shared array for material point coordinates
          ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
-     *      (maxMaterialPts, directComponents), 0.0)      
-      
+     *    max3Dsize, 0.0)      
+
          ! Put coordinates in the shared array
          do k = 1, nblock
             do d = 1, directComponents
