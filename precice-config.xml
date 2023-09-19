@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<precice-configuration experimental="true">
+
+    <log>
+	<sink type="stream" output="stdout"  filter= "%Severity% > debug" enabled="true" />
+    </log>  
+    
+    <data:vector name="stresses"/>
+    <data:vector name="strains"/>
+
+    <mesh name="laminate-macro-mesh" dimensions="3">
+       <use-data name="stresses"/>
+       <use-data name="strains"/>
+    </mesh>
+
+    <participant name="Laminate_3D_ply">
+      <provide-mesh name="laminate-macro-mesh"/>
+      <read-data name="stresses" mesh="laminate-macro-mesh"/>
+      <write-data name="strains" mesh="laminate-macro-mesh"/>
+    </participant>
+
+    <participant name="Micro-Manager">
+      <receive-mesh name="laminate-macro-mesh" from="Laminate_3D_ply" direct-access="true" safety-factor="0.0"/>
+      <read-data name="strains" mesh="laminate-macro-mesh"/>
+      <write-data name="stresses" mesh="laminate-macro-mesh"/>
+    </participant>
+
+    <m2n:sockets acceptor="Micro-Manager" connector="Laminate_3D_ply"/>
+
+    <coupling-scheme:serial-explicit>
+       <participants first="Laminate_3D_ply" second="Micro-Manager"/>
+       <max-time-windows value="100"/>
+       <time-window-size value="1e-2"/>
+       <exchange data="stresses" mesh="laminate-macro-mesh" from="Micro-Manager" to="Laminate_3D_ply"/>
+       <exchange data="strains" mesh="laminate-macro-mesh" from="Laminate_3D_ply" to="Micro-Manager"/>
+    </coupling-scheme:serial-explicit>
+
+</precice-configuration>

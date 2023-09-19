@@ -24,6 +24,6 @@ module load intel
 #rm -rfv abq1.*
 
 abaqus job=Crossply_macro input=Crossply_macro \
-	scratch=/home/desaii/composite-multiscale/laminate_macro \
+	scratch=/home/desaii/composite-multiscale/macro_laminate \
 	interactive user=VUMAT.f double=both
 

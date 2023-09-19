@@ -51,7 +51,7 @@
          pointer(ptr_stresses, stresses)
          pointer(ptr_strains, strains)
 
-         ! For defining shared arrays (same as VUMAT)
+         ! For defining fixed sized shared arrays (same as VUMAT)
          parameter(maxMaterialPts=5000,
      *             directComponents=3,
      *             indirectComponents=3)
@@ -63,7 +63,7 @@
             call getrank(rank)
 
             ! Create preCICE participant
-            call precicef_create("laminate_3ply", "../precice-config.xml", rank, size)
+            call precicef_create("Laminate_3D_ply", "../precice-config.xml", rank, size)
 
             ! Get problem dimensions from preCICE
             call precicef_get_mesh_dimensions("laminate-macro-mesh", dimensions)
