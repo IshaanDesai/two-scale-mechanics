@@ -11,3 +11,4 @@ rm -fv *.sel
 rm -fv *.sta
 rm -fv *.stt
 rm -fv output/*
+rm -fv slurm-*.out

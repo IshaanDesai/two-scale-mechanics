@@ -1,4 +1,4 @@
-! Ishaan Desai (desaii)
+! Author: Ishaan Desai (desaii)
       subroutine vexternaldb(lOp, i_Array, niArray, r_Array, nrArray)
          include 'vaba_param.inc'
 #include <SMAAspUserSubroutines.hdr>
