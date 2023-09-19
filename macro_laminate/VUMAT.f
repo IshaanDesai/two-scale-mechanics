@@ -53,22 +53,23 @@
 
       ! For defining shared arrays
       ! maxMaterialPts == nblock, directComponents == ndir, indirectComponents == nshr
-      ! maxTensorComponents == ndir + nshr
+      ! maxTensorComponents == ndir + nshr, max3DSiye = nblock * ndir,
+      ! max6DSize = nblock * (ndir + nshr)
       parameter(maxMaterialPts=1000,
      * directComponents=3,
      * indirectComponents=3,
      * maxTensorComponents=6,
-     * max3Dsize=3000,
-     * max6Dsize=6000)
+     * max3DSize=3000,
+     * max6DSize=6000)
 
       real*8 :: state(nstatev), strains_total(6)
       real*8 :: E11, E220, E33, nu12, nu23, nu13, G13, G23, nu31, nu21
-      integer :: d, ArraySize2D
+      integer :: d, counter
 
-      double precision, dimension(max3Dsize) :: coordsToShare
+      double precision, dimension(max3DSize) :: coordsToShare
       pointer(ptr_coordsToShare, coordsToShare)
 
-      double precision, dimension(max6Dsize) :: strainsToWrite, stressesToRead
+      double precision, dimension(max6DSize) :: strainsToWrite, stressesToRead
 
       pointer(ptr_strainsToWrite, strainsToWrite)
       pointer(ptr_stressesToRead, stressesToRead)
@@ -78,7 +79,7 @@
 
       ! Create shared array to share strains with VEXTERNALDB
       ptr_strainsToWrite = SMALocalFloatArrayCreate(1002,
-     * max6Dsize, 0.0)
+     * max6DSize, 0.0)
 
       ! Initialize -- run only once
       if (totalTime < 2.*dt) then
@@ -100,18 +101,21 @@
       
          ! Create shared array for material point coordinates
          ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
-     *    max3Dsize, 0.0)      
+     *    max3DSize, 0.0)      
 
          ! Put coordinates in the shared array
+         counter = 1
          do k = 1, nblock
             do d = 1, directComponents
-               coordsToShare(k, d) = coordMp(k, d)
+               coordsToShare(counter) = coordMp(k, d)
+               counter = counter + 1
             end do
          end do
 
       end if
 
       ! Loop through material points to collect strains
+      counter = 1
       do k = 1, nblock
 
          state = stateOld(k, :)
@@ -125,7 +129,8 @@
          state(i_sdv_eps11:i_sdv_gamma13) = strains_total
 
          do i = 1, maxTensorComponents
-            strainsToWrite(k, i) = strains_total(i)
+            strainsToWrite(counter) = strains_total(i)
+            counter = counter + 1
          end do ! maxTensorComponents
 
       end do ! nblock
@@ -134,11 +139,13 @@
       ptr_stressesToRead = SMALocalFloatArrayAccess(1003)
 
       ! Loop through material points to apply stresses
+      counter = 1
       do k = 1, nblock
          do d = 1, maxTensorComponents
 
-            stressNew(k, d) = stressesToRead(k, d)
+            stressNew(k, d) = stressesToRead(counter)
             stateNew(k, d) = state(d)
+            counter = counter + 1
 
          end do ! maxTensorComponents
       end do ! nblock
