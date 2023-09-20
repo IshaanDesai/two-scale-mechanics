@@ -127,6 +127,7 @@
             end do
          end do
 
+         write(*,*) "(t = ", totalTime, ") VUMAT: Initialization done."
       end if
 
       ! Loop through material points to collect strains
@@ -153,7 +154,12 @@
 
       end do ! nblock
 
+      write(*,*) "(t = ", totalTime, ") VUMAT: Strains collected."
+
       if (totalTime > 2.*dt) then ! Only after VEXTERNALDB is run
+
+         write(*,*) "(t = ", totalTime, ") VUMAT: Trying to read stresses."
+
          ! Get stresses from VEXTERNALDB via shared array
          ptr_stressesToRead = SMALocalFloatArrayAccess(1003)
 
@@ -167,7 +173,11 @@
 
             end do ! maxTensorComponents
          end do ! nblock
+
+         write(*,*) "(t = ", totalTime, ") VUMAT: Stresses applied."
+
       else ! Before VEXTERNALDB is run
+
          ! Calculate stresses for Abaqus preparation step
          temp   = nu12*nu21 + nu23*nu32 + nu13*nu31 + 2.*nu21*nu32*nu13
          Q      = zero
@@ -189,8 +199,10 @@
             stressNew(k, :) = stresses
          end do
 
+         write(*,*) "(t = ", totalTime, ") VUMAT: Material model solved."
+
       end if
 
-      write(*,*) "VUMAT: Complete"
+      write(*,*) "(t = ", totalTime, ") VUMAT: Complete."
       return
       end ! SUBROUTINE

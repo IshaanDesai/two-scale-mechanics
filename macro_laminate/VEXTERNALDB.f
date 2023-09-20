@@ -51,14 +51,15 @@
      *             max3DSize=1000,
      *             max6DSize=1000)
 
-         ! Variables acquired from VUMAT
          integer :: nblock, ndir, nshr
+
          integer, dimension(3) :: intsFromVUMATArray
          pointer(ptr_intsFromVUMATArray, intsFromVUMATArray)
-         double precision, dimension(max3DSize), allocatable :: couplingVerticesCoords
-         double precision, dimension(max6DSize), allocatable :: stresses
-     *   , strains
+
+         double precision, dimension(max3DSize) :: couplingVertices
          pointer(ptr_couplingVertices, couplingVertices)
+
+         double precision, dimension(max6DSize) :: stresses, strains
          pointer(ptr_stresses, stresses)
          pointer(ptr_strains, strains)
 
