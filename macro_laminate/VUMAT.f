@@ -77,7 +77,13 @@
       integer, dimension(3) :: intsToShare
       pointer(ptr_intsToShare, intsToShare)
 
-      ! Create shared array to share strains with VEXTERNALDB
+      ! Create shared arrays
+      ! Share integers
+      ptr_intsToShare = SMALocalIntArrayCreate(1000, 3, 0)
+      ! Share material point coordinates
+      ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
+     * max3DSize, 0.0)
+      ! Share strains
       ptr_strainsToWrite = SMALocalFloatArrayCreate(1002,
      * max6DSize, 0.0)
 
@@ -94,14 +100,9 @@
          state(i_sdv_t_f) = zero
 
          ! Share integers nblock, ndir, nshr
-         ptr_intsToShare = SMALocalIntArrayCreate(1000, 3, 0)
          intsToShare(1) = nblock
          intsToShare(2) = ndir
-         intsToShare(3) = nshr
-      
-         ! Create shared array for material point coordinates
-         ptr_coordsToShare = SMALocalFloatArrayCreate(1001,
-     *    max3DSize, 0.0)      
+         intsToShare(3) = nshr 
 
          ! Put coordinates in the shared array
          counter = 1
@@ -135,8 +136,10 @@
 
       end do ! nblock
 
-      ! Get stresses from VEXTERNALDB via shared array
-      ptr_stressesToRead = SMALocalFloatArrayAccess(1003)
+      if (totalTime > 2.*dt) then ! Only after VEXTERNALDB is run
+         ! Get stresses from VEXTERNALDB via shared array
+         ptr_stressesToRead = SMALocalFloatArrayAccess(1003)
+      end if
 
       ! Loop through material points to apply stresses
       counter = 1

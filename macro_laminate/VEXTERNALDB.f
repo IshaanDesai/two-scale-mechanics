@@ -41,20 +41,27 @@
          double precision :: preCICE_dt
          integer, dimension(:), allocatable :: vertexIDs
 
+         ! For defining shared arrays
+         ! maxMaterialPts == nblock, directComponents == ndir, indirectComponents == nshr
+         ! maxTensorComponents == ndir + nshr, max3DSiye = nblock * ndir,
+         ! max6DSize = nblock * (ndir + nshr)
+         parameter(maxMaterialPts=1000,
+     *             directComponents=3,
+     *             indirectComponents=3,
+     *             maxTensorComponents=6,
+     *             max3DSize=3000,
+     *             max6DSize=6000)
+
          ! Variables acquired from VUMAT
          integer :: nblock, ndir, nshr
          integer, dimension(3) :: intsFromVUMATArray
          pointer(ptr_intsFromVUMATArray, intsFromVUMATArray)
-         double precision, dimension(:), allocatable :: couplingVerticesCoords
-         double precision, dimension(:), allocatable :: stresses, strains
+         double precision, dimension(max3DSize), allocatable :: couplingVerticesCoords
+         double precision, dimension(max6DSize), allocatable :: stresses
+     *   , strains
          pointer(ptr_couplingVertices, couplingVertices)
          pointer(ptr_stresses, stresses)
          pointer(ptr_strains, strains)
-
-         ! For defining fixed sized shared arrays (same as VUMAT)
-         parameter(maxMaterialPts=5000,
-     *             directComponents=3,
-     *             indirectComponents=3)
 
          ! Start of the analysis
          if (lOp .eq. j_int_StartAnalysis) then
@@ -98,6 +105,7 @@
          else if (lOp .eq. j_int_StartStep) then
             ! Set up or exchange (import and export) initial values with external programs.
             call precicef_requires_initial_data(bool)
+
             if (bool .eq. 1) then
                ptr_strains = SMALocalFloatArrayAccess(1002)
                call precicef_write_data("laminate-macro-mesh",
@@ -110,7 +118,7 @@
 
             ! Create the stress array to share with VUMAT
             ptr_stresses = SMALocalFloatArrayCreate(1003,
-     *      (maxMaterialPts, directComponents + indirectComponents), 0.0)
+     *       max6DSize, 0.0)
 
             !  The initial values may need to match those at the point of restart.
             if (kInc .ne. 0) then
@@ -152,7 +160,7 @@
 
                ! Reset Abaqus time step (origial value or preCICE_dt, whichever is smaller)
                dt = min(dt, preCICE_dt)
-               r_Array(i_flt_dTime) = dt
+               r_Array(i_flt_dTime) = dt ! Set the dt in Abaqus
 
                ! Advance the coupling
                call precicef_advance(dt)
