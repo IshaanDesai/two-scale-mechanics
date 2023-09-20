@@ -42,15 +42,14 @@
          integer, dimension(:), allocatable :: vertexIDs
 
          ! For defining shared arrays
-         ! maxMaterialPts == nblock, directComponents == ndir, indirectComponents == nshr
+         ! directComponents == ndir, indirectComponents == nshr
          ! maxTensorComponents == ndir + nshr, max3DSiye = nblock * ndir,
          ! max6DSize = nblock * (ndir + nshr)
-         parameter(maxMaterialPts=1000,
-     *             directComponents=3,
+         parameter(directComponents=3,
      *             indirectComponents=3,
      *             maxTensorComponents=6,
-     *             max3DSize=3000,
-     *             max6DSize=6000)
+     *             max3DSize=1000,
+     *             max6DSize=1000)
 
          ! Variables acquired from VUMAT
          integer :: nblock, ndir, nshr
@@ -65,6 +64,7 @@
 
          ! Start of the analysis
          if (lOp .eq. j_int_StartAnalysis) then
+            write(*,*) "VEXTERNALDB: Entering the analysis start part"
             ! Get MPI rank and size (total number of MPI processors in this job)
             call getnumcpus(size)
             call getrank(rank)
