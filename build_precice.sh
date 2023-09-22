@@ -6,6 +6,7 @@ module purge
 
 # Modules may need to be updated depending on compatibility and availability on Great Lakes
 module load gcc/10.3.0 cmake/3.26.3 eigen/3.4.0 boost/1.78.0 openmpi/4.1.6
+#module load intel/18.0.5
 
 echo "Loaded modules:"
 module list
@@ -20,7 +21,7 @@ cd build
 
 echo "Building and installing preCICE in $PWD"
 
-cmake -DCMAKE_INSTALL_PREFIX=. -DCMAKE_BUILD_TYPE=Release -DPRECICE_FEATURE_PETSC_MAPPING=OFF -DPRECICE_FEATURE_PYTHON_ACTIONS=OFF ..
+cmake -DCMAKE_BUILD_TYPE=Debug -DPRECICE_FEATURE_PETSC_MAPPING=OFF -DPRECICE_FEATURE_PYTHON_ACTIONS=OFF ..
 make -j 8
 ctest
-make install
+#make install

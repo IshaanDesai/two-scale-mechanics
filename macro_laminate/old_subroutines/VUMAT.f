@@ -1,4 +1,4 @@
-! Author: Ishaan Desai (desaii)
+! Authors: Minh Hoang Nguyen (mhoangn) and Ishaan Desai (desaii)
       subroutine vumat(
 ! Read only (unmodifiable)variables -
      1     nblock, ndir, nshr, nstatev, nfieldv, nprops, lanneal,
@@ -205,4 +205,4 @@
 
       write(*,*) "(t = ", totalTime, ") VUMAT: Complete."
       return
-      end ! SUBROUTINE
+      end ! Subroutine
