@@ -1,0 +1,17 @@
+*.abq
+*.com
+*.dat
+*.mdl
+*.msg
+*.odb
+*.pac
+*.prt
+*.res
+*.sel
+*.sta
+*.stt
+output/*
+slurm-*.out
+*.src
+*.exception
+
