@@ -10,6 +10,10 @@ Describe setup of macro and micro scales
 
 Abaqus
 
+preCICE
+
+Micro Manager
+
 ## Running the simulation
 
 Run the macro laminate problem:

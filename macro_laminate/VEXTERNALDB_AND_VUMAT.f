@@ -79,17 +79,23 @@
          call vgetrank(rank)
 
          ! Create preCICE participant
-         call precicef_create("Laminate_3D_ply",
+         call precicef_create("Laminate-3D-ply",
      *    "/home/desaii/composite-multiscale/precice-config.xml", rank, size)
+
+         write(*,*) "VEXTERNALDB: After precicef_create"
 
          ! Get problem dimensions from preCICE
          call precicef_get_mesh_dimensions("laminate-macro-mesh", dimensions)
 
+         write(*,*) "VEXTERNALDB: After precicef_get_mesh_dimensions"
+
          ! Get number of vertices from VUMAT global array
-         ptrIntsFromVUMATArray = SMALocalIntArrayAccess(1000)
-         nblock = intsFromVUMATArray(1)
-         ndir = intsFromVUMATArray(2)
-         nshr = intsFromVUMATArray(3)
+         !ptrIntsFromVUMATArray = SMALocalIntArrayAccess(1000)
+         !nblock = intsFromVUMATArray(1)
+         !ndir = intsFromVUMATArray(2)
+         !nshr = intsFromVUMATArray(3)
+
+         write(*,*) "VEXTERNALDB: After first shared array access"
 
          ! Change from VUMAT terminology to preCICE terminology
          numberOfVertices = nblock
@@ -101,6 +107,8 @@
 
          ! Get coordinates of vertices from VUMAT global array
          ptr_macroVertices = SMALocalFloatArrayAccess(1001)
+
+         write(*,*) "Macro coordinates: ", couplingVertices
 
          ! Set coupling mesh vertices in preCICE
          call precicef_set_vertices("laminate-macro-mesh",
