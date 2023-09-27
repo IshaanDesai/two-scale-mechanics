@@ -61859,12 +61859,12 @@ setrpx, 2, 2
 setrpx, 3, 3
 ** Name: BC_rp2 Type: Displacement/Rotation
 *Boundary
-setrpy, 1, 1
-setrpy, 2, 2
-setrpy, 3, 3
+setrpy, 1, 1, 0.00001
+setrpy, 2, 2, 0.00001
+setrpy, 3, 3, 0.00001
 ** Name: BC_rp3 Type: Displacement/Rotation
 *Boundary
-setrpz, 1, 1
+setrpz, 1, 1, 0.00001
 setrpz, 2, 2
 setrpz, 3, 3, 0.00001
 ** 
