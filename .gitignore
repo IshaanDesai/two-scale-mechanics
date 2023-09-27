@@ -1,5 +1,7 @@
 *.abq
 *.odb
+*.lck
+*.sim
 *.com
 *.dat
 *.mdl
