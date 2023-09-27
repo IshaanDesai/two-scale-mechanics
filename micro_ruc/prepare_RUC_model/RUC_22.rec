@@ -1,0 +1,39 @@
+# -*- coding: mbcs -*-
+from part import *
+from material import *
+from section import *
+from optimization import *
+from assembly import *
+from step import *
+from interaction import *
+from load import *
+from mesh import *
+from job import *
+from sketch import *
+from visualization import *
+from connectorBehavior import *
+del mdb.models['Model-multi'].boundaryConditions['BC-x2']
+del mdb.models['Model-multi'].boundaryConditions['BC-x3']
+del mdb.models['Model-multi'].boundaryConditions['BC-y1']
+del mdb.models['Model-multi'].boundaryConditions['BC-z2']
+mdb.models['Model-multi'].DisplacementBC(amplitude=UNSET, createStepName=
+    'Step-1', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None
+    , name='BC_rp2', region=
+    mdb.models['Model-multi'].rootAssembly.sets['setrpy'], u1=0.002, u2=0.002, 
+    u3=0.002, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+mdb.models['Model-multi'].DisplacementBC(amplitude=UNSET, createStepName=
+    'Step-1', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None
+    , name='BC_rp1', region=
+    mdb.models['Model-multi'].rootAssembly.sets['setrpx'], u1=0.002, u2=UNSET, 
+    u3=UNSET, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+mdb.models['Model-multi'].boundaryConditions['BC_rp1'].setValues(u2=0.0, u3=
+    0.0)
+mdb.models['Model-multi'].DisplacementBC(amplitude=UNSET, createStepName=
+    'Step-1', distributionType=UNIFORM, fieldName='', fixed=OFF, localCsys=None
+    , name='BC_rp3', region=
+    mdb.models['Model-multi'].rootAssembly.sets['setrpz'], u1=0.002, u2=0.0, 
+    u3=0.002, ur1=UNSET, ur2=UNSET, ur3=UNSET)
+mdb.models['Model-multi'].boundaryConditions['BC_rp2'].setValues(u1=0.0, u2=0.0
+    , u3=0.0)
+mdb.models['Model-multi'].boundaryConditions['BC_rp3'].setValues(u1=0.0, u3=
+    0.0)

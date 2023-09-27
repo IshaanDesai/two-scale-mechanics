@@ -29,23 +29,13 @@ import connectorBehavior
 
 
 
-
-
-
 # ##################################################################################
 # geometric input values
 # ##################################################################################
 
 
-
-
 fiberRadius = (5.2/2.)/1000 # <<<
-fiberVolumeFraction = 0.59   # <<<
-
-
-
-
-
+fiberVolumeFraction = 0.59  # <<<
 
 
 
@@ -61,11 +51,9 @@ deviationFactor = 0.05
 # #fiberVolumeFraction=0.77
 
 
-
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
 # different loading cases and according boundary conditions to determine
 # anisotropic material properties
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 
 loadingCases={}
 loadingCases['s11']={'x1':0.1,'y3':0.0}
@@ -73,9 +61,8 @@ loadingCases['s22']={'y2':0.1,'x3':0.0}
 loadingCases['s12']={'x2':0.1,'y1':0.0,'z2':0.0,'x3':0.0}
 loadingCases['s23']={'y3':0.1,'z2':0.0,'x3':0.0,'y1':0.0}
 
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 # some intermidiate calculations
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
 
 ly = sqrt(2*pi*fiberRadius**2./(sqrt(3)*fiberVolumeFraction))
 lz = ly*sqrt(3)
@@ -87,14 +74,14 @@ with open(filename, 'w') as f:
     f.write(str(lx) + ',' + str(ly) + ',' + str(lz) + '\n')
 # close()
 
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 # Create new model database
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 Mdb()
 
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 # Create part
-# # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## #
+
 
 #extrusion
 s = mdb.models['Model-1'].ConstrainedSketch(name='__profile__', sheetSize=2*max(ly,lz))
@@ -200,9 +187,9 @@ p.Set(cells=cells, name='setMatrix')
 p.DatumCsysByThreePoints(name='Datum csys-1', coordSysType=CARTESIAN, origin=(
     0.0, 0.0, 0.0), line1=(1.0, 0.0, 0.0), line2=(0.0, 1.0, 0.0))
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
 # Mesh part
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
+
 
 p = mdb.models['Model-1'].parts['Part-1']
 c = p.cells
@@ -252,9 +239,9 @@ p.generateMesh(regions=pickedRegions)
 pickedRegions=p.sets['setMatrix'].cells[:]
 p.generateMesh(regions=pickedRegions)
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 # Create materials
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 
 mdb.models['Model-1'].Material(name='materialfiber')
 mdb.models['Model-1'].Material(name='materialMatrix')
@@ -312,9 +299,9 @@ mdb.models['Model-1'].HomogeneousSolidSection(name='sectionFiber',
 mdb.models['Model-1'].HomogeneousSolidSection(name='sectionMatrix', 
     material='materialMatrix', thickness=None)
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 # Create and assign sections
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 
 mdb.models['Model-1'].HomogeneousSolidSection(name='sectionFiber', 
     material='materialFiber', thickness=None)
@@ -342,9 +329,8 @@ mdb.models['Model-1'].parts['Part-1'].MaterialOrientation(region=region,
     fieldName='', additionalRotationType=ROTATION_NONE, angle=0.0, 
     additionalRotationField='', stackDirection=STACK_3)
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 # Create assembly
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
 #copy part
 a = mdb.models['Model-1'].rootAssembly
@@ -362,18 +348,12 @@ a.Set(referencePoints=((a.referencePoints.findAt((lx,0.0,0.0),),)), name='setrpx
 a.Set(referencePoints=((a.referencePoints.findAt((0.0,ly,0.0),),)), name='setrpy')
 a.Set(referencePoints=((a.referencePoints.findAt((0.0,0.0,lz),),)), name='setrpz')
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 # Create step
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
-
 mdb.models['Model-1'].StaticStep(name='Step-1', previous='Initial', 
     timePeriod=1., maxNumInc=10000, initialInc=1e-7, minInc=1e-7, 
     maxInc=0.1, nlgeom=ON)
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 # Create field output
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
-
 del mdb.models['Model-1'].fieldOutputRequests['F-Output-1']
 
 #mdb.models['Model-1'].TimePoint(name='TimePoints-1', points=((0.0, 0.5, 0.05), (0.5, 1.0, 0.1)))
@@ -385,9 +365,9 @@ mdb.models['Model-1'].FieldOutputRequest(name='F-Output-1',
 
 
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 # History output
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 
 del mdb.models['Model-1'].historyOutputRequests['H-Output-1']
 
@@ -412,17 +392,16 @@ mdb.models['Model-1'].HistoryOutputRequest(name='H-Output-3',
 mdb.models['Model-1'].historyOutputRequests['H-Output-3'].setValues(
     numIntervals=500)
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 # Apply periodic boundary conditions
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 
 import CAE_applyPBC_3D
 CAE_applyPBC_3D.applyPBC()
 
 
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 # consider the 4 different cases to find transversly isotropic peoperties
-# ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 
 for loadingCase in loadingCases:
     #make a new model for each
@@ -430,9 +409,7 @@ for loadingCase in loadingCases:
     mdb.Model(name=modelName, objectToCopy=mdb.models['Model-1'])
     
 
-    # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
     # Assign boundary conditions
-    # ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 
     a = mdb.models[modelName].rootAssembly
 

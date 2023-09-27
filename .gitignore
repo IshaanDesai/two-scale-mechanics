@@ -1,11 +1,11 @@
 *.abq
+*.odb
 *.com
 *.dat
 *.mdl
 *.msg
 *.pac
 *.prt
-*.res
 *.sel
 *.sta
 *.stt
