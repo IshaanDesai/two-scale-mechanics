@@ -5,7 +5,8 @@
 module purge
 
 # Modules may need to be updated depending on compatibility and availability on Great Lakes
-module load gcc/10.3.0 openmpi/4.1.6
+#module load use.own gcc/my_gcc10  impi
+module load gcc impi
 
 echo "Loaded modules:"
 module list

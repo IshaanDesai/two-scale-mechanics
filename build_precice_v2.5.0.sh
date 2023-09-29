@@ -4,9 +4,13 @@
 
 module purge
 
+# Use custom gcc to later use it alongside the intel module
+#module load use.own gcc/my_gcc10
+
 # Modules may need to be updated depending on compatibility and availability on Great Lakes
-module load gcc/10.3.0 cmake/3.26.3 eigen/3.4.0 boost/1.78.0 openmpi/4.1.6
-#module load intel/18.0.5
+module load intel/2022.1.2
+module load impi
+module load cmake/3.26.3 eigen/3.4.0 boost/1.78.0
 
 echo "Loaded modules:"
 module list
@@ -16,12 +20,12 @@ echo "Libxml2 is installed on ARC HPC clusters, no need to load a module."
 cd ~/precice
 
 rm -rfv build
-mkdir build
-cd build
+mkdir build && cd build
 
 echo "Building and installing preCICE in $PWD"
 
-cmake -DCMAKE_BUILD_TYPE=Debug -DPRECICE_FEATURE_PETSC_MAPPING=OFF -DPRECICE_FEATURE_PYTHON_ACTIONS=OFF ..
+cmake -DCMAKE_CXX_COMPILER=/sw/pkgs/arc/intel/2022.1.2/compiler/2022.0.2/linux/bin/intel64/icpc -DPRECICE_PETScMapping=OFF -DPRECICE_PythonActions=OFF ..
+
 make -j 8
+
 ctest
-#make install

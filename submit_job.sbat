@@ -19,13 +19,15 @@ fi
 module load RestrictedLicense abaqus
 module load abaqus
 
-# Load user defined gcc and openmpi to avoid conflict with intel
-module load use.own gcc/my_gcc10 #openmpi/my_ompi416
+# Load user defined gcc to avoid conflict with intel
+module load use.own gcc/my_gcc10
 
 module load intel
 
 # modules required by preCICE at runtime
 module load eigen/3.4.0 boost/1.78.0
+
+module list
 
 #unset SLURM_GTIDS
 #rm -rfv abq1.*
@@ -34,14 +36,17 @@ module load eigen/3.4.0 boost/1.78.0
 export LD_PRELOAD=~/precice/build/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 
 echo "Launching macro participant"
+
 cd macro_laminate
+
 abaqus job=Crossply_macro input=Crossply_macro \
 	scratch=/home/desaii/composite-multiscale/macro_laminate \
-	interactive user=VEXTERNALDB_AND_VUMAT.f double=both &> log_macro.log &
+	interactive user=VUMAT.f double=both &> log_macro.log &
 
 echo "Launching Micro Manager"
-cd ..
-cd micro_ruc/
+
+cd ../micro_ruc/
+
 python3 run_micro_manager.py --config micro-manager-config.json &> log_micro.log
 
-echo "Macro-micro simulation completed."
+echo "Macro simulation and Micro Manager have been launched"
