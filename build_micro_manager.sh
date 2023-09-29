@@ -4,15 +4,17 @@
 
 module purge
 
-# Modules may need to be updated depending on compatibility and availability on Great Lakes
-#module load use.own gcc/my_gcc10  impi
-module load gcc impi
+pip3 uninstall -y micro-manager-precice pyprecice mpi4py
 
-echo "Loaded modules:"
+# Modules may need to be updated depending on compatibility and availability on Great Lakes
+module load use.own gcc/my_gcc10
+#module load impi
+module load openmpi/4.1.6
+
 module list
 
 cd ~/micro-manager
 
-echo "Installing the Micro Manager in the user path used by pip3"
+echo "Installing the Micro Manager"
 
 pip3 install --user .

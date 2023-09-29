@@ -11,7 +11,6 @@
      7     stressNew, stateNew, enerInternNew, enerInelasNew)
 !
       include 'vaba_param.inc'
-#include <SMAAspUserSubroutines.hdr>
 
       dimension props(nprops), density(nblock), coordMp(nblock, *),
      1     charLength(nblock), strainInc(nblock, ndir + nshr),
@@ -55,17 +54,12 @@
       real*8 :: E11, E220, E33, nu12, nu23, nu13, G13, G23, nu31, nu21
       integer :: d, counter
 
-      double precision, dimension(max3DSize) :: coordsToShare
-      pointer(ptr_coordsToShare, coordsToShare)
-
-      double precision :: strainsToWrite(nblock,6), stressesToRead(nblock,6)
-
       ! preCICE variables
       integer :: rank, size, ongoing, dimensions, bool
       double precision :: preCICE_dt
-      double precision, dimension(:), allocatable :: strainsToWrite,
-     * stressesToRead, couplingVertices
-      integer, dimension(:), allocatable :: vertexIDs
+      double precision, dimension(nblock*6) :: strainsToWrite, stressesToRead
+      double precision, dimension(nblock*3) :: couplingVertices
+      integer, dimension(nblock) :: vertexIDs
 
       ! Initializations for stress calculation
       E11  = props(i_prp_E11)
@@ -105,9 +99,17 @@
          ! Get problem dimensions from preCICE
          call precicef_get_mesh_dimensions("laminate-macro-mesh", dimensions)
 
+         counter = 1
+         do k = 1, nblock
+            do d = 1, ndir
+               couplingVertices(counter) = coordMp(k, d)
+               counter = counter + 1
+            end do
+         end do
+
          ! Set coupling mesh vertices in preCICE
          call precicef_set_vertices("laminate-macro-mesh",
-     *    nblock, coordMp, vertexIDs)
+     *    nblock, couplingVertices, vertexIDs)
 
          ! Set up or exchange (import and export) initial values with external programs.
          call precicef_requires_initial_data(bool)
@@ -128,7 +130,7 @@
 
          ! Check if coupling is still going on
          call precicef_is_coupling_ongoing(bool)
-         assert (bool.eq.1)
+         call assert (bool.eq.1)
 
          write(*,*) "(t = ", totalTime, ") VUMAT: Coupling is ", bool
 
@@ -148,13 +150,13 @@
             strains_total(6) = state(i_sdv_gamma13) + two*strainInc(k, 6)
             state(i_sdv_eps11:i_sdv_gamma13) = strains_total
 
-            do d = 1, maxTensorComponents
+            do d = 1, ndir
                strainsToWrite(counter) = strains_total(d)
                counter = counter + 1
 
                stateNew(k, d) = state(d)
 
-            end do ! maxTensorComponents
+            end do ! ndir
 
          end do ! nblock
 
@@ -163,7 +165,7 @@
          write(*,*) "(t = ", totalTime, ") VUMAT: Write strains to preCICE."
 
          call precicef_write_data("laminate-macro-mesh",
-         *       "strains", nblock, vertexIDs, strainsToWrite)
+     *       "strains", nblock, vertexIDs, strainsToWrite)
 
          write(*,*) "(t = ", totalTime, ") VUMAT: Advance coupling."
 
@@ -172,7 +174,7 @@
          write(*,*) "(t = ", totalTime, ") VUMAT: Read stresses from preCICE."
 
          call precicef_read_data("laminate-macro-mesh",
-         *       "stresses", numberOfVertices, vertexIDs, dt, stressesToRead)
+     *       "stresses", numberOfVertices, vertexIDs, dt, stressesToRead)
 
          ! Loop through material points to apply stresses
          counter = 1
@@ -182,7 +184,7 @@
                stressNew(k, d) = stressesToRead(counter)
                counter = counter + 1
 
-            end do ! maxTensorComponents
+            end do ! ndir
          end do ! nblock
 
          write(*,*) "(t = ", totalTime, ") VUMAT: Stresses applied."

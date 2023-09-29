@@ -22,10 +22,10 @@ module load abaqus
 # Load user defined gcc to avoid conflict with intel
 module load use.own gcc/my_gcc10
 
-module load intel
-
 # modules required by preCICE at runtime
-module load eigen/3.4.0 boost/1.78.0
+module load eigen/3.4.0 boost/1.78.0 openmpi/4.1.6
+
+module load intel
 
 module list
 
@@ -33,11 +33,11 @@ module list
 #rm -rfv abq1.*
 
 # Pre-load preCICE shared library to ensure linking to preCICE
-export LD_PRELOAD=~/precice/build/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
+#export LD_PRELOAD=~/precice/build/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 
 echo "Launching macro participant"
 
-cd macro_laminate
+cd macro_laminate/
 
 abaqus job=Crossply_macro input=Crossply_macro \
 	scratch=/home/desaii/composite-multiscale/macro_laminate \
