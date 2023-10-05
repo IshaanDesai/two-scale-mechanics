@@ -57,8 +57,8 @@
       ! preCICE variables
       integer :: rank, size, ongoing, dimensions, bool
       double precision :: preCICE_dt
-      double precision, dimension(nblock*6) :: strainsToWrite, stressesToRead
-      double precision, dimension(nblock*3) :: couplingVertices
+      double precision, dimension(nblock*3) :: strains1to3, strains4to6,
+     * stresses1to3, stresses4to6, couplingVertices
       integer, dimension(nblock) :: vertexIDs
 
       ! Initializations for stress calculation
@@ -76,9 +76,8 @@
       nu31 = nu13*E33/E11
       nu32 = nu23*E33/E22
 
-      ! Initialize -- run only once
-      if (totalTime < 2.*dt) then
-         
+      if (totalTime < 2.*dt) then ! only the first step
+
          state(i_sdv_eps11) = zero
          state(i_sdv_eps22) = zero
          state(i_sdv_eps33) = zero
@@ -111,35 +110,9 @@
          call precicef_set_vertices("laminate-macro-mesh",
      *    nblock, couplingVertices, vertexIDs)
 
-         ! Set up or exchange (import and export) initial values with external programs.
-         call precicef_requires_initial_data(bool)
-
-         if (bool .eq. 1) then
-            strainsToWrite = 0.0 ! Write zero initial values for now
-            call precicef_write_data("laminate-macro-mesh",
-     *       "strains", nblock, vertexIDs, strainsToWrite)
-         end if
-
-         ! Initialize preCICE
-         call precicef_initialize()
-         call precicef_get_max_time_step_size(preCICE_dt)
-
-      end if
-
-      if (totalTime > 2.*dt) then ! Only after VEXTERNALDB is run
-
-         ! Check if coupling is still going on
-         call precicef_is_coupling_ongoing(bool)
-         call assert (bool.eq.1)
-
-         write(*,*) "(t = ", totalTime, ") VUMAT: Coupling is ", bool
-
-         write(*,*) "(t = ", totalTime, ") VUMAT: Collecting strains."
-
          ! Loop through material points to collect strains
          counter = 1
          do k = 1, nblock
-
             state = stateOld(k, :)
 
             strains_total(1) = state(i_sdv_eps11) + strainInc(k, 1)
@@ -151,37 +124,87 @@
             state(i_sdv_eps11:i_sdv_gamma13) = strains_total
 
             do d = 1, ndir
-               strainsToWrite(counter) = strains_total(d)
+               strains1to3(counter) = strains_total(d)
+               strains4to6(counter) = strains_total(d+ndir)
                counter = counter + 1
 
                stateNew(k, d) = state(d)
-
             end do ! ndir
 
          end do ! nblock
 
-         write(*,*) "(t = ", totalTime, ") VUMAT: Strains collected."
+         ! Set up or exchange (import and export) initial values with external programs.
+         call precicef_requires_initial_data(bool)
 
-         write(*,*) "(t = ", totalTime, ") VUMAT: Write strains to preCICE."
+         if (bool.eq.1) then
+            call precicef_write_data("laminate-macro-mesh",
+     *       "strains1to3", nblock, vertexIDs, strains1to3)
+            call precicef_write_data("laminate-macro-mesh",
+     *       "strains4to6", nblock, vertexIDs, strains4to6)
+         end if
 
-         call precicef_write_data("laminate-macro-mesh",
-     *       "strains", nblock, vertexIDs, strainsToWrite)
+         ! Initialize preCICE
+         call precicef_initialize()
+         call precicef_get_max_time_step_size(preCICE_dt)
 
-         write(*,*) "(t = ", totalTime, ") VUMAT: Advance coupling."
+         write(*,*) "VUMAT: preCICE initialized."
+      end if
 
-         call precicef_advance(dt)
+      ! Check if coupling is still going on
+      call precicef_is_coupling_ongoing(bool)
+      !call assert(bool.eq.1)
 
-         write(*,*) "(t = ", totalTime, ") VUMAT: Read stresses from preCICE."
+! Calculate strains and write them to preCICE ===============================
+      counter = 1
+      do k = 1, nblock
+
+         state = stateOld(k, :)
+
+         strains_total(1) = state(i_sdv_eps11) + strainInc(k, 1)
+         strains_total(2) = state(i_sdv_eps22) + strainInc(k, 2)
+         strains_total(3) = state(i_sdv_eps33) + strainInc(k, 3)
+         strains_total(4) = state(i_sdv_gamma12) + two*strainInc(k, 4)
+         strains_total(5) = state(i_sdv_gamma23) + two*strainInc(k, 5)
+         strains_total(6) = state(i_sdv_gamma13) + two*strainInc(k, 6)
+         state(i_sdv_eps11:i_sdv_gamma13) = strains_total
+
+         do d = 1, ndir
+            strains1to3(counter) = strains_total(d)
+            strains4to6(counter) = strains_total(d+ndir)
+            counter = counter + 1
+
+            stateNew(k, d) = state(d)
+
+         end do ! ndir
+
+      end do ! nblock
+
+      call precicef_write_data("laminate-macro-mesh",
+     *       "strains1to3", nblock, vertexIDs, strains1to3)
+      call precicef_write_data("laminate-macro-mesh",
+     *       "strains4to6", nblock, vertexIDs, strains4to6)
+ 
+      write(*,*) "(t = ", totalTime, ") VUMAT: Strains written to preCICE."
+      
+! ==========================================================================
+
+      call precicef_advance(dt)
+
+! Read stresses from preCICE and apply them ===============================
+
+      if (totalTime > 2.*dt) then ! from the second step onward
 
          call precicef_read_data("laminate-macro-mesh",
-     *       "stresses", numberOfVertices, vertexIDs, dt, stressesToRead)
+     *       "stresses1to3", numberOfVertices, vertexIDs, dt, stresses1to3)
+         call precicef_read_data("laminate-macro-mesh",
+     *       "stresses4to6", numberOfVertices, vertexIDs, dt, stresses4to6)
 
          ! Loop through material points to apply stresses
          counter = 1
          do k = 1, nblock
             do d = 1, ndir
-
-               stressNew(k, d) = stressesToRead(counter)
+               stressNew(k, d) = stresses1to3(counter)
+               stressNew(k, d+ndir) = stresses4to6(counter)
                counter = counter + 1
 
             end do ! ndir
@@ -189,9 +212,8 @@
 
          write(*,*) "(t = ", totalTime, ") VUMAT: Stresses applied."
 
-      else ! Before VEXTERNALDB is run
-
-         ! Calculate stresses for Abaqus preparation step
+      else ! only in the first step
+         ! Calculate stresses using a material model
          temp   = nu12*nu21 + nu23*nu32 + nu13*nu31 + 2.*nu21*nu32*nu13
          Q      = zero
          Q(1,1) = (1.-nu23*nu32)*E11 / (1.-temp)
@@ -212,10 +234,11 @@
             stressNew(k, :) = stresses
          end do
 
-         write(*,*) "(t = ", totalTime, ") VUMAT: Material model solved."
+         write(*,*) "(t = ", totalTime, ") VUMAT: stresses not read from preCICE, but instead the material model solved."
 
       end if
+! ==========================================================================
 
-      write(*,*) "(t = ", totalTime, ") VUMAT: Complete."
+      write(*,*) "(t = ", totalTime, ") VUMAT: run complete."
       return
       end ! Subroutine
