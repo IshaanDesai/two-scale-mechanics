@@ -38,8 +38,8 @@
 
     <coupling-scheme:parallel-explicit>
        <participants first="Micro-Manager" second="Laminate-3D-ply"/>
-       <max-time-windows value="100"/>
-       <time-window-size value="1.0"/>
+       <max-time value="1"/>
+       <time-window-size value="1e-5"/>
        <exchange data="stresses1to3" mesh="laminate-macro-mesh" from="Micro-Manager" to="Laminate-3D-ply"/>
        <exchange data="stresses4to6" mesh="laminate-macro-mesh" from="Micro-Manager" to="Laminate-3D-ply"/>
        <exchange data="strains1to3" mesh="laminate-macro-mesh" from="Laminate-3D-ply" to="Micro-Manager" initialize="yes"/>

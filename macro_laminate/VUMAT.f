@@ -143,6 +143,8 @@
      *       "strains4to6", nblock, vertexIDs, strains4to6)
          end if
 
+         write(*,*) "VUMAT: Initial data written to preCICE."
+
          ! Initialize preCICE
          call precicef_initialize()
          call precicef_get_max_time_step_size(preCICE_dt)
@@ -183,12 +185,14 @@
      *       "strains1to3", nblock, vertexIDs, strains1to3)
       call precicef_write_data("laminate-macro-mesh",
      *       "strains4to6", nblock, vertexIDs, strains4to6)
- 
+
       write(*,*) "(t = ", totalTime, ") VUMAT: Strains written to preCICE."
-      
+
 ! ==========================================================================
 
-      call precicef_advance(dt)
+      preCICE_dt = 1.e-5
+      call precicef_advance(preCICE_dt)
+      write(*,*) "(t = ", totalTime, ") VUMAT: Coupling has been advanced."
 
 ! Read stresses from preCICE and apply them ===============================
 
@@ -238,6 +242,10 @@
 
       end if
 ! ==========================================================================
+
+      if (totalTime == 1.0) then
+         call precicef_finalize()
+      end if
 
       write(*,*) "(t = ", totalTime, ") VUMAT: run complete."
       return
