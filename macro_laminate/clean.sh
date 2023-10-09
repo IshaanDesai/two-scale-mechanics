@@ -21,3 +21,4 @@ rm -rfv *.simlog
 rm -r -fv *.log
 rm -rfv desaii*
 rm -rfv *.simdir
+rm -fv *.bak
