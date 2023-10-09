@@ -4,12 +4,15 @@
 
 module purge
 
-pip3 uninstall -y micro-manager-precice pyprecice mpi4py
+pip3 uninstall -y micro-manager-precice
+pip3 uninstall -y pyprecice
+pip3 uninstall -y mpi4py
 
-# Modules may need to be updated depending on compatibility and availability on Great Lakes
 module load use.own gcc/my_gcc10
-#module load impi
 module load openmpi/4.1.6
+
+# module load use.own gcc/gcc_libs
+# module load intel/2022.1.2 impi/2021.5.1
 
 module list
 
