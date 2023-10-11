@@ -1,0 +1,17 @@
+*PARAMETER
+Lx =  2.600E-3 <= 0.0026>
+Ly =  6.447E-3 <= 0.006447>
+Lz = 11.167E-3 <= 0.011167>
+deps11 = 0.00001 <= 1e-05>
+deps22 = 0.00002 <= 2e-05>
+deps33 = 0.00003 <= 3e-05>
+dgamma12 = 0.000012 <= 1.2e-05>
+dgamma23 = 0.000023 <= 2.3e-05>
+dgamma13 = 0.000013 <= 1.3e-05>
+UrefX_1 = deps11*Lx <= 2.6e-08>
+UrefY_2 = deps22*Ly <= 1.2894000000000002e-07>
+UrefZ_3 = deps33*Lz <= 3.3501e-07>
+UrefY_1 = dgamma12*Ly <= 7.7364e-08>
+UrefZ_1 = dgamma13*Lz <= 1.45171e-07>
+UrefY_3 = dgamma23*Ly <= 1.48281e-07>
+** <ABAQUS comment>
