@@ -19,33 +19,39 @@ class MicroSimulation:
         self._dims = 3
 
         # File and folder names
-        case_filename = 'RUC_original'
-        job_submission_filename = 'submit_job_micro_RUC.sbat'
+        case_filename_initial = 'RUC_initial'
+        self._case_filename_restart = 'RUC_iterate'
+        self._job_submission_filename = 'submit_job_micro_RUC.sbat'
         foldername = 'ruc_{}'.format(sim_id)
 
         # Create a new directory for this micro simulation
         os.system('mkdir ruc_{}'.format(sim_id))
 
-        # Copy the generic input file into the RUC folder
-        os.system('cp ' + case_filename + '.inp ' + foldername)
+        # Copy the input files into the RUC folder
+        os.system('cp ' + case_filename_initial + '.inp ' + foldername)
+        os.system('cp ' + self._case_filename_restart + '.inp ' + foldername)
 
         # Copy the job submission file into the RUC folder
-        os.system('cp ' + job_submission_filename + ' ' + foldername)
+        os.system('cp ' + self._job_submission_filename + ' ' + foldername)
 
         # Change the working directory to the ruc_ folder
         os.chdir(foldername)
 
-        # Launch simulation
-        os.system('sbatch ' + job_submission_filename)
-
+        # Launch simulation for first run
+        os.system('sbatch ' + self._job_submission_filename)
 
     def solve(self, strains, dt):
         assert dt != 0
 
-        # Give strains to VEXTERNALDB.f
+        # Get strain values
+        strain_values = np.zeros((6))
+        for i in range(3):
+            strain_values[i] = strains["strains1to3"][i]
+            strain_values[i + 3] = strains["strains4to6"][i]
 
-
+        inputfile = open(self._case_filename_restart, "w")
+        print("Opened the input file")
         
-
+        stresses = np.zeros(6)
 
         return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6]}
