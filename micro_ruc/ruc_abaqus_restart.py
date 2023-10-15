@@ -17,11 +17,11 @@ class MicroSimulation:
             global ID of the micro simulation.
         """
         self._dims = 3
+        self._sim_id = sim_id
 
         # File and folder names
         case_filename_initial = 'RUC_initial'
         self._case_filename_restart = 'RUC_iterate'
-        initial_job_submission_filename = 'submit_job_micro_RUC_initial.sbat'
         foldername = 'ruc_{}'.format(sim_id)
 
         # Set the working directory to the micro_ruc/ folder
@@ -35,18 +35,18 @@ class MicroSimulation:
         os.system('cp ' + self._case_filename_restart + '.inp ' + foldername)
 
         # Copy the job submission file into the RUC folder
-        os.system('cp ' + initial_job_submission_filename + ' ' + foldername)
+        #os.system('cp ' + initial_job_submission_filename + ' ' + foldername)
 
         # Change the working directory to the ruc_ folder
         os.chdir(foldername)
 
-        # Set an environment variable to pass to sbatch
-        os.system('ruc_id={}'.format(sim_id))
-
-        # Launch simulation for first run
-        os.system('sbatch ' + '--export=ALL,ruc_id=$ruc_id ' + initial_job_submission_filename)
+        # Run the initial Abaqus simulation
+        os.system('abaqus job=RUC_{0} input=RUC_initial \
+                  scratch=/home/desaii/composite-multiscale/micro_ruc/ruc_{0}  \
+                  interactive double=both &> log_ruc_{0}_0.log'.format(sim_id))
 
     def solve(self, strains, dt):
+        print("Micro problem {} is being solved.".format(self._sim_id))
         assert dt != 0
 
         # Get strain values
