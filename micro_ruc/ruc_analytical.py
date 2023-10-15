@@ -8,12 +8,12 @@ import numpy as np
 
 class MicroSimulation:
 
-    def __init__(self):
+    def __init__(self, sim_id):
         """
         Constructor of MicroSimulation class.
         """
         self._dims = 3
-        self._state = None
+        self._sim_id = sim_id
 
         # Parameters for material model written by Minh Hoang Nguyen
         self._E11 = 1.6e5

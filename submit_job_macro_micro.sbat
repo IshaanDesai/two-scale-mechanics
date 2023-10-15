@@ -23,8 +23,12 @@ module load abaqus
 module load use.own gcc/my_gcc10
 
 # modules required by preCICE at runtime
-module load eigen/3.4.0 boost/1.78.0 openmpi/4.1.6
+module load eigen/3.4.0 boost/1.78.0
 
+# modules required by Micro Manager
+module load openmpi/4.1.6
+
+# modules required by Abaqus
 module load intel
 
 module list
@@ -40,7 +44,7 @@ echo "Launching macro participant"
 
 cd macro_laminate/
 
-abaqus job=Crossply_macro input=Crossply_macro \
+abaqus job=Crossply_macro input=Crossply_macro_18elements \
 	scratch=/home/desaii/composite-multiscale/macro_laminate \
 	interactive user=VUMAT.f double=both &> log_macro.log &
 
