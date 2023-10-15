@@ -21,8 +21,11 @@ class MicroSimulation:
         # File and folder names
         case_filename_initial = 'RUC_initial'
         self._case_filename_restart = 'RUC_iterate'
-        self._job_submission_filename = 'submit_job_micro_RUC.sbat'
+        initial_job_submission_filename = 'submit_job_micro_RUC_initial.sbat'
         foldername = 'ruc_{}'.format(sim_id)
+
+        # Set the working directory to the micro_ruc/ folder
+        os.chdir('/home/desaii/composite-multiscale/micro_ruc')
 
         # Create a new directory for this micro simulation
         os.system('mkdir ruc_{}'.format(sim_id))
@@ -32,13 +35,16 @@ class MicroSimulation:
         os.system('cp ' + self._case_filename_restart + '.inp ' + foldername)
 
         # Copy the job submission file into the RUC folder
-        os.system('cp ' + self._job_submission_filename + ' ' + foldername)
+        os.system('cp ' + initial_job_submission_filename + ' ' + foldername)
 
         # Change the working directory to the ruc_ folder
         os.chdir(foldername)
 
+        # Set an environment variable to pass to sbatch
+        os.system('ruc_id={}'.format(sim_id))
+
         # Launch simulation for first run
-        os.system('sbatch ' + self._job_submission_filename)
+        os.system('sbatch ' + '--export=ALL,ruc_id=$ruc_id ' + initial_job_submission_filename)
 
     def solve(self, strains, dt):
         assert dt != 0
