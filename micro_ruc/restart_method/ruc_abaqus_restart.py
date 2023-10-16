@@ -1,0 +1,103 @@
+"""
+Class MicroSimulation, which solves a RUC using Abaqus
+"""
+import os
+import subprocess
+
+
+class MicroSimulation:
+
+    def __init__(self, sim_id):
+        """
+        Constructor of MicroSimulation class.
+        sim_id : int
+            global ID of the micro simulation.
+        """
+        self._dims = 3
+        self._sim_id = sim_id
+        self._n = 0  # Time counter
+        self._first_step = True  # Toggle for first solve step
+
+        # Only works if number of micro simulations is < 100
+        if self._sim_id < 10:
+            self._id_as_string = '0' + str(self._sim_id)
+        else:
+            self._id_as_string = str(self._sim_id)
+
+        # File and folder names
+        self._foldername = 'ruc_' + self._id_as_string
+
+        # Set the working directory to the micro_ruc/restart_method folder
+        os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method')
+
+        # Create a new directory for this micro simulation
+        os.system('mkdir ' + self._foldername)
+
+        # Copy the input files into the RUC folder
+        os.system('cp RUC_*.inp ' + self._foldername)
+
+        # Copy the postprocessing script to get stresses from Abaqus
+        os.system('cp get_stresses.py ' + self._foldername)
+
+        # Change the working directory to the ruc_ folder
+        os.chdir(self._foldername)
+
+        self._jobname = 'RUC_' + self._id_as_string
+
+        log_filename = 'log_ruc_' + self._id_as_string + '_' + str(self._n)
+
+        # Run the initial Abaqus simulation
+        subprocess.call('abaqus job=' + self._jobname + ' input=RUC_initial \
+                  scratch=' + os.getcwd() + ' interactive double=both \
+                  &> ' + log_filename, shell=True)
+
+    def solve(self, strains, dt):
+        assert dt != 0
+
+        # Set the working directory to the micro_ruc/ folder
+        os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method/' + self._foldername)
+
+        if self._first_step:
+            os.system('mv RUC_initial.inp RUC_nm1.inp')
+        else:
+            os.system('mv RUC_iterate.inp RUC_nm1.inp')
+
+        # Open the current input file and read all the lines
+        input_file = open('RUC_nm1.inp', "r")
+        line_list = input_file.readlines()
+        input_file.close()
+
+        # Create a new input file to write the modified lines in to
+        new_file = open('RUC_iterate.inp', "w")
+
+        # Modify the lines with the strain values
+        line_list[4] = 'deps11   = {}\n'.format(strains["strains1to3"][0])
+        line_list[5] = 'deps22   = {}\n'.format(strains["strains1to3"][1])
+        line_list[6] = 'deps33   = {}\n'.format(strains["strains1to3"][2])
+        line_list[7] = 'dgamma12 = {}\n'.format(strains["strains4to6"][0])
+        line_list[8] = 'dgamma23 = {}\n'.format(strains["strains4to6"][1])
+        line_list[9] = 'dgamma13 = {}\n'.format(strains["strains4to6"][2])
+
+        # Write the modified lines to the input file and close it
+        new_file.writelines(line_list)
+        new_file.close()        
+
+        self._n += 1
+
+        # Run the case
+        log_filename = 'log_ruc_' + self._id_as_string + '_' + str(self._n)
+
+        # Run the initial Abaqus simulation
+        subprocess.call('abaqus job=' + self._jobname + ' input=RUC_iterate \
+                  scratch=' + os.getcwd() + ' interactive double=both \
+                  &> ' + log_filename, shell=True)
+
+        # Get the stresses
+        subprocess.call('abaqus cae noGUI=get_stresses.py', shell=True)
+
+        # Open output file and read stress values
+        stresses_file = open('stresses.txt', 'r')
+        stresses = stresses_file.readlines()
+        stresses_file.close()
+
+        return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6]}
