@@ -31,13 +31,16 @@ class MicroSimulation:
         os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method')
 
         # Create a new directory for this micro simulation
-        os.system('mkdir ' + self._foldername)
+        subprocess.call('mkdir ' + self._foldername, shell=True)
 
         # Copy the input files into the RUC folder
-        os.system('cp RUC_*.inp ' + self._foldername)
+        subprocess.call('cp RUC_*.inp ' + self._foldername, shell=True)
 
         # Copy the postprocessing script to get stresses from Abaqus
-        os.system('cp get_stresses.py ' + self._foldername)
+        subprocess.call('cp get_stresses.py ' + self._foldername, shell=True)
+
+        # Copy the cleaning script as we clean the working directory in every time step
+        subprocess.call('cp clean.sh ' + self._foldername, shell=True)
 
         # Change the working directory to the ruc_ folder
         os.chdir(self._foldername)
@@ -49,7 +52,7 @@ class MicroSimulation:
         # Run the initial Abaqus simulation
         subprocess.call('abaqus job=' + self._jobname + ' input=RUC_initial \
                   scratch=' + os.getcwd() + ' interactive double=both \
-                  &> ' + log_filename, shell=True)
+                  &> ' + log_filename + '.log', shell=True)
 
     def solve(self, strains, dt):
         assert dt != 0
@@ -57,10 +60,13 @@ class MicroSimulation:
         # Set the working directory to the micro_ruc/ folder
         os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method/' + self._foldername)
 
+        # Clean the working directory
+        subprocess.call('sh clean.sh', shell=True)
+
         if self._first_step:
-            os.system('mv RUC_initial.inp RUC_nm1.inp')
+            subprocess.call('mv RUC_initial.inp RUC_nm1.inp', shell=True)
         else:
-            os.system('mv RUC_iterate.inp RUC_nm1.inp')
+            subprocess.call('mv RUC_iterate.inp RUC_nm1.inp', shell=True)
 
         # Open the current input file and read all the lines
         input_file = open('RUC_nm1.inp', "r")
@@ -90,7 +96,10 @@ class MicroSimulation:
         # Run the initial Abaqus simulation
         subprocess.call('abaqus job=' + self._jobname + ' input=RUC_iterate \
                   scratch=' + os.getcwd() + ' interactive double=both \
-                  &> ' + log_filename, shell=True)
+                  &> ' + log_filename + '.log', shell=True)
+
+        # Make sure that .odb file has been created
+        assert os.path.exists(os.getcwd() + '/RUC_' + self._id_as_string + '.odb')
 
         # Get the stresses
         subprocess.call('abaqus cae noGUI=get_stresses.py', shell=True)

@@ -15,6 +15,8 @@ working_dir = os.getcwd()
 length = len(working_dir)
 id_as_string = working_dir[length - 2:]
 
+assert os.path.exists(working_dir + '/RUC_' + id_as_string + '.odb')
+
 odb = session.odbs[working_dir + '/RUC_' + id_as_string + '.odb']
 
 # RF_dict = {
