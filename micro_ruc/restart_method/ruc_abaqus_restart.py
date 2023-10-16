@@ -86,7 +86,7 @@ class MicroSimulation:
 
         # Write the modified lines to the input file and close it
         new_file.writelines(line_list)
-        new_file.close()        
+        new_file.close()
 
         self._n += 1
 

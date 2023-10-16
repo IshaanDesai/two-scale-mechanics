@@ -20,37 +20,38 @@ assert os.path.exists(working_dir + '/RUC_' + id_as_string + '.odb')
 odb = session.odbs[working_dir + '/RUC_' + id_as_string + '.odb']
 
 # RF_dict = {
-   # "RPx": [0.,0.,0.],
-   # "RPy": [0.,0.,0.],
-   # "RPz": [0.,0.,0.]
+# "RPx": [0.,0.,0.],
+# "RPy": [0.,0.,0.],
+# "RPz": [0.,0.,0.]
 # }
 
-labels = ['X','Y','Z']
+labels = ['X', 'Y', 'Z']
 
-for iRefP in range(3+1)[1:]:
+for iRefP in range(3 + 1)[1:]:
     # print(iRefP)
-    label = labels[iRefP-1]
-    for iDir in range(3+1)[1:]:
+    label = labels[iRefP - 1]
+    for iDir in range(3 + 1)[1:]:
         # print(iDir)
         # Reaction forces
-        data_name = 'RF{iDir} PI: rootAssembly N: {iRefP} NSET SETRP{label}-1'.format(iDir=iDir,iRefP=iRefP,label=label)
-        outputVariable_name = 'Reaction force: RF{iDir} PI: rootAssembly Node {iRefP} in NSET SETRP{label}'.format(iDir=iDir,iRefP=iRefP,label=label)
-        session.XYDataFromHistory(odb=odb, name = data_name, outputVariableName = outputVariable_name,
-            steps=('Step-1', ), __linkedVpName__='Viewport: 1')
-        
+        data_name = 'RF{iDir} PI: rootAssembly N: {iRefP} NSET SETRP{label}-1'.format(
+            iDir=iDir, iRefP=iRefP, label=label)
+        outputVariable_name = 'Reaction force: RF{iDir} PI: rootAssembly Node {iRefP} in NSET SETRP{label}'.format(
+            iDir=iDir, iRefP=iRefP, label=label)
+        session.XYDataFromHistory(odb=odb, name=data_name, outputVariableName=outputVariable_name,
+                                  steps=('Step-1', ), __linkedVpName__='Viewport: 1')
+
         # Displacements
         # data_name = 'U{iDir} PI: rootAssembly N: {iRefP} NSET SETRP{label}-1'.format(iDir=iDir,iRefP=iRefP,label=label)
         # outputVariable_name = 'Spatial displacement: U{iDir} PI: rootAssembly Node {iRefP} in NSET SETRP{label}'.format(iDir=iDir,iRefP=iRefP,label=label)
         # session.XYDataFromHistory(odb=odb, name = data_name, outputVariableName = outputVariable_name,
-            # steps=('Step-1', ), __linkedVpName__='Viewport: 1')
-
+        # steps=('Step-1', ), __linkedVpName__='Viewport: 1')
 
 
 # Areas
-stresses = np.zeros(6) # [11, 22, 33, 12, 23, 13]
+stresses = np.zeros(6)  # [11, 22, 33, 12, 23, 13]
 
-Lx =  2.600E-03
-Ly =  6.447E-03
+Lx = 2.600E-03
+Ly = 6.447E-03
 Lz = 11.167E-03
 
 A1 = Ly * Lz
@@ -58,18 +59,18 @@ A2 = Lx * Lz
 A3 = Lx * Ly
 
 x = np.array(session.xyDataObjects['RF1 PI: rootAssembly N: 1 NSET SETRPX-1'])
-stresses[0] = x[1][1]/A1 # Sig11
+stresses[0] = x[1][1] / A1  # Sig11
 
 x = np.array(session.xyDataObjects['RF2 PI: rootAssembly N: 2 NSET SETRPY-1'])
-stresses[1] = x[1][1]/A2 # Sig22
+stresses[1] = x[1][1] / A2  # Sig22
 
 x = np.array(session.xyDataObjects['RF3 PI: rootAssembly N: 3 NSET SETRPZ-1'])
-stresses[2] = x[1][1]/A3 # Sig33
+stresses[2] = x[1][1] / A3  # Sig33
 
 
 # Tau12
 x = np.array(session.xyDataObjects['RF1 PI: rootAssembly N: 2 NSET SETRPY-1'])
-stresses[3] = x[1][1]/A2 # Tau12
+stresses[3] = x[1][1] / A2  # Tau12
 # temp1 = RF1 * Ly
 # RF2 = np.array(session.xyDataObjects['RF2 PI: rootAssembly N: 1 NSET SETRPX-1'])
 # temp2 = RF2 * Lx
@@ -80,12 +81,12 @@ stresses[3] = x[1][1]/A2 # Tau12
 # x = np.array(session.xyDataObjects['RF2 PI: rootAssembly N: 3 NSET SETRPZ-1'])
 # stresses[4] = x[1][1]/A3 # Tau23
 x = np.array(session.xyDataObjects['RF3 PI: rootAssembly N: 2 NSET SETRPY-1'])
-stresses[4] = x[1][1]/A2 # Tau23
+stresses[4] = x[1][1] / A2  # Tau23
 
 
 # Tau13
 x = np.array(session.xyDataObjects['RF1 PI: rootAssembly N: 3 NSET SETRPZ-1'])
-stresses[5] = x[1][1]/A3 # Tau13
+stresses[5] = x[1][1] / A3  # Tau13
 # x6 = session.xyDataObjects['RF3 PI: rootAssembly N: 1 NSET SETRPX-1']
 
 # Create a file and write stresses to it
