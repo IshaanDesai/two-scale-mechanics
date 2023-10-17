@@ -92,13 +92,9 @@ class MicroSimulation:
 
         self._n += 1
 
-        # Run the case
-        log_filename = 'log_ruc_' + self._id_as_string + '_' + str(self._n)
-
-        # Run the initial Abaqus simulation
+        # Run the Abaqus simulation
         subprocess.call('abaqus job=' + self._jobname + ' input=RUC_iterate \
-                  scratch=' + os.getcwd() + ' interactive double=both \
-                  &> ' + log_filename + '.log', shell=True)
+                  scratch=' + os.getcwd() + ' interactive double=both', shell=True)
 
         # Make sure that .odb file has been created
         assert os.path.exists(os.getcwd() + '/RUC_' + self._id_as_string + '.odb')
