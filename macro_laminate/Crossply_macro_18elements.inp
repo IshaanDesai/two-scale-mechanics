@@ -162,7 +162,7 @@ Set_X1, 1, 1, 0.036576
 ** 
 ** FIELD OUTPUT: F-Output-1
 ** 
-*Output, field
+*Output, field, number interval=1000
 *Node Output
 U, 
 *Element Output, directions=YES
