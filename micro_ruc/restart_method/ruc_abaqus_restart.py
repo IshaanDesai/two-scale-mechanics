@@ -18,6 +18,7 @@ class MicroSimulation:
         self._n = 0  # Time counter
         self._first_step = True  # Toggle for first solve step
 
+        # Add 0 before a single digit ID to have a consistent two digit number which can be used in file and folder naming
         # Only works if number of micro simulations is < 100
         if self._sim_id < 10:
             self._id_as_string = '0' + str(self._sim_id)
@@ -40,7 +41,7 @@ class MicroSimulation:
         subprocess.call('cp get_stresses.py ' + self._foldername, shell=True)
 
         # Copy the cleaning script as we clean the working directory in every time step
-        subprocess.call('cp clean.sh ' + self._foldername, shell=True)
+        subprocess.call('cp clean_ruc.sh ' + self._foldername, shell=True)
 
         # Change the working directory to the ruc_ folder
         os.chdir(self._foldername)
@@ -61,10 +62,11 @@ class MicroSimulation:
         os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method/' + self._foldername)
 
         # Clean the working directory
-        subprocess.call('sh clean.sh', shell=True)
+        subprocess.call('sh clean_ruc.sh', shell=True)
 
         if self._first_step:
             subprocess.call('mv RUC_initial.inp RUC_nm1.inp', shell=True)
+            self._first_step = False
         else:
             subprocess.call('mv RUC_iterate.inp RUC_nm1.inp', shell=True)
 
@@ -106,7 +108,11 @@ class MicroSimulation:
 
         # Open output file and read stress values
         stresses_file = open('stresses.txt', 'r')
-        stresses = stresses_file.readlines()
+        stresses_as_strings = stresses_file.readlines()
         stresses_file.close()
+
+        stresses = []
+        for stress_as_string in stresses_as_strings:
+            stresses.append(float(stress_as_string))
 
         return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6]}

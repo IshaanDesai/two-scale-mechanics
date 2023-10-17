@@ -15,9 +15,13 @@ working_dir = os.getcwd()
 length = len(working_dir)
 id_as_string = working_dir[length - 2:]
 
-assert os.path.exists(working_dir + '/RUC_' + id_as_string + '.odb')
+ruc_full_path = working_dir + '/RUC_' + id_as_string + '.odb'
 
-odb = session.odbs[working_dir + '/RUC_' + id_as_string + '.odb']
+# Check that the odb file exists
+assert os.path.exists(ruc_full_path), "RUC " + id_as_string + " does not have an .odb file at location: " + working_dir
+
+o1 = session.openOdb(name=ruc_full_path, readOnly=False)
+odb = session.odbs[ruc_full_path]
 
 # RF_dict = {
 # "RPx": [0.,0.,0.],
@@ -67,7 +71,6 @@ stresses[1] = x[1][1] / A2  # Sig22
 x = np.array(session.xyDataObjects['RF3 PI: rootAssembly N: 3 NSET SETRPZ-1'])
 stresses[2] = x[1][1] / A3  # Sig33
 
-
 # Tau12
 x = np.array(session.xyDataObjects['RF1 PI: rootAssembly N: 2 NSET SETRPY-1'])
 stresses[3] = x[1][1] / A2  # Tau12
@@ -76,20 +79,26 @@ stresses[3] = x[1][1] / A2  # Tau12
 # temp2 = RF2 * Lx
 # temp2 = x[1][1]/A1
 
-
 # Tau23
 # x = np.array(session.xyDataObjects['RF2 PI: rootAssembly N: 3 NSET SETRPZ-1'])
 # stresses[4] = x[1][1]/A3 # Tau23
 x = np.array(session.xyDataObjects['RF3 PI: rootAssembly N: 2 NSET SETRPY-1'])
 stresses[4] = x[1][1] / A2  # Tau23
 
-
 # Tau13
 x = np.array(session.xyDataObjects['RF1 PI: rootAssembly N: 3 NSET SETRPZ-1'])
 stresses[5] = x[1][1] / A3  # Tau13
 # x6 = session.xyDataObjects['RF3 PI: rootAssembly N: 1 NSET SETRPX-1']
 
+print(stresses)
+
+# Convert stresses to strings
+stresses_as_strings = []
+for i in range(6):
+    stresses_as_strings.append('{}\n'.format(stresses[i]))
+
 # Create a file and write stresses to it
 output_file = open('stresses.txt', 'w')
-output_file.writelines(list(stresses))
+
+output_file.writelines(stresses_as_strings)
 output_file.close()
