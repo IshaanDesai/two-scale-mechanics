@@ -1,12 +1,13 @@
 *.abq
+*.odb
+*.lck
+*.sim
 *.com
 *.dat
 *.mdl
 *.msg
-*.odb
 *.pac
 *.prt
-*.res
 *.sel
 *.sta
 *.stt
