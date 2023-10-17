@@ -40,13 +40,13 @@ module list
 #export LD_PRELOAD=~/precice/build/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 export LD_PRELOAD=~/precice-installation/lib64/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 
-echo "Launching macro participant"
+echo "Launching meso participant"
 
-cd macro_laminate/
+cd meso_laminate/
 
-abaqus job=Crossply_macro input=Crossply_macro_18elements \
-	scratch=/home/desaii/composite-multiscale/macro_laminate \
-	interactive user=VUMAT.f double=both &> log_macro.log &
+abaqus job=Crossply_meso input=Crossply_meso_18elements \
+	scratch=/home/desaii/composite-multiscale/meso_laminate \
+	interactive user=VUMAT.f double=both &> log_meso.log &
 
 echo "Launching Micro Manager"
 
@@ -54,4 +54,4 @@ cd ../micro_ruc/
 
 python3 run_micro_manager.py --config micro-manager-config.json &> log_micro.log
 
-echo "Macro simulation and Micro Manager have been launched"
+echo "Meso simulation and Micro Manager have been launched"
