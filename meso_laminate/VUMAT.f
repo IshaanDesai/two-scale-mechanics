@@ -63,7 +63,7 @@
      *       rank, size)
 
             ! Get problem dimensions from preCICE
-            call precicef_get_mesh_dimensions("laminate-macro-mesh", dimensions)
+            call precicef_get_mesh_dimensions("laminate-meso-mesh", dimensions)
 
             counter = 1
             do k = 1, nblock
@@ -74,7 +74,7 @@
             end do
 
             ! Set coupling mesh vertices in preCICE
-            call precicef_set_vertices("laminate-macro-mesh",
+            call precicef_set_vertices("laminate-meso-mesh",
      *       nblock, couplingVertices, vertexIDs)
 
             call get_strains(nblock, ndir, nshr, nstatev,
@@ -106,9 +106,9 @@
             call precicef_requires_initial_data(bool)
 
             if (bool == 1) then
-               call precicef_write_data("laminate-macro-mesh",
+               call precicef_write_data("laminate-meso-mesh",
      *          "strains1to3", nblock, vertexIDs, strains1to3)
-               call precicef_write_data("laminate-macro-mesh",
+               call precicef_write_data("laminate-meso-mesh",
      *          "strains4to6", nblock, vertexIDs, strains4to6)
             end if
 
@@ -147,9 +147,9 @@
 
          end do ! nblock
 
-         call precicef_write_data("laminate-macro-mesh",
+         call precicef_write_data("laminate-meso-mesh",
      *       "strains1to3", nblock, vertexIDs, strains1to3)
-         call precicef_write_data("laminate-macro-mesh",
+         call precicef_write_data("laminate-meso-mesh",
      *       "strains4to6", nblock, vertexIDs, strains4to6)
 
          write(*,*) "(t = ", totalTime, ") VUMAT: Strains written to preCICE."
@@ -167,9 +167,9 @@
 
          if (totalTime > dt) then ! from the second step onward
 
-            call precicef_read_data("laminate-macro-mesh",
+            call precicef_read_data("laminate-meso-mesh",
      *       "stresses1to3", nblock, vertexIDs, dt, stresses1to3)
-            call precicef_read_data("laminate-macro-mesh",
+            call precicef_read_data("laminate-meso-mesh",
      *       "stresses4to6", nblock, vertexIDs, dt, stresses4to6)
 
             ! Loop through material points to apply stresses
