@@ -148,7 +148,7 @@ Set_X0, 1, 1
 0.06, 1.2
 ** Mass Scaling: Semi-Automatic
 **               Whole Model
-*Variable Mass Scaling, dt=1e-04, type=below min, frequency=10
+*Variable Mass Scaling, dt=1e-05, type=below min, frequency=10
 ** 
 ** BOUNDARY CONDITIONS
 ** 
