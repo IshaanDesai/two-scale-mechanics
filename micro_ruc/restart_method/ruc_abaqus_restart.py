@@ -94,7 +94,8 @@ class MicroSimulation:
 
         # Run the Abaqus simulation
         subprocess.call('abaqus job=' + self._jobname + ' input=RUC_iterate \
-                  scratch=' + os.getcwd() + ' interactive double=both', shell=True)
+                  scratch=' + os.getcwd() + ' interactive double=both \
+                  &> log_ruc_run.log', shell=True)
 
         # Make sure that .odb file has been created
         assert os.path.exists(os.getcwd() + '/RUC_' + self._id_as_string + '.odb')

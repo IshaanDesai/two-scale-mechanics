@@ -183,6 +183,8 @@
                end do ! ndir
             end do ! nblock
 
+            !write(*,*) "stressNew: ", stressNew
+
             write(*,*) "(t = ", totalTime, ") VUMAT: Stresses applied."
 
          else ! only in the first step
