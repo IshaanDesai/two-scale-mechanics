@@ -21,9 +21,10 @@ rm -rfv *.simdir
 rm -fv *.bak
 rm -fv *.rpy
 rm -fv *_ruc.log
-rm -fv *.txt
 rm -fv *.par
 rm -fv *.pes
 rm -fv *.pmg
 rm -fv *.sim
 rm -fv *_nm1.inp
+rm -fv stresses.txt
+rm -fv log_ruc_run.log
