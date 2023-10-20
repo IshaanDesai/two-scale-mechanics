@@ -15,4 +15,9 @@ output/*
 slurm-*.out
 *.src
 *.exception
-
+*.log
+*.env
+__pycache__/
+*.res
+*.cid
+*.simlog
