@@ -11,3 +11,9 @@ cd ..
 echo "Cleaning micro participant"
 cd micro_ruc
 ./clean.sh
+
+cd ..
+
+echo "Cleaning NASMAT micro participant"
+cd micro_ruc_nasmat
+./clean.sh
