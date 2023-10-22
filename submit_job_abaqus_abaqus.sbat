@@ -37,7 +37,6 @@ module list
 #rm -rfv abq1.*
 
 # Pre-load preCICE shared library to ensure linking to preCICE
-#export LD_PRELOAD=~/precice/build/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 export LD_PRELOAD=~/precice-installation/lib64/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 
 echo "Launching meso participant"
