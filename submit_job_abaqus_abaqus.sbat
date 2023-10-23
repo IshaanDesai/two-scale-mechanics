@@ -37,20 +37,19 @@ module list
 #rm -rfv abq1.*
 
 # Pre-load preCICE shared library to ensure linking to preCICE
-#export LD_PRELOAD=~/precice/build/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 export LD_PRELOAD=~/precice-installation/lib64/libprecice.so:/sw/pkgs/arc/gcc/10.3.0/lib64/libstdc++.so.6:$LD_PRELOAD
 
 echo "Launching meso participant"
 
-cd meso_laminate/
+cd meso_laminate_abaqus/
 
 abaqus job=Crossply_meso input=Crossply_meso_18elements \
-	scratch=/home/desaii/composite-multiscale/meso_laminate \
+	scratch=/home/desaii/composite-multiscale/meso_laminate_abaqus \
 	interactive user=VUMAT.f double=both &> log_meso.log &
 
 echo "Launching Micro Manager"
 
-cd ../micro_ruc/
+cd ../micro_ruc_abaqus/
 
 python3 run_micro_manager.py --config micro-manager-config.json &> log_micro.log
 
