@@ -29,7 +29,7 @@ class MicroSimulation:
         self._foldername = 'ruc_' + self._id_as_string
 
         # Set the working directory to the micro_ruc/restart_method folder
-        os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method')
+        os.chdir('/home/desaii/composite-multiscale/micro_ruc_abaqus/restart_method')
 
         # Create a new directory for this micro simulation
         subprocess.call('mkdir ' + self._foldername, shell=True)
@@ -59,7 +59,7 @@ class MicroSimulation:
         assert dt != 0
 
         # Set the working directory to the micro_ruc/ folder
-        os.chdir('/home/desaii/composite-multiscale/micro_ruc/restart_method/' + self._foldername)
+        os.chdir('/home/desaii/composite-multiscale/micro_ruc_abaqus/restart_method/' + self._foldername)
 
         # Clean the working directory
         subprocess.call('sh clean_ruc.sh', shell=True)

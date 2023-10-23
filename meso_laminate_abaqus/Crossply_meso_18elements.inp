@@ -141,9 +141,9 @@ Set_X0, 1, 1
 ** 
 ** STEP: Step_Loading
 ** 
-*Step, name=Step_Loading, nlgeom=YES
+*Step, name=Step_Loading, nlgeom=NO
 *Dynamic, Explicit
-, 1.
+, 0.1
 *Bulk Viscosity
 0.06, 1.2
 ** Mass Scaling: Semi-Automatic
