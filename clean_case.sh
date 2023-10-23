@@ -2,12 +2,14 @@ rm -fv slurm*
 rm -rfv precice-profiling
 rm -rfv precice-run
 
-echo "Cleaning meso participant"
-cd meso_laminate
+echo "Cleaning meso Abaqus participant"
+cd meso_laminate_abaqus
 ./clean.sh
 
-cd ..
+echo "Cleaning micro Abaqus participant"
+cd ../micro_ruc_abaqus
+./clean.sh
 
-echo "Cleaning micro participant"
-cd micro_ruc
+echo "Cleaning micro NASMAT participant"
+cd ../micro_ruc_nasmat
 ./clean.sh
