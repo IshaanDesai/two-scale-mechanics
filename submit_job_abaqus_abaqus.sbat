@@ -20,7 +20,8 @@ module load RestrictedLicense abaqus
 module load abaqus
 
 # Load user defined gcc to avoid conflict with intel
-module load use.own gcc/my_gcc10
+# module load use.own gcc/my_gcc10
+module load gcc/10
 
 # modules required by preCICE at runtime
 module load eigen/3.4.0 boost/1.78.0
