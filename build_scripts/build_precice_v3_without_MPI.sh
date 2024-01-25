@@ -5,7 +5,8 @@
 module purge
 
 # Use custom gcc to later use it alongside the intel module
-module load use.own gcc/my_gcc10
+#module load use.own gcc/my_gcc10
+module load gcc/10
 
 # Modules may need to be updated depending on compatibility and availability on Great Lakes
 module load cmake/3.26.3 eigen/3.4.0 boost/1.78.0
