@@ -8,8 +8,9 @@ pip3 uninstall -y micro-manager-precice
 pip3 uninstall -y pyprecice
 pip3 uninstall -y mpi4py
 
-module load use.own gcc/my_gcc10
+#module load use.own gcc/my_gcc10
 #module load use.own gcc/gcc_libs
+module load gcc/10
 
 module load openmpi/4.1.6
 
