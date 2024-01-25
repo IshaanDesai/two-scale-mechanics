@@ -18,7 +18,7 @@ module load openmpi/4.1.6
 # module load intel/2022.1.2 impi/2021.5.1
 
 # Manually install Cython, as it necessary to build pyprecice
-pip3 install --user Cython
+pip3 install --user Cython pkgconfig
 
 module list
 
