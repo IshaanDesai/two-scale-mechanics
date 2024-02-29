@@ -17,8 +17,4 @@ manager = MicroManager(args.config)
 
 print("Micro Manager object created")
 
-manager.initialize()
-
-print("Micro Manager initialized")
-
 manager.solve()

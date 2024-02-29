@@ -6,19 +6,21 @@ Two-scale coupled simulation of a composite structure using the preCICE coupling
 
 The meso-scale model is a 3D beam structure which is being axially loaded.
 
+
+
 The micro-scale model is a 3D single fibre structure.
 
 ## Solvers
 
-Meso scale:
+### Meso scale
 
-### Abaqus
+#### Abaqus
 
-### FEniCSx
 
-Micro scale:
 
-### Abaqus
+### Micro scale
+
+#### Abaqus
 
 ### NASMAT
 

@@ -20,7 +20,8 @@ module load RestrictedLicense abaqus
 module load abaqus
 
 # Load user defined gcc to avoid conflict with intel
-module load use.own gcc/my_gcc10
+# module load use.own gcc/my_gcc10
+module load gcc/10
 
 # modules required by preCICE at runtime
 module load eigen/3.4.0 boost/1.78.0
@@ -44,7 +45,7 @@ echo "Launching meso participant"
 cd meso_laminate_abaqus/
 
 abaqus job=Crossply_meso input=Crossply_meso_18elements \
-	scratch=/home/desaii/composite-multiscale/meso_laminate_abaqus \
+	scratch=/home/mhoangn/composite-multiscale/meso_laminate_abaqus \
 	interactive user=VUMAT.f double=both &> log_meso.log &
 
 echo "Launching Micro Manager"
