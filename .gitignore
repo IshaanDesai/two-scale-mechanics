@@ -21,3 +21,6 @@ __pycache__/
 *.res
 *.cid
 *.simlog
+
+# Ignore NASMAT files
+*.so
