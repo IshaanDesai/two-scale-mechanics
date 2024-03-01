@@ -19,10 +19,8 @@ except SystemExit:
     quit()
 
 configuration_file_name = args.configurationFileName
-participant_name = args.participantName
-
-participant_name == 'Laminate-3D-ply'
-mesh_name = 'laminate-mesh-mesh'
+participant_name = 'Laminate-3D-ply'
+mesh_name = 'laminate-meso-mesh'
 
 # RVE_ID = Unique ID for each macro gauss point [INTEGER]
 # MOD_ID = ID for the micromechanical model [INTEGER]
@@ -41,7 +39,10 @@ participant = precice.Participant(participant_name, configuration_file_name,
 assert (participant.requires_mesh_connectivity_for(mesh_name) is False)
 
 vertices = np.zeros((num_vertices, participant.get_mesh_dimensions(mesh_name)))
-read_data = np.zeros((num_vertices, participant.get_data_dimensions(mesh_name, read_data_name)))
+
+read_data = dict()
+for name in read_data_names:
+    read_data[name] = np.zeros((num_vertices, participant.get_data_dimensions(mesh_name, name)))
 
 write_data = dict()
 for name in write_data_names:
