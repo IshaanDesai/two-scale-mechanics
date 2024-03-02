@@ -73,9 +73,7 @@ while participant.is_coupling_ongoing():
     dt = participant.get_max_time_step_size()
 
     for name in read_data_names:
-        read_data = participant.read_data(mesh_name, name, vertex_ids, dt)
-
-    write_data = read_data + 1
+        read_data[name] = participant.read_data(mesh_name, name, vertex_ids, dt)
 
     for name in write_data_names:
         participant.write_data(mesh_name, name, vertex_ids, write_data[name])

@@ -19,9 +19,9 @@
        <use-data name="stresses4to6"/>
        <use-data name="strains1to3"/>
        <use-data name="strains4to6"/>
-       <data:scalar name="RVE_ID"/>
-       <data:scalar name="MOD_ID"/>
-       <data:scalar name="RUC_SIZE"/>
+       <use-data name="RVE_ID"/>
+       <use-data name="MOD_ID"/>
+       <use-data name="RUC_SIZE"/>
     </mesh>
 
     <participant name="Laminate-3D-ply">
@@ -46,7 +46,7 @@
       <write-data name="stresses4to6" mesh="laminate-meso-mesh"/>
     </participant>
 
-    <m2n:sockets acceptor="Micro-Manager" connector="Laminate-3D-ply" network="ib0" exchange-directory="/home/desaii/composite-multiscale/"/>
+    <m2n:sockets acceptor="Micro-Manager" connector="Laminate-3D-ply" exchange-directory=".."/>
 
     <coupling-scheme:serial-explicit>
        <participants first="Laminate-3D-ply" second="Micro-Manager"/>

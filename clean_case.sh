@@ -1,6 +1,6 @@
 rm -fv slurm*
-rm -rfv precice-profiling
-rm -rfv precice-run
+rm -rfv ./precice-profiling/
+rm -rfv ./precice-run/
 
 echo "Cleaning meso Abaqus participant"
 cd meso_laminate_abaqus
@@ -14,8 +14,6 @@ echo "Cleaning micro NASMAT participant"
 cd ../micro_ruc_nasmat
 ./clean.sh
 
-cd ..
-
 echo "Cleaning NASMAT micro participant"
-cd micro_ruc_nasmat
+cd ../micro_nasmat_dummy
 ./clean.sh
