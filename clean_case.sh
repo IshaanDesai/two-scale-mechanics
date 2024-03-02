@@ -3,15 +3,15 @@ rm -rfv ./precice-profiling/
 rm -rfv ./precice-run/
 
 echo "Cleaning meso Abaqus participant"
-cd meso_laminate_abaqus
+cd meso_abaqus
 ./clean.sh
 
 echo "Cleaning micro Abaqus participant"
-cd ../micro_ruc_abaqus
+cd ../micro_abaqus
 ./clean.sh
 
 echo "Cleaning micro NASMAT participant"
-cd ../micro_ruc_nasmat
+cd ../micro_nasmat
 ./clean.sh
 
 echo "Cleaning NASMAT micro participant"
