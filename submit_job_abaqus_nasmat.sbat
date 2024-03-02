@@ -48,15 +48,15 @@ export LD_PRELOAD=$MKL_FOLDER/libmkl_def.so.2:$MKL_FOLDER/libmkl_avx2.so.2:$MKL_
 
 echo "Launching meso participant"
 
-cd meso_laminate_abaqus/
+cd meso_abaqus/
 
 abaqus job=Crossply_meso input=Crossply_meso_18elements \
-	scratch=/home/desaii/composite-multiscale/meso_laminate_abaqus \
+	scratch=/home/desaii/composite-multiscale/meso_abaqus \
 	interactive user=VUMAT.f double=both &> log_meso.log &
 
 echo "Launching Micro Manager"
 
-cd ../micro_ruc_nasmat/
+cd ../micro_nasmat/
 
 python3 run_micro_manager.py --config micro-manager-config.json &> log_micro.log
 
