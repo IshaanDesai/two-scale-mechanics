@@ -14,7 +14,7 @@ class MicroSimulation:
         self._dims = 3
         self._sim_id = sim_id
 
-        self._nasmat = cdll.LoadLibrary('/home/desaii/composite-multiscale/micro_ruc_nasmat/np_emulator.so')
+        self._nasmat = cdll.LoadLibrary('/home/desaii/composite-multiscale/micro_nasmat/np_emulator.so')
 
     def solve(self, strains, dt):
         assert dt != 0
