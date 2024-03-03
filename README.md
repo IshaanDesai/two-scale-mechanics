@@ -30,7 +30,7 @@ Open two terminals. In the first terminal, go to `meso_dummy/` folder. Run the d
 python dummy.py
 ```
 
-In the second terminal, run the Micro Manager:
+In the second terminal, go to the `micro_nasmat_dummy/` folder. Run the Micro Manager via the given script:
 
 ```bash
 ./run_micromanager_nasmat.sh
