@@ -2,7 +2,7 @@
     "micro_file_name": "ruc_nasmat",
     "coupling_params": {
         "config_file_name": "../precice-config-nasmat-scaling.xml",
-        "macro_mesh_name": "laminate-meso-mesh",
+        "macro_mesh_name": "dummy-mesh",
         "read_data_names": {"strains1to3": "vector", "strains4to6": "vector", "RVE_ID":"scalar", "MOD_ID":"scalar", "RUC_SIZE":"scalar"},
         "write_data_names": {"stresses1to3": "vector", "stresses4to6": "vector"}
     },

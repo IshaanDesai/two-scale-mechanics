@@ -2,25 +2,10 @@
 Dummy meso solver which writes random strain values to and reads stresses from preCICE.
 """
 from __future__ import division
-
-import argparse
 import numpy as np
 import precice
 
-parser = argparse.ArgumentParser()
-parser.add_argument("configurationFileName",
-                    help="Name of the xml config file.", type=str)
-
-try:
-    args = parser.parse_args()
-except SystemExit:
-    print("")
-    print("Usage: python ./solverdummy precice-config.xml")
-    quit()
-
-configuration_file_name = args.configurationFileName
-participant_name = 'Laminate-3D-ply'
-mesh_name = 'laminate-meso-mesh'
+mesh_name = 'dummy-mesh'
 
 # RVE_ID = Unique ID for each macro gauss point [INTEGER]
 # MOD_ID = ID for the micromechanical model [INTEGER]
@@ -30,11 +15,7 @@ read_data_names = ['stresses1to3', 'stresses4to6']
 
 num_vertices = 10  # Number of vertices
 
-solver_process_index = 0
-solver_process_size = 1
-
-participant = precice.Participant(participant_name, configuration_file_name,
-                                  solver_process_index, solver_process_size)
+participant = precice.Participant('Meso-scale-dummy', '../precice-config-nasmat-scaling.xml', 0, 1)
 
 assert (participant.requires_mesh_connectivity_for(mesh_name) is False)
 
