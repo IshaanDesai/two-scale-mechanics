@@ -6,6 +6,10 @@ echo "Cleaning meso Abaqus participant"
 cd meso_abaqus
 ./clean.sh
 
+echo "Cleaning meso Abaqus participant"
+cd ../meso_dummy
+./clean.sh
+
 echo "Cleaning micro Abaqus participant"
 cd ../micro_abaqus
 ./clean.sh

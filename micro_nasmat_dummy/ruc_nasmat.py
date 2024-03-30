@@ -36,6 +36,13 @@ class MicroSimulation:
         stresses = np.dot(cmat, strain_values)
         return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6]}
 
+    def get_state(self):
+        # ID is returned as it is trivial. In real case, this method should return the state of the simulation.
+        return self._sim_id
+
+    def set_state(self, state):
+        # ID is set as it is trivial. In real case, this method should set the state of the simulation.
+        self._sim_id = state
 
 
 def main():

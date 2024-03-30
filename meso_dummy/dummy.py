@@ -47,9 +47,14 @@ vertex_ids = participant.set_mesh_vertices(mesh_name, vertices)
 
 participant.initialize()
 
+data_checkpoint = None
+
+print("Starting meso solver dummy...")
+
 while participant.is_coupling_ongoing():
     if participant.requires_writing_checkpoint():
-        print("DUMMY: Writing iteration checkpoint")
+        print("Writing iteration checkpoint")
+        data_checkpoint = write_data.copy()
 
     dt = participant.get_max_time_step_size()
 
@@ -59,11 +64,12 @@ while participant.is_coupling_ongoing():
     for name in write_data_names:
         participant.write_data(mesh_name, name, vertex_ids, write_data[name])
 
-    print("DUMMY: Advancing in time")
+    print("Advancing in time")
     participant.advance(dt)
 
     if participant.requires_reading_checkpoint():
-        print("DUMMY: Reading iteration checkpoint")
+        print("Reading iteration checkpoint")
+        write_data = data_checkpoint.copy()
 
 participant.finalize()
-print("DUMMY: Closing meso solver dummy...")
+print("Closing meso solver dummy...")
