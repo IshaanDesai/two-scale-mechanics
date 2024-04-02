@@ -3,6 +3,7 @@ Solve RVE using NASMAT: https://software.nasa.gov/software/LEW-20244-1
 """
 import numpy as np
 from ctypes import cdll, byref, c_double, POINTER
+import time
 
 
 class MicroSimulation:
@@ -25,7 +26,6 @@ class MicroSimulation:
             strain_values[i] = macro_data["strains1to3"][i]
             strain_values[i + 3] = macro_data["strains4to6"][i]
 
-
         cmat = np.arange(0, 36, dtype=np.float64)
         cmat_ = cmat.ctypes.data_as(POINTER(c_double))
         self.homogenize.restype = c_double
@@ -34,6 +34,9 @@ class MicroSimulation:
         stresses = np.zeros((6))
         cmat = np.ctypeslib.as_array(cmat_, shape=(6, 6))
         stresses = np.dot(cmat, strain_values)
+
+        time.sleep(1)
+
         return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6]}
 
     def get_state(self):

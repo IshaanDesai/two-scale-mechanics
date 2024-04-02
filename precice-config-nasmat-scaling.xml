@@ -48,11 +48,10 @@
 
     <m2n:sockets acceptor="Micro-Manager" connector="Meso-scale-dummy" exchange-directory=".."/>
 
-    <coupling-scheme:serial-implicit>
+    <coupling-scheme:serial-explicit>
        <participants first="Meso-scale-dummy" second="Micro-Manager"/>
-       <max-time value="1"/>
-       <max-iterations value="5"/>
-       <time-window-size method="first-participant" value="-1"/>
+       <max-time value="2.0"/>
+       <time-window-size value="1.0"/>
        <exchange data="stresses1to3" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
        <exchange data="stresses4to6" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
        <exchange data="strains1to3" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
@@ -60,8 +59,5 @@
        <exchange data="RVE_ID" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
        <exchange data="MOD_ID" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
        <exchange data="RUC_SIZE" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
-       <acceleration:constant>
-          <relaxation value="0.5"/>
-       </acceleration:constant>
-    </coupling-scheme:serial-implicit>
+    </coupling-scheme:serial-explicit>
 </precice-configuration>
