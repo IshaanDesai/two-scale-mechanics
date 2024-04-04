@@ -24,3 +24,11 @@ __pycache__/
 
 # Ignore NASMAT files
 *.so
+*.MAC
+*.mac
+*.out
+*.OUT
+
+
+# precice files
+*precice-*
