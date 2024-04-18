@@ -7,8 +7,8 @@ import precice
 
 mesh_name = 'dummy-mesh'
 mod_id = 103
-ruc_size = 16
-num_vertices = 50  # Number of vertices
+ruc_size = 64
+num_vertices = 128  # Number of vertices
 
 # Data names
 write_data_names = ['rve_id', 'mod_id', 'ruc_size', 'strains1to3', 'strains4to6']
@@ -16,7 +16,6 @@ read_data_names = ['stresses1to3', 'stresses4to6','cmat1', 'cmat2', 'cmat3', 'cm
 
 # Creating precice participant
 participant = precice.Participant('Meso-scale-dummy', '../precice-config-nasmat-scaling.xml', 0, 1)
-assert (participant.requires_mesh_connectivity_for(mesh_name) is False)
 
 # Initializing vertices
 vertices = np.zeros((num_vertices, participant.get_mesh_dimensions(mesh_name)))
@@ -36,12 +35,10 @@ for x in range(num_vertices):
     write_data['strains1to3'][x, :] = np.random.uniform(0, 1e-4, 3) # Random strain values
     write_data['strains4to6'][x, :] = np.random.uniform(0, 1e-6, 3) # Random strain values
 
-
 # Initializing read data
 read_data = dict()
 for name in read_data_names:
     read_data[name] = np.zeros((num_vertices, participant.get_data_dimensions(mesh_name, name)))
-
 
 participant.initialize()
 
@@ -60,9 +57,7 @@ while participant.is_coupling_ongoing():
             read_data[name] = participant.read_data(mesh_name, name, vertex_ids, dt)
 
         print("Read data at the end of the time step")
-        print(read_data['cmat6'])
-
-
+        #print(read_data['cmat6'])
 
 participant.finalize()
 print("Closing meso solver dummy...")
