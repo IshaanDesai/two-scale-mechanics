@@ -26,23 +26,21 @@ class MicroSimulation:
         rve_id = int(macro_data["rve_id"])
         mod_id = int(macro_data["mod_id"])
         ruc_size = int(macro_data["ruc_size"])
-        input_strain = np.zeros((6))
+        strains = np.zeros((6))
         for i in range(3):
-            input_strain[i] = float(macro_data["strains1to3"][i])
-            input_strain[i + 3] = float(macro_data["strains4to6"][i])
+            strains[i] = float(macro_data["strains1to3"][i])
+            strains[i + 3] = float(macro_data["strains4to6"][i])
 
         # Building NASMAT Model
-        model = self.build_nasmat_model(rve_id, mod_id, ruc_size)
+        model = self._build_nasmat_model(rve_id, mod_id, ruc_size)
 
         # Solving RVE using NASMAT
         cmat = model.homogenize(print_output=0)
         print("Homogenization completed for RVE ID: ", rve_id)
 
-
         # Stress calculation
         stresses = np.zeros((6))
-        stresses = np.dot(cmat, input_strain)
-
+        stresses = np.dot(cmat, strains)
 
         return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6],
                 "cmat1": cmat[0][0:3], "cmat2": cmat[0][3:6], 
@@ -59,7 +57,7 @@ class MicroSimulation:
         # ID is set as it is trivial. In real case, this method should set the state of the simulation.
         self._sim_id = state
 
-    def build_nasmat_model(self, rve_id, mod_id, ruc_size):
+    def _build_nasmat_model(self, rve_id, mod_id, ruc_size):
 
         # Building NASMAT Model
         model = Model(name='example_01', id=rve_id) 

@@ -8,8 +8,7 @@ import precice
 mesh_name = 'dummy-mesh'
 mod_id = 103
 ruc_size = 16
-num_vertices = 5  # Number of vertices
-
+num_vertices = 50  # Number of vertices
 
 # Data names
 write_data_names = ['rve_id', 'mod_id', 'ruc_size', 'strains1to3', 'strains4to6']
