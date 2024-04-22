@@ -19,7 +19,8 @@
 #
 # Compute resources
 #SBATCH --nodes=1
-#SBATCH --ntasks-per-node=5
+#SBATCH --ntasks-per-node=2
+#SBATCH --mem=1000G
 
 echo "SLURM_NNODES"=$SLURM_NNODES
 echo "working directory="$SLURM_SUBMIT_DIR
@@ -39,6 +40,6 @@ echo "Launching Micro Manager"
 
 cd ../micro_nasmat_dummy/
 
-LD_PRELOAD=/home/desaiin/petsc-3.15.5/arch-linux-c-opt/lib/libpetsc.so.3.15.5 mpiexec -n 4 --bind-to core python3 run_micro_manager.py --config micro-manager-config.json &> log_micro.log
+LD_PRELOAD=/home/desaiin/petsc-3.15.5/arch-linux-c-opt/lib/libpetsc.so.3.15.5 mpiexec -n 1 --bind-to core python3 run_micro_manager.py --config micro-manager-config.json &> log_micro.log
 
 echo "Meso simulation and Micro Manager have been launched"

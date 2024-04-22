@@ -7,8 +7,8 @@ import precice
 
 mesh_name = 'dummy-mesh'
 mod_id = 103
-ruc_size = 64
-num_vertices = 128  # Number of vertices
+ruc_size = 4
+num_vertices = 91125  # Number of vertices (Comparison with older NASMAT)
 
 # Data names
 write_data_names = ['rve_id', 'mod_id', 'ruc_size', 'strains1to3', 'strains4to6']
