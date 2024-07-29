@@ -13,3 +13,7 @@ cd ../micro_abaqus
 echo "Cleaning micro NASMAT participant"
 cd ../micro_nasmat
 ./clean.sh
+
+echo "Cleaning micro FANS participant"
+cd ../micro_FANS
+./clean.sh
