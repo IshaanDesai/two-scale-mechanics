@@ -16,12 +16,13 @@ The meso-scale model is a 3D beam structure which is being axially loaded. The m
 ### Micro scale
 
 - [ABAQUS](https://www.3ds.com/products-services/simulia/products/abaqus/)
+- [NASMAT](https://software.nasa.gov/software/LEW-20244-1)
 
 ## Dependencies
 
 Apart from the dependencies of the solvers, the case setup itself relies on the following software:
 
-- preCICE: See the scripts to [build_precice with MPI](build_scripts/build_precice_v3_with_Intel_MPI.sh) and [wihtout MPI](build_scripts/build_precice_v3_without_MPI.sh).
+- preCICE: See the scripts to [build_precice with MPI](build_scripts/build_precice_v3_with_Intel_MPI.sh) and [without MPI](build_scripts/build_precice_v3_without_MPI.sh).
 - Micro Manager: See the script to [build the Micro Manager](build_scripts/build_micro_manager.sh).
 
 ## Running the simulation
