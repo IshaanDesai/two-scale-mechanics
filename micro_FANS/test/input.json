@@ -1,4 +1,4 @@
 {
     "output_path": "result.h5",
-    "input_file": "input_files/sphere256_MechLinear.json"
+    "input_file": "input_files/sphere32_MechLinear.json"
 }

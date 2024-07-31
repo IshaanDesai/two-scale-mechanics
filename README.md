@@ -28,7 +28,11 @@ Get the FANS source code from the University of Stuttgart [FANS repository](http
 git clone https://github.tik.uni-stuttgart.de/DAE/FANS.git
 ```
 
-and switch to the `micro_manager_fans` branch
+move into the FANS directory and switch to the `micro_manager_fans` branch with
+
+```bash
+git checkout micro_manager_fans
+```
 
 See the FANS [README](FANS/README.md) for more information on the requirements of FANS.
 
@@ -80,6 +84,8 @@ There are two shared libraries available as FANS python bindings that can be use
 cd ../../test
 micro-manager-precice micro-manager-config-mech.json
 ```
+
+to run a mechanical simulation
 
 ## Dependencies
 
