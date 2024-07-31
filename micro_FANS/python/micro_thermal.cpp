@@ -148,7 +148,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 }
 
 
-PYBIND11_MODULE(PyFANSTHERMAL, m)
+PYBIND11_MODULE(MicroFANSTHERMAL, m)
 {
     // optional docstring
     m.doc() = "pybind11 micro dummy plugin";

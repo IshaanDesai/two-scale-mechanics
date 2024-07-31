@@ -8,6 +8,23 @@
 
 #include "micro.hpp"
 
+
+py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double> array2) {
+    // Ensure arrays are contiguous for efficient merging
+    array1 = array1.attr("copy")();
+    array2 = array2.attr("copy")();
+
+    // Get numpy concatenate function
+    py::object np = py::module::import("numpy");
+    py::object concatenate = np.attr("concatenate");
+
+    // Concatenate the two arrays
+    py::tuple arrays = py::make_tuple(array1, array2);
+    py::array_t<double> result = concatenate(arrays, py::int_(0)).cast<py::array_t<double>>();
+
+    return result;
+}
+
 // Constructor
 MicroSimulation::MicroSimulation(int sim_id){
     #ifdef USE_MPI
@@ -93,8 +110,11 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     out_temp_path = new char[out_path_length];  // Allocate memory for the path
     strcpy(out_temp_path, output_path); 
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
-    py::array_t<double> macro_vector_data = macro_data["g0"].cast<py::array_t<double>>();
-    std::vector<double> _g0 = std::vector<double>(macro_vector_data.data(), macro_vector_data.data() + macro_vector_data.size()); // convert numpy array to std::vector.
+    py::array_t<double> strain1 = macro_data["strains1to3"].cast<py::array_t<double>>();
+    py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();
+    // merge the two arrays
+    py::array_t<double> strain = merge_arrays(strain1, strain2);
+    std::vector<double> _g0 = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
 
     vector<double> g0_all = _g0;
 
@@ -114,55 +134,21 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
             std::tie(average_stress, average_strain) = solver->postprocess(reader, out_temp_path, i_load);
         }
 
-    // Retrieve all values from postprocess and store them in a py::dict
-    double *displacement = solver->v_u;
-    std::vector<ssize_t> size_displacement(4);
-    size_displacement[0] = reader.dims[0];
-    size_displacement[1] = reader.dims[1];
-    size_displacement[2] = reader.dims[2];
-    size_displacement[3] = 3;
-
-    // Convert the displacement and residual to a py::array_t<double>
-    py::buffer_info disp_info{
-        displacement, // Pointer to data (nullptr if the array is empty)
-        sizeof(double), // Size of one scalar
-        py::format_descriptor<double>::format(), // Python struct-style format descriptor
-        4, // Number of dimensions
-        size_displacement, // Buffer dimensions
-        {sizeof(double) * size_displacement[1] * size_displacement[2] * size_displacement[3], sizeof(double) * size_displacement[2] * size_displacement[3], sizeof(double) * size_displacement[3], sizeof(double)} // Strides (in bytes) for each index
-    };
-    py::array_t<double> displacement_array(disp_info);
-
-    double* stress = solver->stress;
-    std::vector<ssize_t> size_stress(4);
-    size_stress[0] = reader.dims[0];
-    size_stress[1] = reader.dims[1];
-    size_stress[2] = reader.dims[2];
-    size_stress[3] = matmodel->n_str;
-
-    py::buffer_info info_stress{
-        stress, // Pointer to data (nullptr if the array is empty)
-        sizeof(double), // Size of one scalar
-        py::format_descriptor<double>::format(), // Python struct-style format descriptor
-        4, // Number of dimensions
-        size_stress, // Buffer dimensions
-        {sizeof(double) * size_stress[1] * size_stress[2] * size_stress[3], sizeof(double) * size_stress[2] * size_stress[3], sizeof(double) * size_stress[3], sizeof(double)} // Strides (in bytes) for each index
-    };
-    py::array_t<double> stress_array(info_stress);
-
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;
 
     // add micro_scalar_data and micro_vector_data to micro_write_data
-
-    micro_write_data["stress"] = stress_array;
-    micro_write_data["effective_stress"] = average_stress;
-    micro_write_data["displacement"] = displacement_array;
+    std::vector<double> stress13 = {average_stress[0], average_stress[1], average_stress[2]};
+    std::vector<double> stress46 = {average_stress[3], average_stress[4], average_stress[5]};
+    micro_write_data["stresses1to3"] = stress13;
+    micro_write_data["stresses4to6"] = stress46;
     return micro_write_data;
 }
 
 
-PYBIND11_MODULE(PyFANS, m)
+
+
+PYBIND11_MODULE(MicroFANS, m)
 {
     // optional docstring
     m.doc() = "pybind11 micro dummy plugin";

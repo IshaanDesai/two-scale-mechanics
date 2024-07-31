@@ -10,11 +10,11 @@
 #include "pybind11/numpy.h" // numpy arrays
 #include "pybind11/stl.h"   // std::vector conversion
 
-#include "general.h"
-#include "matmodel.h"
-#include "solver.h"
-#include "solverFP.h"
-#include "solverCG.h"
+#include "FANS/general.h"
+#include "FANS/matmodel.h"
+#include "FANS/solver.h"
+#include "FANS/solverFP.h"
+#include "FANS/solverCG.h"
 
 namespace py = pybind11;
 
