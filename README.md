@@ -16,6 +16,70 @@ The meso-scale model is a 3D beam structure which is being axially loaded. The m
 ### Micro scale
 
 - [ABAQUS](https://www.3ds.com/products-services/simulia/products/abaqus/)
+- [FANS](https://github.tik.uni-stuttgart.de/DAE/FANS)
+
+#### Fourier Accelerated Nodal Solvers (FANS)
+
+##### Install FANS
+
+Get the FANS source code from the University of Stuttgart [FANS repository](https://github.tik.uni-stuttgart.de/DAE/FANS) and move into the `FANS` directory.
+
+```bash
+git clone https://github.tik.uni-stuttgart.de/DAE/FANS.git
+```
+
+and switch to the `micro_manager_fans` branch
+
+See the FANS [README](FANS/README.md) for more information on the requirements of FANS.
+
+To build and install FANS, run
+
+```bash
+mkdir build
+cd build
+cmake ..
+sudo make install
+```
+
+##### Build the FANS python bindings
+
+Move into the `composite-multiscale` directory and run
+
+```bash
+cd micro_FANS/python
+mkdir build
+cd build
+cmake ..
+cmake --build . -j
+```
+
+##### Configure the FANS simulation for the Micro Manager
+
+FANS is configured in a JSON configuration file. The path to said file is read from a `input.json` file.
+
+The name `input.json` is fixed and it contains the path to the input file and output file path.
+
+```json
+{
+    "output_path": "result.h5",
+    "input_file": "input_files/test_MechLinear.json"
+}
+```
+
+The output path is required by FANS but not used in the preCICE coupling.
+The input path is the path to the FANS input file where FANS internal properties like material parameters of the micro structure and the path to the micro structure are set.
+
+##### Run the FANS simulation
+
+There are two shared libraries available as FANS python bindings that can be used to run FANS with preCICE:
+
+- `MicroFANS` for mechanical problems
+- `MicroFANSTHERMAL` for thermal problems
+
+```bash
+cd ../../test
+micro-manager-precice micro-manager-config-mech.json
+```
 
 ## Dependencies
 
