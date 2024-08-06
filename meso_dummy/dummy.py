@@ -5,7 +5,7 @@ from __future__ import division
 import numpy as np
 import precice
 
-mesh_name = 'dummy-mesh'
+mesh_name = 'meso-mesh'
 mod_id = 103
 ruc_size = 4
 num_vertices = 91125  # Number of vertices (Comparison with older NASMAT)
@@ -15,7 +15,7 @@ write_data_names = ['rve_id', 'mod_id', 'ruc_size', 'strains1to3', 'strains4to6'
 read_data_names = ['stresses1to3', 'stresses4to6','cmat1', 'cmat2', 'cmat3', 'cmat4', 'cmat5', 'cmat6', 'cmat7', 'conv']
 
 # Creating precice participant
-participant = precice.Participant('Meso-scale-dummy', '../precice-config-nasmat-scaling.xml', 0, 1)
+participant = precice.Participant('Meso-structure', '../precice-config.xml', 0, 1)
 
 # Initializing vertices
 vertices = np.zeros((num_vertices, participant.get_mesh_dimensions(mesh_name)))
