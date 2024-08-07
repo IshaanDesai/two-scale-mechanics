@@ -20,10 +20,10 @@
 
     <participant name="Meso-structure">
       <provide-mesh name="meso-mesh"/>
-      <read-data name="stresses1to3" mesh="laminate-meso-mesh"/>
-      <read-data name="stresses4to6" mesh="laminate-meso-mesh"/>
-      <write-data name="strains1to3" mesh="laminate-meso-mesh"/>
-      <write-data name="strains4to6" mesh="laminate-meso-mesh"/>
+      <read-data name="stresses1to3" mesh="meso-mesh"/>
+      <read-data name="stresses4to6" mesh="meso-mesh"/>
+      <write-data name="strains1to3" mesh="meso-mesh"/>
+      <write-data name="strains4to6" mesh="meso-mesh"/>
     </participant>
 
     <participant name="Micro-Manager">
