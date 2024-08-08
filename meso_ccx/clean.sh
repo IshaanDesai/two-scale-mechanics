@@ -6,6 +6,3 @@ rm -rf *.12d *.cvg *.dat *.frd *.sta
 
 #precice files
 rm -rf precice-profiling* ../precice-run*
-
-clear
-
