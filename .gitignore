@@ -21,3 +21,14 @@ __pycache__/
 *.res
 *.cid
 *.simlog
+
+# Ignore NASMAT files
+*.so
+*.MAC
+*.mac
+*.out
+*.OUT
+
+
+# precice files
+*precice-*
