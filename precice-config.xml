@@ -6,14 +6,12 @@
 	<sink type="stream" output="stdout"  filter= "%Severity% > debug" enabled="true" />
     </log>  
     
-    <data:scalar name="rve_id"/>
-    <data:scalar name="mod_id"/>
-    <data:scalar name="ruc_size"/>
-    <data:scalar name="conv"/>
-    <data:vector name="strains1to3"/>
-    <data:vector name="strains4to6"/>
-    <data:vector name="stresses1to3"/>
-    <data:vector name="stresses4to6"/>
+    <data:vector name="stress1to3"/>
+    <data:vector name="stress4to6"/>
+    <data:vector name="strain1to3"/>
+    <data:vector name="strain4to6"/>
+    <data:vector name="conv_flag"/>
+    <data:vector name="input_id"/>
     <data:vector name="cmat1"/>
     <data:vector name="cmat2"/>
     <data:vector name="cmat3"/>
@@ -22,16 +20,13 @@
     <data:vector name="cmat6"/>
     <data:vector name="cmat7"/>
 
-
-    <mesh name="dummy-mesh" dimensions="3">
-       <use-data name="rve_id"/>
-       <use-data name="mod_id"/>
-       <use-data name="ruc_size"/>
-       <use-data name="conv"/>
-       <use-data name="strains1to3"/>
-       <use-data name="strains4to6"/>
-       <use-data name="stresses1to3"/>
-       <use-data name="stresses4to6"/>
+    <mesh name="meso-mesh" dimensions="3">
+       <use-data name="stress1to3"/>
+       <use-data name="stress4to6"/>
+       <use-data name="strain1to3"/>
+       <use-data name="strain4to6"/>
+       <use-data name="conv_flag"/>
+       <use-data name="input_id"/>
        <use-data name="cmat1"/>
        <use-data name="cmat2"/>
        <use-data name="cmat3"/>
@@ -41,64 +36,59 @@
        <use-data name="cmat7"/>
     </mesh>
 
-    <participant name="Meso-scale-dummy">
-      <provide-mesh name="dummy-mesh"/>
-      <read-data name="conv" mesh="dummy-mesh"/>
-      <read-data name="stresses1to3" mesh="dummy-mesh"/>
-      <read-data name="stresses4to6" mesh="dummy-mesh"/>
-      <read-data name="cmat1" mesh="dummy-mesh"/>
-      <read-data name="cmat2" mesh="dummy-mesh"/>
-      <read-data name="cmat3" mesh="dummy-mesh"/>
-      <read-data name="cmat4" mesh="dummy-mesh"/>
-      <read-data name="cmat5" mesh="dummy-mesh"/>
-      <read-data name="cmat6" mesh="dummy-mesh"/>
-      <read-data name="cmat7" mesh="dummy-mesh"/>
-      <write-data name="rve_id" mesh="dummy-mesh"/>
-      <write-data name="mod_id" mesh="dummy-mesh"/>
-      <write-data name="ruc_size" mesh="dummy-mesh"/>
-      <write-data name="strains1to3" mesh="dummy-mesh"/>
-      <write-data name="strains4to6" mesh="dummy-mesh"/>
+    <participant name="Meso-structure">
+      <provide-mesh name="meso-mesh"/>
+      <read-data name="stress1to3" mesh="meso-mesh"/>
+      <read-data name="stress4to6" mesh="meso-mesh"/>
+      <read-data name="conv_flag" mesh="meso-mesh"/>
+      <read-data name="cmat1" mesh="meso-mesh"/>
+      <read-data name="cmat2" mesh="meso-mesh"/>
+      <read-data name="cmat3" mesh="meso-mesh"/>
+      <read-data name="cmat4" mesh="meso-mesh"/>
+      <read-data name="cmat5" mesh="meso-mesh"/>
+      <read-data name="cmat6" mesh="meso-mesh"/>
+      <read-data name="cmat7" mesh="meso-mesh"/>
+      <write-data name="strain1to3" mesh="meso-mesh"/>
+      <write-data name="strain4to6" mesh="meso-mesh"/>
+      <write-data name="input_id" mesh="meso-mesh"/>
     </participant>
 
     <participant name="Micro-Manager">
-      <receive-mesh name="dummy-mesh" from="Meso-scale-dummy" direct-access="true" safety-factor="0.0"/>
-      <read-data name="rve_id" mesh="dummy-mesh"/>
-      <read-data name="mod_id" mesh="dummy-mesh"/>
-      <read-data name="ruc_size" mesh="dummy-mesh"/>
-      <read-data name="strains1to3" mesh="dummy-mesh"/>
-      <read-data name="strains4to6" mesh="dummy-mesh"/>
-      <write-data name="conv" mesh="dummy-mesh"/>
-      <write-data name="stresses1to3" mesh="dummy-mesh"/>
-      <write-data name="stresses4to6" mesh="dummy-mesh"/>
-      <write-data name="cmat1" mesh="dummy-mesh"/>
-      <write-data name="cmat2" mesh="dummy-mesh"/>
-      <write-data name="cmat3" mesh="dummy-mesh"/>
-      <write-data name="cmat4" mesh="dummy-mesh"/>
-      <write-data name="cmat5" mesh="dummy-mesh"/>
-      <write-data name="cmat6" mesh="dummy-mesh"/>
-      <write-data name="cmat7" mesh="dummy-mesh"/>
+      <receive-mesh name="meso-mesh" from="Meso-structure" direct-access="true" safety-factor="0.0"/>
+      <read-data name="strain1to3" mesh="meso-mesh"/>
+      <read-data name="strain4to6" mesh="meso-mesh"/>
+      <read-data name="input_id" mesh="meso-mesh"/>
+      <write-data name="stress1to3" mesh="meso-mesh"/>
+      <write-data name="stress4to6" mesh="meso-mesh"/>
+      <write-data name="conv_flag" mesh="meso-mesh"/>
+      <write-data name="cmat1" mesh="meso-mesh"/>
+      <write-data name="cmat2" mesh="meso-mesh"/>
+      <write-data name="cmat3" mesh="meso-mesh"/>
+      <write-data name="cmat4" mesh="meso-mesh"/>
+      <write-data name="cmat5" mesh="meso-mesh"/>
+      <write-data name="cmat6" mesh="meso-mesh"/>
+      <write-data name="cmat7" mesh="meso-mesh"/>
     </participant>
 
-    <m2n:sockets acceptor="Micro-Manager" connector="Meso-scale-dummy" exchange-directory=".."/>
+    <m2n:sockets acceptor="Micro-Manager" connector="Meso-structure" exchange-directory="~/composite-multiscale/"/>
 
     <coupling-scheme:serial-explicit>
-       <participants first="Meso-scale-dummy" second="Micro-Manager"/>
-       <max-time value="2.0"/>
-       <time-window-size value="1.0"/>
-       <exchange data="strains1to3" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
-       <exchange data="strains4to6" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
-       <exchange data="rve_id" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
-       <exchange data="mod_id" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
-       <exchange data="ruc_size" mesh="dummy-mesh" from="Meso-scale-dummy" to="Micro-Manager"/>
-       <exchange data="conv" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="stresses1to3" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="stresses4to6" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat1" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat2" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat3" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat4" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat5" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat6" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
-       <exchange data="cmat7" mesh="dummy-mesh" from="Micro-Manager" to="Meso-scale-dummy"/>
+       <participants first="Meso-structure" second="Micro-Manager"/>
+       <max-time value="1"/>
+       <time-window-size method="first-participant" value="-1"/>
+       <exchange data="stress1to3" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="stress4to6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="conv_flag" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat1" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat2" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat3" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat4" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat5" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="cmat7" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+       <exchange data="strain1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+       <exchange data="strain4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+       <exchange data="input_id" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
     </coupling-scheme:serial-explicit>
+
 </precice-configuration>
