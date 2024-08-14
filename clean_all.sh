@@ -19,7 +19,3 @@ cd ../micro_abaqus
 echo "Cleaning micro NASMAT participant"
 cd ../micro_nasmat
 ./clean.sh
-
-echo "Cleaning NASMAT micro participant"
-cd ../micro_nasmat_dummy
-./clean.sh
