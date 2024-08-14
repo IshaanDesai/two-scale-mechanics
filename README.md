@@ -27,7 +27,7 @@ Apart from the dependencies of the solvers, the case setup itself relies on the 
 
 ## Running the simulation
 
-Files relevant to solvers on the meso scale are located in the folders with names `meso_*`, and similar solvers for micro scale are located in folders with names `micro_*`. Each folder has a run script, to be run directly to start the solver.
+Files relevant to solvers on the meso scale are located in the folders with names `meso_*`, and similar solvers for micro scale are located in folders with names `micro_*`. Each folder has a README explaining the simulation setup and how to start the solver.
 
 ## Running simulations on a cluster
 
