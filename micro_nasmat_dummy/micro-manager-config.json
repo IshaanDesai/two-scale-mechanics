@@ -1,8 +1,8 @@
 {
     "micro_file_name": "ruc_nasmat",
     "coupling_params": {
-        "config_file_name": "../precice-config-nasmat-scaling.xml",
-        "macro_mesh_name": "dummy-mesh",
+        "config_file_name": "../precice-config.xml",
+        "macro_mesh_name": "meso-mesh",
         "read_data_names": {"rve_id":"scalar", 
                             "mod_id":"scalar", 
                             "ruc_size":"scalar",
@@ -22,7 +22,7 @@
                         }
     },
     "simulation_params": {
-        "macro_domain_bounds": [0, 1, 0, 1, 0, 1],
-        "decomposition": [3, 1, 1]
+        "micro_dt": 1e-1,
+        "macro_domain_bounds": [0, 1, 0, 1, 0, 1]
     }
 }
