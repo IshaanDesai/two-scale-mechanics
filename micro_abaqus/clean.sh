@@ -4,7 +4,7 @@ rm -rfv __pycache__
 rm -rfv precice-profiling/
 rm -fv .nfs*
 
-echo "Cleaning restart_method"
+echo "Cleaning micro Abaqus restart method"
 cd restart_method/
 sh clean_ruc.sh
 rm -rfv ruc_*/
