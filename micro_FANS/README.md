@@ -2,17 +2,7 @@
 
 ## Install FANS
 
-Get the FANS source code from the University of Stuttgart [FANS repository](https://github.tik.uni-stuttgart.de/DAE/FANS) and move into the `FANS` directory. Go to the FANS directory and switch to the `micro_manager_fans` branch. Build FANS by following the instructions in its [README](FANS/README.md).
-
-## Build the FANS python bindings
-
-Go to the `python/` folder in this repository
-
-```bash
-mkdir build && cd build
-cmake ..
-cmake --build .
-```
+Clone [FANS](https://github.com/DataAnalyticsEngineering/FANS) and build it as a library.
 
 ## Configure the FANS simulation for the Micro Manager
 
@@ -31,14 +21,10 @@ The output path is required by FANS but not used in the preCICE coupling. The in
 
 ## Run the FANS simulation
 
-There are two shared libraries available as FANS python bindings that can be used to run FANS
+When FANS is built as a library, a file `libFANS.so` is generated. Point to this file in the `micro_file_name` entry in the `micro-manager-config.json` configuration.
 
-- `MicroFANS` for mechanical problems. Corresponding Micro Manager configuration file is `micro-manager-config-mesh.json`.
-- `MicroFANSTHERMAL` for thermal problems. Corresponding Micro Manager configuration file is `micro-manager-config-thermal.json`.
+Run the Micro Manager
 
 ```bash
-cd ../../test
-micro-manager-precice micro-manager-config-mech.json
+micro-manager-precice micro-manager-config.json
 ```
-
-to run a mechanical simulation
