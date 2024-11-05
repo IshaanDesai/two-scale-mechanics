@@ -21,7 +21,7 @@ cd ../micro_nasmat
 ./clean.sh
 
 echo "Cleaning micro FANS participant"
-cd ../micro_FANS
+cd ../micro_fans
 ./clean.sh
 
 echo "Cleaning micro NASMAT dummy participant"
