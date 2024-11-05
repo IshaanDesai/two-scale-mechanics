@@ -16,6 +16,7 @@ The meso-scale model is a 3D beam structure which is being axially loaded. The m
 ### Micro scale
 
 - [ABAQUS](https://www.3ds.com/products-services/simulia/products/abaqus/)
+- [FANS](https://github.com/DataAnalyticsEngineering/FANS)
 - [NASMAT](https://software.nasa.gov/software/LEW-20244-1)
 
 ## Dependencies

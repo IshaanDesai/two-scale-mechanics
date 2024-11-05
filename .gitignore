@@ -1,3 +1,4 @@
+# Abaqus files
 *.abq
 *.odb
 *.lck
@@ -22,7 +23,8 @@ __pycache__/
 *.cid
 *.simlog
 
-# Ignore NASMAT files
+
+# NASMAT files
 *.so
 *.MAC
 *.mac
@@ -30,5 +32,5 @@ __pycache__/
 *.OUT
 
 
-# precice files
+# preCICE files
 *precice-*

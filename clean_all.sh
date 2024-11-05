@@ -8,7 +8,7 @@ echo "Cleaning meso Abaqus participant"
 cd meso_abaqus
 ./clean.sh
 
-echo "Cleaning meso Abaqus participant"
+echo "Cleaning meso Dummy participant"
 cd ../meso_dummy
 ./clean.sh
 
@@ -22,4 +22,12 @@ cd ../micro_abaqus
 
 echo "Cleaning micro NASMAT participant"
 cd ../micro_nasmat
+./clean.sh
+
+echo "Cleaning micro FANS participant"
+cd ../micro_fans
+./clean.sh
+
+echo "Cleaning micro NASMAT dummy participant"
+cd ../micro_nasmat_dummy
 ./clean.sh
