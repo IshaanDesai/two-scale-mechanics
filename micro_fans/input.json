@@ -1,5 +1,5 @@
 {
-    "ms_filename": "../microstructures/sphere32.h5",
+    "ms_filename": "sphere32.h5",
     "ms_datasetname": "/sphere/32x32x32/ms",
     "ms_L": [1.0, 1.0, 1.0],
 
