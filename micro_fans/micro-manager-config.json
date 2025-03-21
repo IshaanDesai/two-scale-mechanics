@@ -1,7 +1,7 @@
 {
     "micro_file_name": "PyFANS",
     "coupling_params": {
-        "config_file_name": "../precice-config-for-fans.xml",
+        "precice_config_file_name": "../precice-config-for-fans.xml",
         "macro_mesh_name": "meso-mesh",
         "read_data_names": {"strains1to3": "vector", 
                             "strains4to6": "vector"
