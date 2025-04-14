@@ -12,6 +12,7 @@ The meso-scale model is a 3D beam structure which is being axially loaded. The m
 
 - Dummy solver written in Python (only for testing)
 - [ABAQUS](https://www.3ds.com/products-services/simulia/products/abaqus/)
+- [CalculiX](https://www.calculix.de/)
 
 ### Micro scale
 
