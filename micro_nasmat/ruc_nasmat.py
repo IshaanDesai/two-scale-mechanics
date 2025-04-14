@@ -16,16 +16,31 @@ class MicroSimulation:
         """
         self._dims = 3
         self._sim_id = sim_id
+        self._rve_id = sim_id
+        self._mod_id = 102
+        self._ruc_size = 5
+        self._first_run_done = False
 
-        print("MicroSimulation object created with ID: ", sim_id)
+    def initialize(self):
+        """
+        Initialize the simulation.
+        """
+        pass
 
     def solve(self, macro_data, dt):
         assert dt != 0
 
+        # In the first iteration, the macro input data is zero, hence using the default values
+        if not self._first_run_done:
+            rve_id = self._rve_id
+            mod_id = self._mod_id
+            ruc_size = self._ruc_size
+        else:
+           rve_id = int(macro_data["rve_id"])
+           mod_id = int(macro_data["mod_id"])
+           ruc_size = int(macro_data["ruc_size"])
+
         # Processing input data
-        rve_id = int(macro_data["rve_id"])
-        mod_id = int(macro_data["mod_id"])
-        ruc_size = int(macro_data["ruc_size"])
         strains = np.zeros((6))
         for i in range(3):
             strains[i] = float(macro_data["strains1to3"][i])
@@ -41,6 +56,10 @@ class MicroSimulation:
         # Stress calculation
         stresses = np.zeros((6))
         stresses = np.dot(cmat, strains)
+
+        print("cmat: ", cmat)
+
+        self._first_run_done = True
 
         return {"stresses1to3": stresses[0:3], "stresses4to6": stresses[3:6],
                 "cmat1": cmat[0][0:3], "cmat2": cmat[0][3:6], 
