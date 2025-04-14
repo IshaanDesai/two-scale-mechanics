@@ -77,17 +77,13 @@ Stress tensor represented as
 
 $$\sigma = (\sigma_{xx},\sigma_{yy},\sigma_{zz},\sigma_{yz},\sigma_{xz},\sigma_{xy})$$
 
-The vector form of the tensor is oftentimes represented with numeric indices
-
-$$\sigma = (\sigma_{1},\sigma_{2},\sigma_{3},\sigma_{4},\sigma_{5},\sigma_{6})$$
+$$= (\sigma_{1},\sigma_{2},\sigma_{3},\sigma_{4},\sigma_{5},\sigma_{6})$$
 
 Strain tensor represented as
 
 $$\varepsilon = (\varepsilon_{xx},\varepsilon_{yy},\varepsilon_{zz},2\varepsilon_{yz},2\varepsilon_{xz},2\varepsilon_{xy})$$
 
-The vector form of the tensor is oftentimes represented with numeric indices
-
-$$\varepsilon = (\varepsilon_{1},\varepsilon_{2},\varepsilon_{3},\varepsilon_{4},\varepsilon_{5},\varepsilon_{6})$$
+$$= (\varepsilon_{1},\varepsilon_{2},\varepsilon_{3},\varepsilon_{4},\varepsilon_{5},\varepsilon_{6})$$
 
 Stiffness matrix represented as
 
@@ -100,10 +96,8 @@ C_{xzxz}, C_{xzxy},\\
 C_{xyxy})
 $$
 
-The vector form of the tensor is oftentimes represented with numeric indices
-
 $$
-C = (C_{11}, C_{12}, C_{13}, C_{14}, C_{15}, C_{16},\\
+= (C_{11}, C_{12}, C_{13}, C_{14}, C_{15}, C_{16},\\
 C_{22}, C_{23}, C_{24}, C_{25}, C_{26},\\
 C_{33}, C_{34}, C_{35}, C_{36},\\
 C_{44}, C_{45}, C_{46},\\
@@ -113,18 +107,52 @@ $$
 
 ### Mandel notation
 
+Stress tensor represented as
 
+$$\sigma = (\sigma_{xx},\sigma_{yy},\sigma_{zz},\sqrt2\sigma_{yz},\sqrt2\sigma_{xz},\sqrt2\sigma_{xy})$$
 
-### Coupling data structures:
+$$= (\sigma_{1},\sigma_{2},\sigma_{3},\sigma_{4},\sigma_{5},\sigma_{6})$$
+
+Strain tensor represented as
+
+$$\varepsilon = (\varepsilon_{xx},\varepsilon_{yy},\varepsilon_{zz},\sqrt2\varepsilon_{yz},\sqrt2\varepsilon_{xz},\sqrt2\varepsilon_{xy})$$
+
+$$= (\varepsilon_{1},\varepsilon_{2},\varepsilon_{3},\varepsilon_{4},\varepsilon_{5},\varepsilon_{6})$$
+
+Stiffness matrix represented as
+
+$$
+C = (C_{xxxx}, C_{xxyy}, C_{xxzz}, \sqrt2C_{xxyz}, \sqrt2C_{xxxz}, \sqrt2C_{xxxy},\\
+C_{yyyy}, C_{yyzz}, \sqrt2C_{yyyz}, \sqrt2C_{yyxz}, \sqrt2C_{yyxy},\\
+C_{zzzz}, \sqrt2C_{xxyz}, \sqrt2C_{yyxz}, \sqrt2C_{zzxy},\\
+C_{yzyz}, C_{yzxz}, C_{yzxy},\\
+C_{xzxz}, C_{xzxy},\\
+C_{xyxy})
+$$
+
+$$
+= (C_{11}, C_{12}, C_{13}, C_{14}, C_{15}, C_{16},\\
+C_{22}, C_{23}, C_{24}, C_{25}, C_{26},\\
+C_{33}, C_{34}, C_{35}, C_{36},\\
+C_{44}, C_{45}, C_{46},\\
+C_{55}, C_{56},\\
+C_{66})
+$$
+
+### Coupling data structures
+
+The coupling variables correspond to the following numeric notation specific quantities:
 
 - `stresses1to3`: $\sigma_{1}, \sigma_{2}, \sigma_{3}$
 - `stresses4to6`: $\sigma_{4}, \sigma_{5}, \sigma_{6}$
 - `strains1to3`: $\varepsilon_{1},\varepsilon_{2},\varepsilon_{3}$
 - `strains4to6`: $\varepsilon_{4},\varepsilon_{5},\varepsilon_{6}$
 - `cmat1`: $C_{11}, C_{12}, C_{13}$
-- `cmat1`: $C_{14}, C_{15}, C_{16}$
-- `cmat1`: $C_{22}, C_{23}, C_{24}$
-- `cmat1`: $C_{25}, C_{26}, C_{33}$
-- `cmat1`: $C_{34}, C_{35}, C_{36}$
-- `cmat1`: $C_{44}, C_{45}, C_{46}$
-- `cmat1`: $C_{55}, C_{56}, C_{66}$
+- `cmat2`: $C_{14}, C_{15}, C_{16}$
+- `cmat3`: $C_{22}, C_{23}, C_{24}$
+- `cmat4`: $C_{25}, C_{26}, C_{33}$
+- `cmat5`: $C_{34}, C_{35}, C_{36}$
+- `cmat6`: $C_{44}, C_{45}, C_{46}$
+- `cmat7`: $C_{55}, C_{56}, C_{66}$
+
+The user needs to take care that either both the macro and micro scale simulations use the same notation, or the change of notation is accounted for on one side. For example, CalculiX uses the Voigt notation, but FANS uses the Mandel notation.
