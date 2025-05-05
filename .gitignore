@@ -23,14 +23,9 @@ __pycache__/
 *.cid
 *.simlog
 
-
 # NASMAT files
 *.so
 *.MAC
 *.mac
 *.out
 *.OUT
-
-
-# preCICE files
-*precice-*
