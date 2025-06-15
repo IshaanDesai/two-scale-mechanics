@@ -29,3 +29,7 @@ __pycache__/
 *.mac
 *.out
 *.OUT
+
+# FreeCAD files
+*.FCBak
+*.FCStd
