@@ -1,4 +1,3 @@
-rm -fv slurm*
 rm -rfv ./precice-profiling/
 rm -rfv ./precice-run/
 rm -rfv *.err
