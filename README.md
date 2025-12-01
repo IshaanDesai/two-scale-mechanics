@@ -42,102 +42,150 @@ The stress and strain tensors, and the stiffness matrix are symmetric for most m
 The stress tensor is
 
 $$
-\begin{pmatrix}
+\begin{bmatrix}
 \sigma_{xx} & \sigma_{xy} & \sigma_{xz}\\
 \sigma_{yx} & \sigma_{yy} & \sigma_{yz}\\
 \sigma_{zx} & \sigma_{zy} & \sigma_{zz}\\
-\end{pmatrix}
+\end{bmatrix}
+$$
+
+Due to symmetry, the values of interest are
+
+$$
+\begin{bmatrix}
+\sigma_{xx} & \sigma_{xy} & \sigma_{xz}\\
+. & \sigma_{yy} & \sigma_{yz}\\
+. & . & \sigma_{zz}\\
+\end{bmatrix}
 $$
 
 The strain tensor is
 
 $$
-\begin{pmatrix}
+\begin{bmatrix}
 \varepsilon_{xx} & \varepsilon_{xy} & \varepsilon_{xz}\\
 \varepsilon_{yx} & \varepsilon_{yy} & \varepsilon_{yz}\\
 \varepsilon_{zx} & \varepsilon_{zy} & \varepsilon_{zz}\\
-\end{pmatrix}
+\end{bmatrix}
+$$
+
+Due to symmetry, the values of interest are
+
+$$
+\begin{bmatrix}
+\varepsilon_{xx} & \varepsilon_{xy} & \varepsilon_{xz}\\
+. & \varepsilon_{yy} & \varepsilon_{yz}\\
+. & . & \varepsilon_{zz}\\
+\end{bmatrix}
 $$
 
 The stiffness matrix is
 
 $$
-\begin{pmatrix}
+\begin{bmatrix}
 C_{xxxx} & C_{xxyy} & C_{xxzz} & C_{xxyz} & C_{xxxz} & C_{xxxy}\\
 C_{xxyy} & C_{yyyy} & C_{yyzz} & C_{yyyz} & C_{yyxz} & C_{yyxy}\\
 C_{xxzz} & C_{yyzz} & C_{zzzz} & C_{zzyz} & C_{zzxz} & C_{zzxy}\\
 C_{xxyz} & C_{yyyz} & C_{zzyz} & C_{yzyz} & C_{yzxz} & C_{yzxy}\\
 C_{xxxz} & C_{yyxz} & C_{zzxz} & C_{yzxz} & C_{xzxz} & C_{xzxy}\\
 C_{xxxy} & C_{yyxy} & C_{zzxy} & C_{yzxy} & C_{xzxy} & C_{xyxy}\\
-\end{pmatrix}
+\end{bmatrix}
+$$
+
+Due to symmetry, the values of interest are
+
+$$
+\begin{bmatrix}
+C_{xxxx} & C_{xxyy} & C_{xxzz} & C_{xxyz} & C_{xxxz} & C_{xxxy}\\
+. & C_{yyyy} & C_{yyzz} & C_{yyyz} & C_{yyxz} & C_{yyxy}\\
+. & . & C_{zzzz} & C_{zzyz} & C_{zzxz} & C_{zzxy}\\
+. & . & . & C_{yzyz} & C_{yzxz} & C_{yzxy}\\
+. & . & . & . & C_{xzxz} & C_{xzxy}\\
+. & . & . & . & . & C_{xyxy}\\
+\end{bmatrix}
 $$
 
 ### Voigt notation
 
-Stress tensor represented as
-
-$$\sigma = (\sigma_{xx},\sigma_{yy},\sigma_{zz},\sigma_{yz},\sigma_{xz},\sigma_{xy})$$
-
-$$= (\sigma_{1},\sigma_{2},\sigma_{3},\sigma_{4},\sigma_{5},\sigma_{6})$$
-
-Strain tensor represented as
-
-$$\varepsilon = (\varepsilon_{xx},\varepsilon_{yy},\varepsilon_{zz},2\varepsilon_{yz},2\varepsilon_{xz},2\varepsilon_{xy})$$
-
-$$= (\varepsilon_{1},\varepsilon_{2},\varepsilon_{3},\varepsilon_{4},\varepsilon_{5},\varepsilon_{6})$$
-
-Stiffness matrix represented as
+Stress tensor is represented as
 
 $$
-C = (C_{xxxx}, C_{xxyy}, C_{xxzz}, C_{xxyz}, C_{xxxz}, C_{xxxy},\\
-C_{yyyy}, C_{yyzz}, C_{yyyz}, C_{yyxz}, C_{yyxy},\\
-C_{zzzz}, C_{xxyz}, C_{yyxz}, C_{zzxy},\\
-C_{yzyz}, C_{yzxz}, C_{yzxy},\\
-C_{xzxz}, C_{xzxy},\\
-C_{xyxy})
+\begin{bmatrix}
+\sigma_{xx} & \sigma_{xy} & \sigma_{xz}\\
+. & \sigma_{yy} & \sigma_{yz}\\
+. & . & \sigma_{zz}\\
+\end{bmatrix}
+$$
+
+Strain tensor is represented as
+
+$$
+\begin{bmatrix}
+\varepsilon_{xx} & 2\varepsilon_{xy} & 2\varepsilon_{xz}\\
+. & \varepsilon_{yy} & 2\varepsilon_{yz}\\
+. & . & \varepsilon_{zz}\\
+\end{bmatrix}
+$$
+
+Stiffness matrix is represented as
+
+$$
+\begin{bmatrix}
+C_{xxxx} & C_{xxyy} & C_{xxzz} & C_{xxyz} & C_{xxxz} & C_{xxxy}\\
+. & C_{yyyy} & C_{yyzz} & C_{yyyz} & C_{yyxz} & C_{yyxy}\\
+. & . & C_{zzzz} & C_{zzyz} & C_{zzxz} & C_{zzxy}\\
+. & . & . & C_{yzyz} & C_{yzxz} & C_{yzxy}\\
+. & . & . & . & C_{xzxz} & C_{xzxy}\\
+. & . & . & . & . & C_{xyxy}\\
+\end{bmatrix}
 $$
 
 $$
-= (C_{11}, C_{12}, C_{13}, C_{14}, C_{15}, C_{16},\\
-C_{22}, C_{23}, C_{24}, C_{25}, C_{26},\\
-C_{33}, C_{34}, C_{35}, C_{36},\\
-C_{44}, C_{45}, C_{46},\\
-C_{55}, C_{56},\\
-C_{66})
+\begin{bmatrix}
+C_{11} & C_{12} & C_{13} & C_{14} & C_{15} & C_{16}\\
+. & C_{22} & C_{23} & C_{24} & C_{25} & C_{26}\\
+. & . & C_{33} & C_{34} & C_{35} & C_{36}\\
+. & . & . & C_{44} & C_{45} & C_{46}\\
+. & . & . & . & C_{55} & C_{56}\\
+. & . & . & . & . & C_{66}\\
+\end{bmatrix}
 $$
+
+The matrix values are represented in a single vector.
 
 ### Mandel notation
 
 Stress tensor represented as
 
-$$\sigma = (\sigma_{xx},\sigma_{yy},\sigma_{zz},\sqrt2\sigma_{yz},\sqrt2\sigma_{xz},\sqrt2\sigma_{xy})$$
-
-$$= (\sigma_{1},\sigma_{2},\sigma_{3},\sigma_{4},\sigma_{5},\sigma_{6})$$
+$$
+\begin{bmatrix}
+\sigma_{xx} & \sqrt2\sigma_{xy} & \sqrt2\sigma_{xz}\\
+. & \sigma_{yy} & \sqrt2\sigma_{yz}\\
+. & . & \sigma_{zz}\\
+\end{bmatrix}
+$$
 
 Strain tensor represented as
 
-$$\varepsilon = (\varepsilon_{xx},\varepsilon_{yy},\varepsilon_{zz},\sqrt2\varepsilon_{yz},\sqrt2\varepsilon_{xz},\sqrt2\varepsilon_{xy})$$
-
-$$= (\varepsilon_{1},\varepsilon_{2},\varepsilon_{3},\varepsilon_{4},\varepsilon_{5},\varepsilon_{6})$$
+$$
+\begin{bmatrix}
+\varepsilon_{xx} & \sqrt2\varepsilon_{xy} & \sqrt2\varepsilon_{xz}\\
+. & \varepsilon_{yy} & \sqrt2\varepsilon_{yz}\\
+. & . & \varepsilon_{zz}\\
+\end{bmatrix}
+$$
 
 Stiffness matrix represented as
 
 $$
-C = (C_{xxxx}, C_{xxyy}, C_{xxzz}, \sqrt2C_{xxyz}, \sqrt2C_{xxxz}, \sqrt2C_{xxxy},\\
-C_{yyyy}, C_{yyzz}, \sqrt2C_{yyyz}, \sqrt2C_{yyxz}, \sqrt2C_{yyxy},\\
-C_{zzzz}, \sqrt2C_{xxyz}, \sqrt2C_{yyxz}, \sqrt2C_{zzxy},\\
-C_{yzyz}, C_{yzxz}, C_{yzxy},\\
-C_{xzxz}, C_{xzxy},\\
-C_{xyxy})
-$$
-
-$$
-= (C_{11}, C_{12}, C_{13}, C_{14}, C_{15}, C_{16},\\
-C_{22}, C_{23}, C_{24}, C_{25}, C_{26},\\
-C_{33}, C_{34}, C_{35}, C_{36},\\
-C_{44}, C_{45}, C_{46},\\
-C_{55}, C_{56},\\
-C_{66})
+\begin{bmatrix}
+C_{xxxx} & C_{xxyy} & C_{xxzz} & \sqrt2C_{xxyz} & \sqrt2C_{xxxz} & \sqrt2C_{xxxy}\\
+. & C_{yyyy} & C_{yyzz} & \sqrt2C_{yyyz} & \sqrt2C_{yyxz} & \sqrt2C_{yyxy}\\
+. & . & C_{zzzz} & \sqrt2C_{zzyz} & \sqrt2C_{zzxz} & \sqrt2C_{zzxy}\\
+. & . & . & 2C_{yzyz} & 2C_{yzxz} & 2C_{yzxy}\\
+. & . & . & . & 2C_{xzxz} & 2C_{xzxy}\\
+. & . & . & . & . & 2C_{xyxy}\\
+\end{bmatrix}
 $$
 
 ### Coupling data structures
