@@ -63,7 +63,7 @@
       <export:vtu directory="precice-exports" />
     </participant>
 
-    <m2n:sockets acceptor="Meso-structure" connector="Micro-Manager" exchange-directory="/home/desaiin/composite-multiscale/"/>
+    <m2n:sockets acceptor="Meso-structure" connector="Micro-Manager" exchange-directory=".."/>
 
     <coupling-scheme:serial-explicit>
       <participants first="Micro-Manager" second="Meso-structure"/>
@@ -78,8 +78,8 @@
       <exchange data="cmat5" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat7" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
-      <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
-      <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+      <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager" initialize="true"/>
+      <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager" initialize="true"/>
     </coupling-scheme:serial-explicit>
 
 </precice-configuration>

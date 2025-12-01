@@ -1,0 +1,346 @@
+import dolfinx.io.gmsh
+import numpy as np
+import ufl
+
+from mpi4py import MPI
+from petsc4py import PETSc
+from dolfinx import fem, mesh, io
+from dolfinx.fem.petsc import NonlinearProblem
+import basix
+import gmsh
+
+from mesh import Mesh as M
+
+from fenicsxprecice import Adapter, CouplingMesh
+
+class Evaluator:
+    def __init__(self, var, space):
+        self.var_exp = fem.Expression(var, space.element.interpolation_points)
+        self.var_val = fem.Function(space)
+
+    def interpolate(self):
+        self.var_val.interpolate(self.var_exp)
+
+class FenicsXWrapper:
+    def __init__(self, domain_path):
+        self.petsc_options = {
+            "snes_type": "newtonls",
+            "snes_linesearch_type": "none",
+            "snes_atol": 1e-6,
+            "snes_rtol": 1e-6,
+            "snes_monitor": None,
+            "ksp_error_if_not_converged": True,
+            "ksp_type": "gmres",
+            "ksp_rtol": 1e-8,
+            "ksp_monitor": None,
+            "pc_type": "hypre",
+            "pc_hypre_type": "boomeramg",
+            "pc_hypre_boomeramg_max_iter": 1,
+            "pc_hypre_boomeramg_cycle_type": "v",
+        }
+
+        # domain
+        self.domain = M(domain_path, comm=MPI.COMM_WORLD, gdim=3)
+
+        # material properties
+        self.lam   = fem.Constant(self.domain, 10.0)
+        self.mu    = fem.Constant(self.domain, 5.0)
+        self.alpha = fem.Constant(self.domain, 100.0)
+
+        # FEM
+        self.V = fem.functionspace(self.domain, ("CG", 1, (3,)))
+        self.uh = fem.Function(self.V)
+        self.u = ufl.TrialFunction(self.V)
+        self.v = ufl.TestFunction(self.V)
+
+        self.W = fem.functionspace(self.domain, ("DG", 0, (6,)))
+        self.WT = fem.functionspace(self.domain, ("DG", 0, (6, 6)))
+        self.W3 = fem.functionspace(self.domain, ("DG", 0, (3,)))
+
+        self.eps = ufl.variable(FenicsXWrapper.symgrad_mandel(self.uh))
+        self.sig = fem.Function(self.W)
+        self.tan = fem.Function(self.WT)
+
+        # BCs
+        self.dc_bcs = [self.d_bc(fem.Constant(self.domain, 0.), self.V.sub(i)) for i in range(3)]
+        self.bc_nm = ufl.inner(-0.01, self.v[1]) * self.domain.ds(3)
+
+        # variational form
+        self.res = ufl.inner(self.sig, FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx - self.bc_nm(self.v)
+        self.jac = ufl.inner(ufl.dot(self.tan, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx
+
+        # coupling buffers
+        self.eps_buffers = FenicsXWrapper.gen_coupling_buffers(self.W3, 2)
+        self.sig_buffers = FenicsXWrapper.gen_coupling_buffers(self.W3, 2)
+        self.tan_buffers = FenicsXWrapper.gen_coupling_buffers(self.W3, 7)
+
+    def init_pure_meso(self):
+        psi = self.calc_psi()
+        sigma = ufl.diff(psi, self.eps)
+        tangent = ufl.diff(sigma, self.eps)
+        init_res = ufl.inner(sigma, FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx - self.bc_nm(self.v)
+        init_jac = ufl.inner(ufl.dot(tangent, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx
+        problem = NonlinearProblem(init_res, self.uh, bcs=self.dc_bcs, J=init_jac, petsc_options=self.petsc_options,
+                                   petsc_options_prefix="nonlinpoisson")
+        problem.solve()
+
+    def solve(self):
+        problem = NonlinearProblem(self.res, self.uh, bcs=self.dc_bcs, J=self.jac, petsc_options=self.petsc_options,
+                                   petsc_options_prefix="nonlinpoisson")
+        problem.solve()
+
+    def calc_psi(self):
+        tr_e = self.eps[0] + self.eps[1] + self.eps[2]
+        e2 = ufl.inner(self.eps, self.eps)
+        tr_e2 = tr_e ** 2
+        half_alpha = 0.5 * self.alpha
+        return 0.5 * self.lam * (1.0 + half_alpha * tr_e2) * tr_e2 + self.mu * (1 + half_alpha * e2) * e2
+
+    def d_bc(self, bc_val, V: fem.FunctionSpace):
+        tdim = self.domain.topology.dim
+        fdim = tdim - 1
+        b_dofs = fem.locate_dofs_topological(V, fdim, self.domain.facets.find(4))
+        return fem.dirichletbc(bc_val, b_dofs, V)
+
+    @staticmethod
+    def get_buffer_funcs(buffers):
+        buffer_list, _ = buffers
+        return buffer_list
+
+    @staticmethod
+    def symgrad_mandel(vec):
+        halfsqrt2 = 0.5 * np.sqrt(2)
+        return ufl.as_vector([vec[0].dx(0), vec[1].dx(1), vec[2].dx(2),
+                              halfsqrt2 * (vec[1].dx(2) + vec[2].dx(1)),
+                              halfsqrt2 * (vec[0].dx(2) + vec[2].dx(0)),
+                              halfsqrt2 * (vec[0].dx(1) + vec[1].dx(0))])
+
+    @staticmethod
+    def eval_var(var, space):
+        e = Evaluator(var, space)
+        e.interpolate()
+        return e
+
+    @staticmethod
+    def gen_coupling_buffers(space: fem.FunctionSpace, count: int):
+        buffers = [fem.Function(space) for _ in range(count)]
+        return buffers, space
+
+    @staticmethod
+    def write_to_buffers(buffers, values):
+        buffer_list, space = buffers
+        f_dim = space.value_size
+
+        assert len(buffer_list) == len(values)
+        for func, v_list in zip(buffer_list, values):
+            func.x.array.reshape(-1, f_dim)[:, :] = np.array(v_list)
+
+    @staticmethod
+    def copy_from_buffers(targets, buffers):
+        buffer_list, space = buffers
+        f_dim = space.value_size
+
+        assert len(buffer_list) == len(targets)
+        for func, tgt in zip(buffer_list, targets):
+            tgt[:, :] = func.x.array.reshape(-1, f_dim)[:, :]
+
+    @staticmethod
+    def copy_to_buffers(sources, buffers):
+        buffer_list, space = buffers
+        f_dim = space.value_size
+
+        assert len(buffer_list) == len(sources)
+        for func, src in zip(buffer_list, sources):
+            func.x.array.reshape(-1, f_dim)[:, :] = src[:, :]
+
+class MeshParams:
+    def __init__(self, x0, y0, z0, lx, ly, lz, nx, ny, nz):
+        self.x0 = x0
+        self.y0 = y0
+        self.z0 = z0
+        self.lx = lx
+        self.ly = ly
+        self.lz = lz
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+
+    def get(self):
+        return self.x0, self.y0, self.z0, self.lx, self.ly, self.lz, self.nx, self.ny, self.nz
+
+class MesoProblem:
+    Default_Mesh = MeshParams(0.0, 0.0, 0.0,  1.0, 0.25, 0.25, 5, 2, 2)
+
+    def __init__(self, domain_path = None, mesh_params = Default_Mesh):
+        if domain_path is None:
+            domain_path = "bar3d.msh"
+            MesoProblem.generate_rectangle_mesh(domain_path, mesh_params)
+
+        self.fnx = FenicsXWrapper(domain_path)
+        self.eps_eval = FenicsXWrapper.eval_var(self.fnx.eps, self.fnx.W)
+        self.tan_conv_buffer = np.zeros((self.fnx.sig.x.array.reshape(-1, 6).shape[0], 21))
+        self.tensor_mapping = np.array([
+            [0,  1,  2,  3,  4,  5],
+            [1,  6,  7,  8,  9, 10],
+            [2,  7, 11, 12, 13, 14],
+            [3,  8, 12, 15, 16, 17],
+            [4,  9, 13, 16, 18, 19],
+            [5, 10, 14, 17, 19, 20],
+        ])
+
+    def split_eps_data(self):
+        self.eps_eval.interpolate()
+        self.eps_eval.var_val.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+        tmp_view = self.eps_eval.var_val.x.array.reshape(-1, 6)
+        FenicsXWrapper.copy_to_buffers([tmp_view[:, 0:3], tmp_view[:, 3:6]], self.fnx.eps_buffers)
+
+    def merge_sig_data(self):
+        tmp_view = self.fnx.sig.x.array.reshape(-1, 6)
+        FenicsXWrapper.copy_from_buffers([tmp_view[:, 0:3], tmp_view[:, 3:6]], self.fnx.sig_buffers)
+        self.fnx.sig.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+
+    def merge_and_conv_tan_data(self):
+        FenicsXWrapper.copy_from_buffers([self.tan_conv_buffer[:, 3*i:3*(i+1)] for i in range(7)], self.fnx.tan_buffers)
+        self.fnx.tan.x.array.reshape(-1, 6, 6)[:, :, :] = self.as_sym_tensor_6x6(self.tan_conv_buffer)
+        self.fnx.tan.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+
+    def as_sym_tensor_6x6(self, a):
+        return a[:, self.tensor_mapping]
+
+    @staticmethod
+    def coupling_bc(x):
+        return np.logical_or.reduce(np.equal(x, x))
+
+    @staticmethod
+    def generate_rectangle_mesh(msh_file, params: MeshParams, arrangement='AlternateRight'):
+        x0, y0, z0, lx, ly, lz, nx, ny, nz = params.get()
+        gmsh.initialize()
+        gmsh.option.setNumber("General.Terminal", 0)  # to disable meshing info
+        geom = gmsh.model.geo
+
+        p = []
+        p.append(geom.add_point(x0, y0, z0))
+        p.append(geom.add_point(x0 + lx, y0, z0))
+        p.append(geom.add_point(x0 + lx, y0 + ly, z0))
+        p.append(geom.add_point(x0, y0 + ly, z0))
+        p.append(geom.add_point(x0, y0, z0 + lz))
+        p.append(geom.add_point(x0 + lx, y0, z0 + lz))
+        p.append(geom.add_point(x0 + lx, y0 + ly, z0 + lz))
+        p.append(geom.add_point(x0, y0 + ly, z0 + lz))
+
+        l = []
+        l.append(geom.add_line(p[0], p[1]))
+        l.append(geom.add_line(p[1], p[2]))
+        l.append(geom.add_line(p[2], p[3]))
+        l.append(geom.add_line(p[3], p[0]))
+        l.append(geom.add_line(p[0 + 4], p[1 + 4]))
+        l.append(geom.add_line(p[1 + 4], p[2 + 4]))
+        l.append(geom.add_line(p[2 + 4], p[3 + 4]))
+        l.append(geom.add_line(p[3 + 4], p[0 + 4]))
+        l.append(geom.add_line(p[0], p[0 + 4]))
+        l.append(geom.add_line(p[1], p[1 + 4]))
+        l.append(geom.add_line(p[2], p[2 + 4]))
+        l.append(geom.add_line(p[3], p[3 + 4]))
+
+        ll0 = geom.add_curve_loop([l[0], l[1], l[2], l[3]])  # front
+        ll1 = geom.add_curve_loop([-l[4], -l[7], -l[6], -l[5]])  # back
+        ll2 = geom.add_curve_loop([-l[1], l[9], l[5], -l[10]])  # right
+        ll3 = geom.add_curve_loop([-l[3], l[11], l[7], -l[8]])  # left
+        ll4 = geom.add_curve_loop([-l[0], l[8], l[4], -l[9]])  # bot
+        ll5 = geom.add_curve_loop([-l[2], l[10], l[6], -l[11]])  # top
+        ll = [ll0, ll1, ll2, ll3, ll4, ll5]
+        s = [geom.add_plane_surface([lli]) for lli in ll]
+        geom.synchronize()
+        sl = geom.add_surface_loop(s)
+        v = geom.add_volume([sl])
+
+        geom.synchronize()
+
+        for li, ni in zip(l, [nx, ny, nx, ny, nx, ny, nx, ny, nz, nz, nz, nz]):
+            gmsh.model.mesh.set_transfinite_curve(li, ni + 1)
+        for si in s:
+            gmsh.model.mesh.set_transfinite_surface(si, arrangement=arrangement)
+        gmsh.model.mesh.set_transfinite_volume(v)
+
+        gmsh.model.add_physical_group(3, [v], 0)  # tag 0, full domain
+        for i in range(6):
+            gmsh.model.add_physical_group(2, [ll[i]], i + 1)  # tag 1 to 6, faces
+
+        gmsh.model.mesh.generate(dim=3)
+        gmsh.write(msh_file)
+        gmsh.finalize()
+
+
+if __name__ == '__main__':
+    mesh_params = MesoProblem.Default_Mesh
+    mp = MesoProblem('bar3d.msh', mesh_params)
+
+    mp.fnx.init_pure_meso()         # "populate" all fields with values
+    mp.split_eps_data()             # write data to coupling buffers
+
+    # set up coupling
+    precice = Adapter(MPI.COMM_WORLD, 'precice-adapter-config.json')
+    coupling_boundary = MesoProblem.coupling_bc # we are coupling on full domain
+    access_region = [(mesh_params.x0, mesh_params.y0, mesh_params.z0),
+                     (mesh_params.lx + 1e-14, mesh_params.ly + 1e-14, mesh_params.lz + 1e-14)]
+    read_fields = {
+        'stresses1to3': mp.fnx.W3,
+        'stresses4to6': mp.fnx.W3,
+        'cmat1'       : mp.fnx.W3,
+        'cmat2'       : mp.fnx.W3,
+        'cmat3'       : mp.fnx.W3,
+        'cmat4'       : mp.fnx.W3,
+        'cmat5'       : mp.fnx.W3,
+        'cmat6'       : mp.fnx.W3,
+        'cmat7'       : mp.fnx.W3
+    }
+    write_fields = {
+        'strains1to3': FenicsXWrapper.get_buffer_funcs(mp.fnx.eps_buffers)[0],
+        'strains4to6': FenicsXWrapper.get_buffer_funcs(mp.fnx.eps_buffers)[1]
+    }
+    coupling_mesh = CouplingMesh('meso-mesh', coupling_boundary, read_fields, write_fields)
+    precice.initialize([coupling_mesh])
+    
+    is_coupling_ongoing, t, n = precice.is_coupling_ongoing(), 0.0, 0
+    while is_coupling_ongoing:
+        if precice.requires_writing_checkpoint():
+            state = (mp.fnx.sig.x.array, mp.eps_eval.var_val.x.array, mp.fnx.uh.x.array)
+            precice.store_checkpoint(state, t, n)
+        dt = fem.Constant(mp.fnx.domain, precice.get_max_time_step_size())
+
+        values = [list(precice.read_data("meso-mesh", name, dt).values()) for name in ['stresses1to3', 'stresses4to6']]
+        FenicsXWrapper.write_to_buffers(mp.fnx.sig_buffers, values)
+        mp.merge_sig_data()
+
+        values = [list(precice.read_data("meso-mesh", name, dt).values()) for name in ['cmat1', 'cmat2', 'cmat3', 'cmat4', 'cmat5', 'cmat6', 'cmat7']]
+        FenicsXWrapper.write_to_buffers(mp.fnx.tan_buffers, values)
+        mp.merge_and_conv_tan_data()
+
+        mp.fnx.solve()
+
+        is_coupling_ongoing = precice.is_coupling_ongoing()
+        if is_coupling_ongoing:
+            mp.split_eps_data()
+            for eps_, name in zip(FenicsXWrapper.get_buffer_funcs(mp.fnx.eps_buffers), ['strains1to3', 'strains4to6']):
+                precice.write_data("meso-mesh", name, eps_)
+            precice.advance(dt(0))
+        is_coupling_ongoing = precice.is_coupling_ongoing()
+
+        if precice.requires_reading_checkpoint():
+            state, t_, n_ = precice.retrieve_checkpoint()
+            sig_arr, eps_arr, uh_arr = state
+            mp.fnx.sig.x.array[:] = sig_arr
+            mp.eps_eval.var_val.x.array[:] = eps_arr
+            mp.fnx.uh.x.array[:] = uh_arr
+            t = t_
+            n = n_
+        else:
+            t += float(dt)
+            n += 1
+
+        with io.XDMFFile(MPI.COMM_WORLD, f"bar_multi_scale_{n}.xdmf", "w") as xdmf:
+            xdmf.write_mesh(mp.fnx.domain)
+            xdmf.write_function(mp.fnx.uh, t)
+
+    precice.finalize()
+    print(np.linalg.norm(mp.fnx.uh.x.array))

@@ -1,0 +1,53 @@
+"""
+Created on Fri Jan 19 15:36:23 2024
+
+@author: felipe
+"""
+
+"""
+
+This file is part of fetricks:  useful tricks and some extensions for FEniCs and other FEM-related utilities
+Obs: (fe + tricks: where "fe" stands for FEM, FEniCs and me :) ).
+
+Copyright (c) 2022-2023, Felipe Rocha.
+See file LICENSE.txt for license information.
+Please report all bugs and problems to <felipe.figueredo-rocha@ec-nantes.fr>, or
+<f.rocha.felipe@gmail.com>
+"""
+
+import os
+from dolfinx import io, mesh
+import ufl
+from mpi4py import MPI
+
+
+class Mesh(mesh.Mesh):
+    def __init__(self, meshfile, comm=MPI.COMM_WORLD, gdim=2):
+        if (meshfile[-3:] == 'geo'):
+            geofile, meshfile = meshfile, meshfile[:-3] + "msh"
+            os.system('gmsh -{0} {1} -o {2}'.format(gdim, geofile, meshfile))
+
+        self.domain, self.markers, self.facets, _, _, _ = io.gmsh.read_from_msh(meshfile, comm, gdim=gdim)
+        self._cpp_object = self.domain._cpp_object
+        self._ufl_domain = self.domain._ufl_domain
+        self._ufl_domain._ufl_cargo = self.domain._ufl_domain._ufl_cargo
+        self._topology = self.domain._topology
+        self._geometry = self.domain._geometry
+        self.createMeasures()
+        self.gdim = self.domain.geometry.dim
+        self.tdim = self.domain.topology.dim
+        self.num_cells = len(self.domain.topology.connectivity(self.tdim, 0))
+
+        # self.vols = np.array([df.Cell(self, i).volume() for i in range(self.num_cells())])
+        self.dsN = {}
+        self.dxR = {}
+
+    def boundaries(self):
+        return self.facets
+
+    def subdomains(self):
+        return self.markers
+
+    def createMeasures(self):
+        self.ds = ufl.Measure('ds', domain=self, subdomain_data=self.facets)
+        self.dx = ufl.Measure('dx', domain=self, subdomain_data=self.markers)
