@@ -2,9 +2,19 @@
 
 Two-scale coupled simulation of a composite structure using the preCICE coupling library. One meso-scale simulation is coupled to many micro-scale simulations. Both the scales are solved using a range of solvers.
 
-## Setup
+## Setups
 
-The meso-scale model is a 3D beam structure which is being axially loaded. The micro-scale model is a 3D single fibre structure.
+### Single element case
+
+TODO
+
+### Cantilever beam
+
+TODO
+
+### Notch
+
+TODO
 
 ## Solvers
 
@@ -39,158 +49,71 @@ The ABAQUS-ABAQUS case was originally designed to be run on the [Great Lakes HPC
 
 The stress and strain tensors, and the stiffness matrix are symmetric for most mechanics problems. Therefore, all the components need not be communicated over the coupling. What needs to be handled is the notation used by both the solvers being coupled. For example, CalculiX uses the Voigt notation to represent the stress, strain and stiffness tensors. FANS uses Mandel notation.
 
-The stress tensor is
-
-$$
-\begin{bmatrix}
-\sigma_{xx} & \sigma_{xy} & \sigma_{xz}\\
-\sigma_{yx} & \sigma_{yy} & \sigma_{yz}\\
-\sigma_{zx} & \sigma_{zy} & \sigma_{zz}\\
-\end{bmatrix}
-$$
-
-Due to symmetry, the values of interest are
-
-$$
-\begin{bmatrix}
-\sigma_{xx} & \sigma_{xy} & \sigma_{xz}\\
-. & \sigma_{yy} & \sigma_{yz}\\
-. & . & \sigma_{zz}\\
-\end{bmatrix}
-$$
-
-The strain tensor is
-
-$$
-\begin{bmatrix}
-\varepsilon_{xx} & \varepsilon_{xy} & \varepsilon_{xz}\\
-\varepsilon_{yx} & \varepsilon_{yy} & \varepsilon_{yz}\\
-\varepsilon_{zx} & \varepsilon_{zy} & \varepsilon_{zz}\\
-\end{bmatrix}
-$$
-
-Due to symmetry, the values of interest are
-
-$$
-\begin{bmatrix}
-\varepsilon_{xx} & \varepsilon_{xy} & \varepsilon_{xz}\\
-. & \varepsilon_{yy} & \varepsilon_{yz}\\
-. & . & \varepsilon_{zz}\\
-\end{bmatrix}
-$$
-
-The stiffness matrix is
-
-$$
-\begin{bmatrix}
-C_{xxxx} & C_{xxyy} & C_{xxzz} & C_{xxyz} & C_{xxxz} & C_{xxxy}\\
-C_{xxyy} & C_{yyyy} & C_{yyzz} & C_{yyyz} & C_{yyxz} & C_{yyxy}\\
-C_{xxzz} & C_{yyzz} & C_{zzzz} & C_{zzyz} & C_{zzxz} & C_{zzxy}\\
-C_{xxyz} & C_{yyyz} & C_{zzyz} & C_{yzyz} & C_{yzxz} & C_{yzxy}\\
-C_{xxxz} & C_{yyxz} & C_{zzxz} & C_{yzxz} & C_{xzxz} & C_{xzxy}\\
-C_{xxxy} & C_{yyxy} & C_{zzxy} & C_{yzxy} & C_{xzxy} & C_{xyxy}\\
-\end{bmatrix}
-$$
-
-Due to symmetry, the values of interest are
-
-$$
-\begin{bmatrix}
-C_{xxxx} & C_{xxyy} & C_{xxzz} & C_{xxyz} & C_{xxxz} & C_{xxxy}\\
-. & C_{yyyy} & C_{yyzz} & C_{yyyz} & C_{yyxz} & C_{yyxy}\\
-. & . & C_{zzzz} & C_{zzyz} & C_{zzxz} & C_{zzxy}\\
-. & . & . & C_{yzyz} & C_{yzxz} & C_{yzxy}\\
-. & . & . & . & C_{xzxz} & C_{xzxy}\\
-. & . & . & . & . & C_{xyxy}\\
-\end{bmatrix}
-$$
-
 ### Voigt notation
 
-Stress tensor is represented as
+Stress tensor is represented as a vector
 
 $$
 \begin{bmatrix}
-\sigma_{xx} & \sigma_{xy} & \sigma_{xz}\\
-. & \sigma_{yy} & \sigma_{yz}\\
-. & . & \sigma_{zz}\\
+\sigma_{xx} & \sigma_{yy} & \sigma_{zz} & \sigma_{yz} & \sigma_{zx} & \sigma_{xy}
 \end{bmatrix}
 $$
 
-Strain tensor is represented as
+Strain tensor is represented as a vector
 
 $$
 \begin{bmatrix}
-\varepsilon_{xx} & 2\varepsilon_{xy} & 2\varepsilon_{xz}\\
-. & \varepsilon_{yy} & 2\varepsilon_{yz}\\
-. & . & \varepsilon_{zz}\\
+\varepsilon_{xx} & \varepsilon_{yy} & \varepsilon_{zz} & 2\varepsilon_{yz} & 2\varepsilon_{zx} & 2\varepsilon_{xy}
 \end{bmatrix}
 $$
 
-Stiffness matrix is represented as
+Stiffness tensor is represented as a matrix
 
 $$
 \begin{bmatrix}
-C_{xxxx} & C_{xxyy} & C_{xxzz} & C_{xxyz} & C_{xxxz} & C_{xxxy}\\
-. & C_{yyyy} & C_{yyzz} & C_{yyyz} & C_{yyxz} & C_{yyxy}\\
-. & . & C_{zzzz} & C_{zzyz} & C_{zzxz} & C_{zzxy}\\
-. & . & . & C_{yzyz} & C_{yzxz} & C_{yzxy}\\
-. & . & . & . & C_{xzxz} & C_{xzxy}\\
-. & . & . & . & . & C_{xyxy}\\
+C_{(xx)(xx)} & C_{(xx)(yy)} & C_{(xx)(zz)} & C_{(xx)(yz)} & C_{(xx)(zx)} & C_{(xx)(xy)}\\
+C_{(yy)(xx)} & C_{(yy)(yy)} & C_{(yy)(zz)} & C_{(yy)(yz)} & C_{(yy)(zx)} & C_{(yy)(xy)}\\
+C_{(zz)(xx)} & C_{(zz)(yy)} & C_{(zz)(zz)} & C_{(zz)(yz)} & C_{(zz)(zx)} & C_{(zz)(xy)}\\
+C_{(yz)(xx)} & C_{(zx)(yy)} & C_{(zx)(zz)} & C_{(yz)(yz)} & C_{(yz)(zx)} & C_{(yz)(xy)}\\
+C_{(zx)(xx)} & C_{(zx)(yy)} & C_{(zx)(zz)} & C_{(zx)(yz)} & C_{(zx)(zx)} & C_{(zx)(xy)}\\
+C_{(xy)(xx)} & C_{(xy)(yy)} & C_{(xy)(zz)} & C_{(xy)(yz)} & C_{(xy)(zx)} & C_{(xy)(xy)}\\
 \end{bmatrix}
 $$
-
-$$
-\begin{bmatrix}
-C_{11} & C_{12} & C_{13} & C_{14} & C_{15} & C_{16}\\
-. & C_{22} & C_{23} & C_{24} & C_{25} & C_{26}\\
-. & . & C_{33} & C_{34} & C_{35} & C_{36}\\
-. & . & . & C_{44} & C_{45} & C_{46}\\
-. & . & . & . & C_{55} & C_{56}\\
-. & . & . & . & . & C_{66}\\
-\end{bmatrix}
-$$
-
-The matrix values are represented in a single vector.
 
 ### Mandel notation
 
-Stress tensor represented as
+Stress tensor represented as a vector
 
 $$
 \begin{bmatrix}
-\sigma_{xx} & \sqrt2\sigma_{xy} & \sqrt2\sigma_{xz}\\
-. & \sigma_{yy} & \sqrt2\sigma_{yz}\\
-. & . & \sigma_{zz}\\
+\sigma_{xx} & \sigma_{yy} & \sigma_{zz} & \sqrt2\sigma_{yz} & \sqrt2\sigma_{zx} & \sqrt2\sigma_{xy}
 \end{bmatrix}
 $$
 
-Strain tensor represented as
+Strain tensor represented as a vector
 
 $$
 \begin{bmatrix}
-\varepsilon_{xx} & \sqrt2\varepsilon_{xy} & \sqrt2\varepsilon_{xz}\\
-. & \varepsilon_{yy} & \sqrt2\varepsilon_{yz}\\
-. & . & \varepsilon_{zz}\\
+\varepsilon_{xx} & \varepsilon_{yy} & \varepsilon_{zz} & \sqrt2\varepsilon_{yz} & \sqrt2\varepsilon_{zx} & \sqrt2\varepsilon_{xy}
 \end{bmatrix}
 $$
 
-Stiffness matrix represented as
+Stiffness tensor represented as a matrix
 
 $$
 \begin{bmatrix}
-C_{xxxx} & C_{xxyy} & C_{xxzz} & \sqrt2C_{xxyz} & \sqrt2C_{xxxz} & \sqrt2C_{xxxy}\\
-. & C_{yyyy} & C_{yyzz} & \sqrt2C_{yyyz} & \sqrt2C_{yyxz} & \sqrt2C_{yyxy}\\
-. & . & C_{zzzz} & \sqrt2C_{zzyz} & \sqrt2C_{zzxz} & \sqrt2C_{zzxy}\\
-. & . & . & 2C_{yzyz} & 2C_{yzxz} & 2C_{yzxy}\\
-. & . & . & . & 2C_{xzxz} & 2C_{xzxy}\\
-. & . & . & . & . & 2C_{xyxy}\\
+C_{(xx)(xx)} & C_{(xx)(yy)} & C_{(xx)(zz)} & \sqrt2C_{(xx)(yz)} & \sqrt2C_{(xx)(zx)} & \sqrt2C_{(xx)(xy)}\\
+C_{(yy)(xx)} & C_{(yy)(yy)} & C_{(yy)(zz)} & \sqrt2C_{(yy)(yz)} & \sqrt2C_{(yy)(zx)} & \sqrt2C_{(yy)(xy)}\\
+C_{(zz)(xx)} & C_{(zz)(yy)} & C_{(zz)(zz)} & \sqrt2C_{(zz)(yz)} & \sqrt2C_{(zz)(zx)} & \sqrt2C_{(zz)(xy)}\\
+\sqrt2C_{(yz)(xx)} & \sqrt2C_{(zx)(yy)} & \sqrt2C_{(zx)(zz)} & 2C_{(yz)(yz)} & 2C_{(yz)(zx)} & 2C_{(yz)(xy)}\\
+\sqrt2C_{(zx)(xx)} & \sqrt2C_{(zx)(yy)} & \sqrt2C_{(zx)(zz)} & 2C_{(zx)(yz)} & 2C_{(zx)(zx)} & 2C_{(zx)(xy)}\\
+\sqrt2C_{(xy)(xx)} & \sqrt2C_{(xy)(yy)} & \sqrt2C_{(xy)(zz)} & 2C_{(xy)(yz)} & 2C_{(xy)(zx)} & 2C_{(xy)(xy)}\\
 \end{bmatrix}
 $$
 
 ### Coupling data structures
 
-The coupling variables correspond to the following numeric notation specific quantities:
+The stress and strain tensors are represented by $1\times6$ vectors, and the stiffness tensor is represented as a $6\times6$ matrix. The data structures used in the coupling are structured as follows
 
 - `stresses1to3`: $\sigma_{1}, \sigma_{2}, \sigma_{3}$
 - `stresses4to6`: $\sigma_{4}, \sigma_{5}, \sigma_{6}$
@@ -204,4 +127,4 @@ The coupling variables correspond to the following numeric notation specific qua
 - `cmat6`: $C_{44}, C_{45}, C_{46}$
 - `cmat7`: $C_{55}, C_{56}, C_{66}$
 
-The user needs to take care that either both the macro and micro scale simulations use the same notation, or the change of notation is accounted for on one side. For example, CalculiX uses the Voigt notation, but FANS uses the Mandel notation.
+Different solvers can use different notations, for example, CalculiX uses the Voigt notation, but FANS uses the Mandel notation. The multiplying factors need to be adjusting either at the time of writing data or at the time of reading data.
