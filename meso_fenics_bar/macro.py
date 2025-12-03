@@ -5,11 +5,9 @@ import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
 from dolfinx import fem, mesh, io
-from dolfinx.fem.petsc import NonlinearProblem
+from dolfinx.fem.petsc import NonlinearProblem, LinearProblem
 import basix
 import gmsh
-
-from mesh import Mesh as M
 
 from fenicsxprecice import Adapter, CouplingMesh
 
@@ -26,12 +24,13 @@ class FenicsXWrapper:
         self.petsc_options = {
             "snes_type": "newtonls",
             "snes_linesearch_type": "none",
-            "snes_atol": 1e-6,
-            "snes_rtol": 1e-6,
+            "snes_atol": 1e-8,
+            "snes_rtol": 1e-8,
             "snes_monitor": None,
             "ksp_error_if_not_converged": True,
             "ksp_type": "gmres",
-            "ksp_rtol": 1e-8,
+            "ksp_rtol": 1e-10,
+            "ksp_max_it": 1000,
             "ksp_monitor": None,
             "pc_type": "hypre",
             "pc_hypre_type": "boomeramg",
@@ -40,7 +39,11 @@ class FenicsXWrapper:
         }
 
         # domain
-        self.domain = M(domain_path, comm=MPI.COMM_WORLD, gdim=3)
+        mesh_data = io.gmsh.read_from_msh(domain_path, MPI.COMM_WORLD, gdim=3)
+        self.domain = mesh_data.mesh
+        self.cell_markers = mesh_data.cell_tags
+        self.facet_markers = mesh_data.facet_tags
+        self.ds = ufl.Measure('ds', domain=self.domain, subdomain_data=self.facet_markers)
 
         # material properties
         self.lam   = fem.Constant(self.domain, 10.0)
@@ -48,26 +51,29 @@ class FenicsXWrapper:
         self.alpha = fem.Constant(self.domain, 100.0)
 
         # FEM
-        self.V = fem.functionspace(self.domain, ("CG", 1, (3,)))
+        self.V = fem.functionspace(self.domain, ("CG", 2, (3,)))
         self.uh = fem.Function(self.V)
+        self.uh.name = "displacement"
         self.u = ufl.TrialFunction(self.V)
         self.v = ufl.TestFunction(self.V)
 
-        self.W = fem.functionspace(self.domain, ("DG", 0, (6,)))
-        self.WT = fem.functionspace(self.domain, ("DG", 0, (6, 6)))
-        self.W3 = fem.functionspace(self.domain, ("DG", 0, (3,)))
+        self.W = fem.functionspace(self.domain, ("CG", 2, (6,)))
+        self.WT = fem.functionspace(self.domain, ("CG", 2, (6, 6)))
+        self.W3 = fem.functionspace(self.domain, ("CG", 2, (3,)))
 
         self.eps = ufl.variable(FenicsXWrapper.symgrad_mandel(self.uh))
         self.sig = fem.Function(self.W)
         self.tan = fem.Function(self.WT)
+        self.vm_stress = fem.Function(self.V)
+        self.vm_stress.name = "von_mises_stress"
 
         # BCs
         self.dc_bcs = [self.d_bc(fem.Constant(self.domain, 0.), self.V.sub(i)) for i in range(3)]
-        self.bc_nm = ufl.inner(-0.01, self.v[1]) * self.domain.ds(3)
+        self.bc_nm = ufl.inner(-0.01, self.v[1]) * self.ds(3)
 
         # variational form
-        self.res = ufl.inner(self.sig, FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx - self.bc_nm(self.v)
-        self.jac = ufl.inner(ufl.dot(self.tan, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx
+        self.res = ufl.inner(self.sig, FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
+        self.jac = ufl.inner(ufl.dot(self.tan, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx
 
         # coupling buffers
         self.eps_buffers = FenicsXWrapper.gen_coupling_buffers(self.W3, 2)
@@ -78,16 +84,32 @@ class FenicsXWrapper:
         psi = self.calc_psi()
         sigma = ufl.diff(psi, self.eps)
         tangent = ufl.diff(sigma, self.eps)
-        init_res = ufl.inner(sigma, FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx - self.bc_nm(self.v)
-        init_jac = ufl.inner(ufl.dot(tangent, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * self.domain.dx
+        init_res = ufl.inner(sigma, FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
+        init_jac = ufl.inner(ufl.dot(tangent, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx
         problem = NonlinearProblem(init_res, self.uh, bcs=self.dc_bcs, J=init_jac, petsc_options=self.petsc_options,
                                    petsc_options_prefix="nonlinpoisson")
         problem.solve()
 
+        sig_eval = self.eval_var(ufl.variable(sigma), self.W)
+        self.sig.x.array[:] = sig_eval.var_val.x.array[:]
+
+        tan_eval = self.eval_var(ufl.variable(tangent), self.WT)
+        self.tan.x.array[:] = tan_eval.var_val.x.array[:]
+
+
     def solve(self):
-        problem = NonlinearProblem(self.res, self.uh, bcs=self.dc_bcs, J=self.jac, petsc_options=self.petsc_options,
-                                   petsc_options_prefix="nonlinpoisson")
-        problem.solve()
+        a = ufl.inner(ufl.dot(self.tan, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx
+        L = self.bc_nm
+        problem = LinearProblem(
+            a=a,
+            L=L,
+            bcs=self.dc_bcs,
+            petsc_options={"ksp_type": "preonly", "pc_type": "lu"},
+            petsc_options_prefix="Poisson",
+        )
+        result = problem.solve()
+        self.uh.x.array[:] = result.x.array[:]
+
 
     def calc_psi(self):
         tr_e = self.eps[0] + self.eps[1] + self.eps[2]
@@ -97,10 +119,20 @@ class FenicsXWrapper:
         return 0.5 * self.lam * (1.0 + half_alpha * tr_e2) * tr_e2 + self.mu * (1 + half_alpha * e2) * e2
 
     def d_bc(self, bc_val, V: fem.FunctionSpace):
-        tdim = self.domain.topology.dim
-        fdim = tdim - 1
-        b_dofs = fem.locate_dofs_topological(V, fdim, self.domain.facets.find(4))
+        fdim = self.domain.topology.dim - 1
+        b_facets = dolfinx.mesh.locate_entities_boundary(self.domain, fdim, lambda x: np.isclose(x[0], 0))
+        b_dofs = fem.locate_dofs_topological(V, fdim, b_facets)
         return fem.dirichletbc(bc_val, b_dofs, V)
+
+    def calc_von_mises_stress(self):
+        sig = self.sig.x.array.reshape(-1, 6)
+        s1 = 0.5 * (np.power(sig[:, 0] - sig[:, 1], 2) +
+                    np.power(sig[:, 1] - sig[:, 2], 2) +
+                    np.power(sig[:, 2] - sig[:, 0], 2))
+        # we div by 2 to remove sqrt 2 from sig
+        # accounted by factor 3 -> 1.5
+        s2 = 1.5 * (np.power(sig[:, 3], 2) + np.power(sig[:, 4], 2) + np.power(sig[:, 5], 2))
+        self.vm_stress.x.array.reshape(-1, 3)[:, 0] = np.sqrt(s1 + s2)
 
     @staticmethod
     def get_buffer_funcs(buffers):
@@ -204,6 +236,10 @@ class MesoProblem:
         self.fnx.tan.x.array.reshape(-1, 6, 6)[:, :, :] = self.as_sym_tensor_6x6(self.tan_conv_buffer)
         self.fnx.tan.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
+    def calc_von_mises_stress(self):
+        self.fnx.calc_von_mises_stress()
+        self.fnx.vm_stress.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
+
     def as_sym_tensor_6x6(self, a):
         return a[:, self.tensor_mapping]
 
@@ -278,6 +314,20 @@ if __name__ == '__main__':
     mp.fnx.init_pure_meso()         # "populate" all fields with values
     mp.split_eps_data()             # write data to coupling buffers
 
+    # TODO remove later: this is just a nice sanity check
+    #mp.calc_von_mises_stress()
+    #with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"multi_scale_{0}.bp", [mp.fnx.uh, mp.fnx.vm_stress],
+    #                          engine="BP4") as vtx:
+    #    vtx.write(0)
+
+    #mp.fnx.uh.x.array[:] = 0
+    #mp.fnx.uh.x.scatter_forward()
+    #mp.fnx.solve()
+
+    #with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"multi_scale_{1}.bp", [mp.fnx.uh, mp.fnx.vm_stress],
+    #                          engine="BP4") as vtx:
+    #    vtx.write(0)
+
     # set up coupling
     precice = Adapter(MPI.COMM_WORLD, 'precice-adapter-config.json')
     coupling_boundary = MesoProblem.coupling_bc # we are coupling on full domain
@@ -338,9 +388,9 @@ if __name__ == '__main__':
             t += float(dt)
             n += 1
 
-        with io.XDMFFile(MPI.COMM_WORLD, f"bar_multi_scale_{n}.xdmf", "w") as xdmf:
-            xdmf.write_mesh(mp.fnx.domain)
-            xdmf.write_function(mp.fnx.uh, t)
+        mp.calc_von_mises_stress()
+        with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"multi_scale_{n}.bp", [mp.fnx.uh, mp.fnx.vm_stress], engine="BP4") as vtx:
+            vtx.write(t)
 
     precice.finalize()
     print(np.linalg.norm(mp.fnx.uh.x.array))

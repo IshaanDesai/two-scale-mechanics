@@ -69,21 +69,23 @@ class MicroSimulation:
 
         strains = [0] * 6
         strains[0:3] = macro_data['strains1to3']
-        strains[3:6] = macro_data['strains4to6']
+        #strains[3:6] = macro_data['strains4to6']
+        # FANS uses inverted order for off-diag elements
+        strains[3:6] = macro_data['strains4to6'][::-1]
         self.write_local_input(strains)
         subprocess.call(f"FANS ./{self.get_local_input_file_name()} ./{self.get_local_output_file_name()}", shell=True)
         stresses, tangents = self.load_local_output()
 
         return {
             "stresses1to3": stresses[0:3],
-            "stresses4to6": stresses[3:6],
+            "stresses4to6": stresses[3:6][::-1],
             "cmat1": tangents[0:3],
-            "cmat2": tangents[3:6],
-            "cmat3": tangents[6:9],
-            "cmat4": tangents[9:12],
-            "cmat5": tangents[12:15],
-            "cmat6": tangents[15:18],
-            "cmat7": tangents[18:21],
+            "cmat2": tangents[3:6][::-1],
+            "cmat3": [tangents[i] for i in [6, 7, 10]],
+            "cmat4": [tangents[i] for i in [9, 8, 11]],
+            "cmat5": tangents[12:15][::-1],
+            "cmat6": [tangents[i] for i in [20, 19, 17]],
+            "cmat7": [tangents[i] for i in [18, 16, 15]],
         }
 
     def set_state(self, state):
