@@ -95,7 +95,6 @@ class FenicsXWrapper:
         tan_eval = self.eval_var(ufl.variable(tangent), self.WT)
         self.tan.x.array[:] = tan_eval.var_val.x.array[:]
 
-
     def solve(self):
         a = ufl.inner(ufl.dot(self.tan, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx
         L = self.bc_nm
@@ -108,7 +107,6 @@ class FenicsXWrapper:
         )
         result = problem.solve()
         self.uh.x.array[:] = result.x.array[:]
-
 
     def calc_psi(self):
         tr_e = self.eps[0] + self.eps[1] + self.eps[2]
@@ -199,13 +197,83 @@ class MeshParams:
     def get(self):
         return self.x0, self.y0, self.z0, self.lx, self.ly, self.lz, self.nx, self.ny, self.nz
 
+class DataTransformer:
+    ADAPTER_OR_SURROGATE = 0
+    PYFANS = 1
+    NASMAT = 2
+
+    def __init__(self, type):
+        """
+        type: either ADAPTER_OR_SURROGATE, PYFANS or NASMAT
+        """
+        self.sig_impl = DataTransformer._noop
+        self.eps_impl = DataTransformer._noop
+        self.tan_impl = DataTransformer._noop
+
+        if type == self.ADAPTER_OR_SURROGATE:
+            self.sig_impl = DataTransformer._noop
+            self.eps_impl = DataTransformer._noop
+            self.tan_impl = DataTransformer._noop
+        if type == self.PYFANS:
+            self.sig_impl = DataTransformer._handle_sig_eps_fans
+            self.eps_impl = DataTransformer._handle_sig_eps_fans
+            self.tan_impl = DataTransformer._handle_tan_fans
+        if type == self.NASMAT:
+            self.sig_impl = DataTransformer._handle_sig_nasmat
+            self.eps_impl = DataTransformer._handle_eps_nasmat
+            self.tan_impl = DataTransformer._handle_tan_nasmat
+
+    def handle_sig(self, sig_buffer): pass
+    def handle_eps(self, eps_buffer): pass
+    def handle_tan(self, tan_buffer): pass
+
+    @staticmethod
+    def _swap_arr(a, b):
+        tmp = a[:].copy()
+        a[:] = b[:]
+        b[:] = tmp[:]
+
+    @staticmethod
+    def _noop(dummy_arg): pass
+
+    @staticmethod
+    def _handle_sig_eps_fans(coupling_buffer):
+        buffers, _ = coupling_buffer
+        sig_high = buffers[1].x.array.reshape(-1, 3)
+        DataTransformer._swap_arr(sig_high[:, 0], sig_high[:, 2])
+
+    @staticmethod
+    def _handle_tan_fans(tan_buffer):
+        buffers, _ = tan_buffer
+        #tan1 = buffers[0].x.array.reshape(-1, 3)
+        tan2 = buffers[1].x.array.reshape(-1, 3)
+        tan3 = buffers[2].x.array.reshape(-1, 3)
+        tan4 = buffers[3].x.array.reshape(-1, 3)
+        tan5 = buffers[4].x.array.reshape(-1, 3)
+        tan6 = buffers[5].x.array.reshape(-1, 3)
+        tan7 = buffers[6].x.array.reshape(-1, 3)
+
+        DataTransformer._swap_arr(tan2[:, 0], tan2[:, 2])
+        DataTransformer._swap_arr(tan3[:, 2], tan4[:, 1])
+        DataTransformer._swap_arr(tan5[:, 0], tan5[:, 2])
+        DataTransformer._swap_arr(tan6[:, 0], tan7[:, 2])
+        DataTransformer._swap_arr(tan6[:, 1], tan7[:, 1])
+        DataTransformer._swap_arr(tan6[:, 2], tan7[:, 0])
+
+    @staticmethod
+    def _handle_sig_nasmat(sig_buffer): pass
+    @staticmethod
+    def _handle_eps_nasmat(eps_buffer): pass
+    @staticmethod
+    def _handle_tan_nasmat(tan_buffer): pass
+
 class MesoProblem:
     Default_Mesh = MeshParams(0.0, 0.0, 0.0,  1.0, 0.25, 0.25, 5, 2, 2)
 
-    def __init__(self, domain_path = None, mesh_params = Default_Mesh):
+    def __init__(self, data_transformer: DataTransformer, domain_path = None, mesh_params = Default_Mesh):
         if domain_path is None:
             domain_path = "bar3d.msh"
-            MesoProblem.generate_rectangle_mesh(domain_path, mesh_params)
+            MesoProblem.generate_bar_mesh(domain_path, mesh_params)
 
         self.fnx = FenicsXWrapper(domain_path)
         self.eps_eval = FenicsXWrapper.eval_var(self.fnx.eps, self.fnx.W)
@@ -218,19 +286,23 @@ class MesoProblem:
             [4,  9, 13, 16, 18, 19],
             [5, 10, 14, 17, 19, 20],
         ])
+        self.data_transformer = data_transformer
 
     def split_eps_data(self):
         self.eps_eval.interpolate()
         self.eps_eval.var_val.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
         tmp_view = self.eps_eval.var_val.x.array.reshape(-1, 6)
         FenicsXWrapper.copy_to_buffers([tmp_view[:, 0:3], tmp_view[:, 3:6]], self.fnx.eps_buffers)
+        self.data_transformer.handle_eps(self.fnx.eps_buffers)
 
     def merge_sig_data(self):
+        self.data_transformer.handle_sig(self.fnx.sig_buffers)
         tmp_view = self.fnx.sig.x.array.reshape(-1, 6)
         FenicsXWrapper.copy_from_buffers([tmp_view[:, 0:3], tmp_view[:, 3:6]], self.fnx.sig_buffers)
         self.fnx.sig.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
 
     def merge_and_conv_tan_data(self):
+        self.data_transformer.handle_tan(self.fnx.tan_buffers)
         FenicsXWrapper.copy_from_buffers([self.tan_conv_buffer[:, 3*i:3*(i+1)] for i in range(7)], self.fnx.tan_buffers)
         self.fnx.tan.x.array.reshape(-1, 6, 6)[:, :, :] = self.as_sym_tensor_6x6(self.tan_conv_buffer)
         self.fnx.tan.x.petsc_vec.ghostUpdate(addv=PETSc.InsertMode.INSERT, mode=PETSc.ScatterMode.FORWARD)
@@ -247,7 +319,7 @@ class MesoProblem:
         return np.logical_or.reduce(np.equal(x, x))
 
     @staticmethod
-    def generate_rectangle_mesh(msh_file, params: MeshParams, arrangement='AlternateRight'):
+    def generate_bar_mesh(msh_file, params: MeshParams, arrangement='AlternateRight'):
         x0, y0, z0, lx, ly, lz, nx, ny, nz = params.get()
         gmsh.initialize()
         gmsh.option.setNumber("General.Terminal", 0)  # to disable meshing info
@@ -308,7 +380,8 @@ class MesoProblem:
 
 if __name__ == '__main__':
     mesh_params = MesoProblem.Default_Mesh
-    mp = MesoProblem('bar3d.msh', mesh_params)
+    data_transformer = DataTransformer(DataTransformer.ADAPTER_OR_SURROGATE)
+    mp = MesoProblem(data_transformer, 'bar3d.msh', mesh_params)
 
     mp.fnx.init_pure_meso()         # "populate" all fields with values
     mp.split_eps_data()             # write data to coupling buffers

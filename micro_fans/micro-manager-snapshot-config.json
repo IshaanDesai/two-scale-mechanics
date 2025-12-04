@@ -1,5 +1,5 @@
 {
-    "micro_file_name": "fans_adapter",
+    "micro_file_name": "PyFANS",
     "coupling_params": {
             "parameter_file_name": "input_samples.hdf5",
             "read_data_names": ["strains1to3", "strains4to6"],
