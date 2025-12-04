@@ -6,7 +6,6 @@ from mpi4py import MPI
 from petsc4py import PETSc
 from dolfinx import fem, mesh, io
 from dolfinx.fem.petsc import NonlinearProblem, LinearProblem
-import basix
 import gmsh
 
 from fenicsxprecice import Adapter, CouplingMesh

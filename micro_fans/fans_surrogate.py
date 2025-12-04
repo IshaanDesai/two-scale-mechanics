@@ -1,13 +1,8 @@
 """
 Micro simulation Surrogate, require previous computation of surrogate model
 """
-import os
-import subprocess
-from bayesvalidrox import PyLinkForwardModel, Input, PCE, ExpDesigns, Engine
-import h5py
 import joblib
 import numpy as np
-import math
 
 
 class MicroSimulation:
