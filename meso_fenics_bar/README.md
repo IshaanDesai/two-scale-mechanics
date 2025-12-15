@@ -1,6 +1,25 @@
 # Meso FenicsX model
 
-Current implementation only supports a bar mesh.
+Current implementation supports a bar or notch mesh.
+
+### How to run
+
+`python macro.py [--case <bar|notch>] [--micro <ADA|NASMAT|pyFANS>]`
+
+
+case: Argument | Description | Default
+--- | --- | ---
+bar | Bar Mesh | true
+notch | Notch Mesh | false
+
+
+micro: Argument | Description | Default
+--- | --- | ---
+ADA | pyFANS-Adapter or Surrogate micro-model | true
+NASMAT | NASMAT micro-model | false
+pyFANS | pyFANS micro-model | false
+
+
 
 ### Internal Data Representation
 

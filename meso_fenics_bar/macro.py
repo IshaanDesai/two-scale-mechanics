@@ -14,14 +14,34 @@ import gmsh
 from fenicsxprecice import Adapter, CouplingMesh
 
 class Evaluator:
+    """
+    Evaluates the given fenicsx variable/expression for a function space.
+    """
     def __init__(self, var, space):
+        """
+        Constructs evaluator for
+
+        Params
+        ------
+        var: object
+            fenicsx variable/expression
+        space: fem.Functionspace
+            fenicsx space
+        """
         self.var_exp = fem.Expression(var, space.element.interpolation_points)
         self.var_val = fem.Function(space)
 
     def interpolate(self):
+        """
+        Interpolates the expression and populates self.var_val.
+        """
         self.var_val.interpolate(self.var_exp)
 
 class MeshParams:
+    """
+    Contains mesh parameters such as lower corner (x0, y0, z0)
+    dimensions (lx, ly, lz) and number of elements (nx, ny, nz) for the bar case.
+    """
     def __init__(self, x0, y0, z0, lx, ly, lz, nx=0, ny=0, nz=0):
         self.x0 = x0
         self.y0 = y0
@@ -37,6 +57,12 @@ class MeshParams:
         return self.x0, self.y0, self.z0, self.lx, self.ly, self.lz, self.nx, self.ny, self.nz
 
 class MeshOptions:
+    """
+    Contains Descriptors for the supported meshes.
+    The base interface is the Option class.
+    Supported meshes: BAR, NOTCH
+    """
+
     class Option:
         def initialize(self): pass
 
@@ -50,11 +76,13 @@ class MeshOptions:
 
     class _BarOption(Option):
         def initialize(self):
+            # No further actions require
             super().__init__()
             mesh_data = io.gmsh.read_from_msh('bar3d.msh', MPI.COMM_WORLD, gdim=3)
             self.mesh = mesh_data.mesh
             self.cell_markers = mesh_data.cell_tags
             self.facet_markers = mesh_data.facet_tags
+            # Mesh should be fixed on the y-z plane along x=0
             self.dbc_locator = lambda x: np.isclose(x[0], 0)
             self.nbc_value = -0.01
             self.mesh_params = MeshParams(0.0, 0.0, 0.0, 1.0, 0.25, 0.25, 5, 2, 2)
@@ -90,7 +118,14 @@ class MeshOptions:
     NOTCH: Option = _NotchOption()
 
 class FenicsXWrapper:
+    """
+    Wrapper for all essential fenicsx functionality
+    """
+
     def __init__(self, mesh: MeshOptions.Option):
+        """
+        Sets up variables, properties and equations
+        """
         mesh.initialize()
         self.petsc_options = {
             "snes_type": "newtonls",
@@ -151,6 +186,9 @@ class FenicsXWrapper:
         self.tan_buffers = FenicsXWrapper.gen_coupling_buffers(self.W3, 7)
 
     def init_pure_meso(self):
+        """
+        Used to initialize sigma and epsilon buffers with a first approximation based on the pure meso solution.
+        """
         psi = self.calc_psi()
         sigma = ufl.diff(psi, self.eps)
         tangent = ufl.diff(sigma, self.eps)
@@ -167,6 +205,9 @@ class FenicsXWrapper:
         self.tan.x.array[:] = tan_eval.var_val.x.array[:]
 
     def solve(self):
+        """
+        Solves the system of equations based on the current state of the sigma and tangent buffers.
+        """
         a = ufl.inner(ufl.dot(self.tan, FenicsXWrapper.symgrad_mandel(self.u)), FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx
         L = self.bc_nm
         problem = LinearProblem(
@@ -187,6 +228,20 @@ class FenicsXWrapper:
         return 0.5 * self.lam * (1.0 + half_alpha * tr_e2) * tr_e2 + self.mu * (1 + half_alpha * e2) * e2
 
     def d_bc(self, bc_val, V: fem.FunctionSpace, loc_fun: Callable = lambda x: np.isclose(x[0], 0)):
+        """
+        Generate a boundary condition
+
+        param
+        -----
+        bc_val: object
+            Value of the boundary condition, constant or function
+
+        V: fem.FunctionSpace
+            Subspace along which the boundary condition should be applied
+
+        loc_fun: Callable
+            Used to determine the facets on which the boundary condition should be applied
+        """
         fdim = self.domain.topology.dim - 1
         b_facets = dolfinx.mesh.locate_entities_boundary(self.domain, fdim, loc_fun)
         b_dofs = fem.locate_dofs_topological(V, fdim, b_facets)
@@ -203,11 +258,6 @@ class FenicsXWrapper:
         self.vm_stress.x.array.reshape(-1, 3)[:, 0] = np.sqrt(s1 + s2)
 
     @staticmethod
-    def get_buffer_funcs(buffers):
-        buffer_list, _ = buffers
-        return buffer_list
-
-    @staticmethod
     def symgrad_mandel(vec):
         halfsqrt2 = 0.5 * np.sqrt(2)
         return ufl.as_vector([vec[0].dx(0), vec[1].dx(1), vec[2].dx(2),
@@ -217,17 +267,50 @@ class FenicsXWrapper:
 
     @staticmethod
     def eval_var(var, space):
+        """
+        Evaluates an expression and returns the result.
+        """
         e = Evaluator(var, space)
         e.interpolate()
         return e
 
     @staticmethod
     def gen_coupling_buffers(space: fem.FunctionSpace, count: int):
+        """
+        Constructs preCICE coupling buffers.
+
+        params
+        ------
+        space: fem.FunctionSpace
+            Function space for each buffer
+        count: int
+            Number of buffers to generate
+
+        returns (list[fem.Function], space)
+        """
         buffers = [fem.Function(space) for _ in range(count)]
         return buffers, space
 
     @staticmethod
+    def get_buffer_funcs(buffers):
+        """
+        See gen_coupling_buffers for details.
+
+        returns list[fem.Function]
+        """
+        buffer_list, _ = buffers
+        return buffer_list
+
+    @staticmethod
     def write_to_buffers(buffers, values):
+        """
+        Writes values to buffers. Buffer size must be equal to value list size.
+
+        params
+        ------
+        buffers: (list[fem.Function], space)
+        values: list[list[float]]
+        """
         buffer_list, space = buffers
         f_dim = space.value_size
 
@@ -237,6 +320,14 @@ class FenicsXWrapper:
 
     @staticmethod
     def copy_from_buffers(targets, buffers):
+        """
+        Writes buffers to targets. Buffer size must be equal to targets list size.
+
+        params
+        ------
+        targets: list[list[float]]
+        buffers: (list[fem.Function], space)
+        """
         buffer_list, space = buffers
         f_dim = space.value_size
 
@@ -246,6 +337,14 @@ class FenicsXWrapper:
 
     @staticmethod
     def copy_to_buffers(sources, buffers):
+        """
+        Writes sources to buffers. Buffer size must be equal to source list size.
+
+        params
+        ------
+        buffers: (list[fem.Function], space)
+        sources: list[np.ndarray]
+        """
         buffer_list, space = buffers
         f_dim = space.value_size
 
@@ -254,6 +353,9 @@ class FenicsXWrapper:
             func.x.array.reshape(-1, f_dim)[:, :] = src[:, :]
 
 class DataTransformer:
+    """
+    Transforms data from internal representation to external micro-solver format.
+    """
     ADAPTER_OR_SURROGATE = 0
     PYFANS = 1
     NASMAT = 2
@@ -324,6 +426,10 @@ class DataTransformer:
     def _handle_tan_nasmat(tan_buffer): pass
 
 class MesoProblem:
+    """
+    Contains higher level execution flow logic.
+    """
+
     def __init__(self, data_transformer: DataTransformer, mesh_type: MeshOptions.Option = MeshOptions.NOTCH):
         # domain_path = None, mesh_params = Default_Mesh
         #if domain_path is None:
