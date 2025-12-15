@@ -1,5 +1,6 @@
 {
     "micro_file_name": "fans_surrogate",
+    "micro_stateless": true,
     "coupling_params": {
         "precice_config_file_name": "../precice-config-for-fans.xml",
         "macro_mesh_name": "meso-mesh",

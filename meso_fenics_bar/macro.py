@@ -1,3 +1,6 @@
+from typing import Callable
+import argparse
+
 import dolfinx.io.gmsh
 import numpy as np
 import ufl
@@ -18,8 +21,77 @@ class Evaluator:
     def interpolate(self):
         self.var_val.interpolate(self.var_exp)
 
+class MeshParams:
+    def __init__(self, x0, y0, z0, lx, ly, lz, nx=0, ny=0, nz=0):
+        self.x0 = x0
+        self.y0 = y0
+        self.z0 = z0
+        self.lx = lx
+        self.ly = ly
+        self.lz = lz
+        self.nx = nx
+        self.ny = ny
+        self.nz = nz
+
+    def get(self):
+        return self.x0, self.y0, self.z0, self.lx, self.ly, self.lz, self.nx, self.ny, self.nz
+
+class MeshOptions:
+    class Option:
+        def initialize(self): pass
+
+        def __init__(self):
+            self.mesh = None
+            self.dbc_locator = None
+            self.nbc_value = None
+            self.cell_markers = None
+            self.facet_markers = None
+            self.mesh_params = None
+
+    class _BarOption(Option):
+        def initialize(self):
+            super().__init__()
+            mesh_data = io.gmsh.read_from_msh('bar3d.msh', MPI.COMM_WORLD, gdim=3)
+            self.mesh = mesh_data.mesh
+            self.cell_markers = mesh_data.cell_tags
+            self.facet_markers = mesh_data.facet_tags
+            self.dbc_locator = lambda x: np.isclose(x[0], 0)
+            self.nbc_value = -0.01
+            self.mesh_params = MeshParams(0.0, 0.0, 0.0, 1.0, 0.25, 0.25, 5, 2, 2)
+
+    class _NotchOption(Option):
+        def initialize(self):
+            super().__init__()
+            mesh_data = io.gmsh.read_from_msh('notch.msh', MPI.COMM_WORLD, gdim=3)
+
+            # get bounds and shift lower corner to origin
+            low = np.min(mesh_data.mesh.geometry.x, axis=0)
+            high = np.max(mesh_data.mesh.geometry.x, axis=0)
+            mesh_data.mesh.geometry.x[:] += np.abs(low)
+
+            # fix facet markers for nm bc using facet center of mass (com) locations
+            facet_markers = mesh_data.facet_tags
+            facet_indices = facet_markers.indices.copy()
+            facet_values = facet_markers.values.copy()
+            com = mesh.compute_midpoints(mesh_data.mesh, 2, facet_markers.indices)
+            com_y = com[:, 1]
+            facet_values[np.isclose(com_y, 110, atol=1e-8)] = 3
+            updated_facet_markers = mesh.meshtags(mesh_data.mesh, 2, facet_indices, facet_values)
+
+            self.mesh = mesh_data.mesh
+            self.cell_markers = mesh_data.cell_tags
+            self.facet_markers = updated_facet_markers
+            self.dbc_locator = lambda x: np.isclose(x[1], 0)
+            self.nbc_value = 0.01
+            dims = np.abs(high - low)
+            self.mesh_params = MeshParams(0.0, 0.0, 0.0, dims[0], dims[1], dims[2])
+
+    BAR: Option = _BarOption()
+    NOTCH: Option = _NotchOption()
+
 class FenicsXWrapper:
-    def __init__(self, domain_path):
+    def __init__(self, mesh: MeshOptions.Option):
+        mesh.initialize()
         self.petsc_options = {
             "snes_type": "newtonls",
             "snes_linesearch_type": "none",
@@ -38,10 +110,9 @@ class FenicsXWrapper:
         }
 
         # domain
-        mesh_data = io.gmsh.read_from_msh(domain_path, MPI.COMM_WORLD, gdim=3)
-        self.domain = mesh_data.mesh
-        self.cell_markers = mesh_data.cell_tags
-        self.facet_markers = mesh_data.facet_tags
+        self.domain = mesh.mesh
+        self.cell_markers = mesh.cell_markers
+        self.facet_markers = mesh.facet_markers
         self.ds = ufl.Measure('ds', domain=self.domain, subdomain_data=self.facet_markers)
 
         # material properties
@@ -67,8 +138,8 @@ class FenicsXWrapper:
         self.vm_stress.name = "von_mises_stress"
 
         # BCs
-        self.dc_bcs = [self.d_bc(fem.Constant(self.domain, 0.), self.V.sub(i)) for i in range(3)]
-        self.bc_nm = ufl.inner(-0.01, self.v[1]) * self.ds(3)
+        self.dc_bcs = [self.d_bc(fem.Constant(self.domain, 0.), self.V.sub(i), mesh.dbc_locator) for i in range(3)]
+        self.bc_nm = ufl.inner(mesh.nbc_value, self.v[1]) * self.ds(3)
 
         # variational form
         self.res = ufl.inner(self.sig, FenicsXWrapper.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
@@ -115,9 +186,9 @@ class FenicsXWrapper:
         half_alpha = 0.5 * self.alpha
         return 0.5 * self.lam * (1.0 + half_alpha * tr_e2) * tr_e2 + self.mu * (1 + half_alpha * e2) * e2
 
-    def d_bc(self, bc_val, V: fem.FunctionSpace):
+    def d_bc(self, bc_val, V: fem.FunctionSpace, loc_fun: Callable = lambda x: np.isclose(x[0], 0)):
         fdim = self.domain.topology.dim - 1
-        b_facets = dolfinx.mesh.locate_entities_boundary(self.domain, fdim, lambda x: np.isclose(x[0], 0))
+        b_facets = dolfinx.mesh.locate_entities_boundary(self.domain, fdim, loc_fun)
         b_dofs = fem.locate_dofs_topological(V, fdim, b_facets)
         return fem.dirichletbc(bc_val, b_dofs, V)
 
@@ -181,21 +252,6 @@ class FenicsXWrapper:
         assert len(buffer_list) == len(sources)
         for func, src in zip(buffer_list, sources):
             func.x.array.reshape(-1, f_dim)[:, :] = src[:, :]
-
-class MeshParams:
-    def __init__(self, x0, y0, z0, lx, ly, lz, nx, ny, nz):
-        self.x0 = x0
-        self.y0 = y0
-        self.z0 = z0
-        self.lx = lx
-        self.ly = ly
-        self.lz = lz
-        self.nx = nx
-        self.ny = ny
-        self.nz = nz
-
-    def get(self):
-        return self.x0, self.y0, self.z0, self.lx, self.ly, self.lz, self.nx, self.ny, self.nz
 
 class DataTransformer:
     ADAPTER_OR_SURROGATE = 0
@@ -268,14 +324,13 @@ class DataTransformer:
     def _handle_tan_nasmat(tan_buffer): pass
 
 class MesoProblem:
-    Default_Mesh = MeshParams(0.0, 0.0, 0.0,  1.0, 0.25, 0.25, 5, 2, 2)
-
-    def __init__(self, data_transformer: DataTransformer, domain_path = None, mesh_params = Default_Mesh):
-        if domain_path is None:
-            domain_path = "bar3d.msh"
-            MesoProblem.generate_bar_mesh(domain_path, mesh_params)
-
-        self.fnx = FenicsXWrapper(domain_path)
+    def __init__(self, data_transformer: DataTransformer, mesh_type: MeshOptions.Option = MeshOptions.NOTCH):
+        # domain_path = None, mesh_params = Default_Mesh
+        #if domain_path is None:
+        #    domain_path = "bar3d.msh"
+        #    MesoProblem.generate_bar_mesh(domain_path, mesh_params)
+        self.mesh = mesh_type
+        self.fnx = FenicsXWrapper(mesh_type)
         self.eps_eval = FenicsXWrapper.eval_var(self.fnx.eps, self.fnx.W)
         self.tan_conv_buffer = np.zeros((self.fnx.sig.x.array.reshape(-1, 6).shape[0], 21))
         self.tensor_mapping = np.array([
@@ -379,26 +434,42 @@ class MesoProblem:
 
 
 if __name__ == '__main__':
-    mesh_params = MesoProblem.Default_Mesh
-    data_transformer = DataTransformer(DataTransformer.ADAPTER_OR_SURROGATE)
-    mp = MesoProblem(data_transformer, 'bar3d.msh', mesh_params)
+    parser = argparse.ArgumentParser(
+        description='Runs the macro simulation using fenicsx for the notch or bar geometry.',
+        usage='%(prog)s [options]'
+    )
+    parser.add_argument(
+        '--case',
+        default='bar',
+        choices=['bar', 'notch'],
+        type=str,
+        help='The case type.'
+    )
+    parser.add_argument(
+        '--micro',
+        default='ADA',
+        choices=['ADA', 'pyFANS', 'NASMAT'],
+        type=str,
+        help='The micro solver type.'
+    )
+    args = parser.parse_args()
+
+
+    transform_type = None
+    if args.micro == 'ADA': transform_type = DataTransformer.ADAPTER_OR_SURROGATE
+    if args.micro == 'pyFANS': transform_type = DataTransformer.PYFANS
+    if args.micro == 'NASMAT': transform_type = DataTransformer.NASMAT
+
+    mesh_type = None
+    if args.case == 'bar': mesh_type = MeshOptions.BAR
+    if args.case == 'notch': mesh_type = MeshOptions.NOTCH
+
+    data_transformer = DataTransformer(transform_type)
+    mp = MesoProblem(data_transformer, mesh_type)
+    mesh_params = mp.mesh.mesh_params
 
     mp.fnx.init_pure_meso()         # "populate" all fields with values
     mp.split_eps_data()             # write data to coupling buffers
-
-    # TODO remove later: this is just a nice sanity check
-    #mp.calc_von_mises_stress()
-    #with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"multi_scale_{0}.bp", [mp.fnx.uh, mp.fnx.vm_stress],
-    #                          engine="BP4") as vtx:
-    #    vtx.write(0)
-
-    #mp.fnx.uh.x.array[:] = 0
-    #mp.fnx.uh.x.scatter_forward()
-    #mp.fnx.solve()
-
-    #with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"multi_scale_{1}.bp", [mp.fnx.uh, mp.fnx.vm_stress],
-    #                          engine="BP4") as vtx:
-    #    vtx.write(0)
 
     # set up coupling
     precice = Adapter(MPI.COMM_WORLD, 'precice-adapter-config.json')
