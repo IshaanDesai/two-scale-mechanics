@@ -4,8 +4,10 @@ Current implementation supports a bar or notch mesh.
 
 ### How to run
 
+Run with:
 `python macro.py [--case <bar|notch>] [--micro <ADA|NASMAT|pyFANS>]`
 
+and select the corresponding option for the used micro-solver
 
 case: Argument | Description | Default
 --- | --- | ---
