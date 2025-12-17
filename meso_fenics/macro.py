@@ -4,6 +4,7 @@ import argparse
 import dolfinx.io.gmsh
 import numpy as np
 import ufl
+from fenicsxprecice.adapter_core import CouplingBoundaryInterpolation
 
 from mpi4py import MPI
 from petsc4py import PETSc
@@ -381,9 +382,9 @@ class DataTransformer:
             self.eps_impl = DataTransformer._handle_eps_nasmat
             self.tan_impl = DataTransformer._handle_tan_nasmat
 
-    def handle_sig(self, sig_buffer): pass
-    def handle_eps(self, eps_buffer): pass
-    def handle_tan(self, tan_buffer): pass
+    def handle_sig(self, sig_buffer): self.sig_impl(sig_buffer)
+    def handle_eps(self, eps_buffer): self.eps_impl(eps_buffer)
+    def handle_tan(self, tan_buffer): self.tan_impl(tan_buffer)
 
     @staticmethod
     def _swap_arr(a, b):
@@ -558,8 +559,15 @@ if __name__ == '__main__':
         type=str,
         help='The micro solver type.'
     )
+    parser.add_argument(
+        '--output',
+        default='multi_scale',
+        type=str,
+        help='The output base name.'
+    )
     args = parser.parse_args()
 
+    output_path = args.output
 
     transform_type = None
     if args.micro == 'ADA': transform_type = DataTransformer.ADAPTER_OR_SURROGATE
@@ -582,6 +590,17 @@ if __name__ == '__main__':
     coupling_boundary = MesoProblem.coupling_bc # we are coupling on full domain
     access_region = [(mesh_params.x0, mesh_params.y0, mesh_params.z0),
                      (mesh_params.lx + 1e-14, mesh_params.ly + 1e-14, mesh_params.lz + 1e-14)]
+    read_functions = {
+        'stresses1to3': FenicsXWrapper.get_buffer_funcs(mp.fnx.sig_buffers)[0],
+        'stresses4to6': FenicsXWrapper.get_buffer_funcs(mp.fnx.sig_buffers)[1],
+        'cmat1'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[0],
+        'cmat2'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[1],
+        'cmat3'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[2],
+        'cmat4'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[3],
+        'cmat5'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[4],
+        'cmat6'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[5],
+        'cmat7'       : FenicsXWrapper.get_buffer_funcs(mp.fnx.tan_buffers)[6]
+    }
     read_fields = {
         'stresses1to3': mp.fnx.W3,
         'stresses4to6': mp.fnx.W3,
@@ -607,12 +626,8 @@ if __name__ == '__main__':
             precice.store_checkpoint(state, t, n)
         dt = fem.Constant(mp.fnx.domain, precice.get_max_time_step_size())
 
-        values = [list(precice.read_data("meso-mesh", name, dt).values()) for name in ['stresses1to3', 'stresses4to6']]
-        FenicsXWrapper.write_to_buffers(mp.fnx.sig_buffers, values)
+        for name, func in read_fields.items(): precice.read_data("meso-mesh", name, dt, func)
         mp.merge_sig_data()
-
-        values = [list(precice.read_data("meso-mesh", name, dt).values()) for name in ['cmat1', 'cmat2', 'cmat3', 'cmat4', 'cmat5', 'cmat6', 'cmat7']]
-        FenicsXWrapper.write_to_buffers(mp.fnx.tan_buffers, values)
         mp.merge_and_conv_tan_data()
 
         mp.fnx.solve()
@@ -638,7 +653,7 @@ if __name__ == '__main__':
             n += 1
 
         mp.calc_von_mises_stress()
-        with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"multi_scale_{n}.bp", [mp.fnx.uh, mp.fnx.vm_stress], engine="BP4") as vtx:
+        with dolfinx.io.VTXWriter(MPI.COMM_WORLD, f"{output_path}_{n}.bp", [mp.fnx.uh, mp.fnx.vm_stress], engine="BP4") as vtx:
             vtx.write(t)
 
     precice.finalize()
