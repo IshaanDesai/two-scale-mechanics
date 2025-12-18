@@ -17,6 +17,6 @@ else
     exit 1
 fi
 
-$HOME/calculix-adapter/bin/ccx_preCICE -i notch -precice-participant Meso-structure
+$HOME/calculix-adapter/bin/ccx_preCICE -i notch_coarse -precice-participant Meso-structure
 
 rm config.yml
