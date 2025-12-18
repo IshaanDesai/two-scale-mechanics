@@ -8,6 +8,7 @@
     },
     "simulation_params": {
         "micro_dt": 1e-1,
-        "macro_domain_bounds": [0, 1, 0, 1, 0, 1]
+        "macro_domain_bounds": [0, 1, 0, 1, 0, 1],
+        "decomposition":[2, 2, 1]
     }
 }
