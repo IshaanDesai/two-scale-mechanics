@@ -1,57 +1,27 @@
-# Meso FenicsX model
+# Meso-scale problem solved using FEniCSx
 
-Current implementation supports a bar or notch mesh.
+This model is able to solve small or large strain solid mechanics systems using FenicsX.
+Simulations can run on arbitrary meshes in .msh format. Supported simulation types are pure mesoscopic,
+pseudo coupled or coupled.
 
-### How to run
+## Dependencies
+- fenicsxprecice
+- numpy  >1, <2
+- mpi4py~=4.1.1
+- petsc4py~=3.24.1
+- fenics-basix~=0.10.0
+- fenics-dolfinx~=0.10.0
+- fenics-ufl~=2025.2.0
+- gmsh~=4.15.0
 
-Run with:
-`python macro.py [--case <bar|notch>] [--micro <ADA|NASMAT|pyFANS>]`
+## How to run
 
-and select the corresponding option for the used micro-solver
+Run the following command with `meso_fenics` as the current working directory.
+```
+python macro.py path-to-config.json
+```
+For more information about implementational details or how to create a config file see the [docs](doc/Overview.md).
 
-case: Argument | Description | Default
---- | --- | ---
-bar | Bar Mesh | true
-notch | Notch Mesh | false
+# Known Issues
 
-
-micro: Argument | Description | Default
---- | --- | ---
-ADA | pyFANS-Adapter or Surrogate micro-model | true
-NASMAT | NASMAT micro-model | false
-pyFANS | pyFANS micro-model | false
-
-
-
-### Internal Data Representation
-
-We use the the standard mandel notation with:
-
-Stress tensor represented as a vector:
-
-$$
-\begin{bmatrix}
-\sigma_{11} & \sigma_{22} & \sigma_{33} & \sqrt2\sigma_{23} & \sqrt2\sigma_{13} & \sqrt2\sigma_{12}
-\end{bmatrix}
-$$
-
-Strain tensor represented as a vector
-
-$$
-\begin{bmatrix}
-\varepsilon_{11} & \varepsilon_{22} & \varepsilon_{33} & \sqrt2\varepsilon_{23} & \sqrt2\varepsilon_{13} & \sqrt2\varepsilon_{12}
-\end{bmatrix}
-$$
-
-Stiffness tensor represented as a matrix
-
-$$
-\begin{bmatrix}
-C_{(11)(11)} & C_{(11)(22)} & C_{(11)(33)} & \sqrt2C_{(11)(23)} & \sqrt2C_{(11)(13)} & \sqrt2C_{(11)(12)}\\
-C_{(22)(11)} & C_{(22)(22)} & C_{(22)(33)} & \sqrt2C_{(22)(23)} & \sqrt2C_{(22)(13)} & \sqrt2C_{(22)(12)}\\
-C_{(33)(11)} & C_{(33)(22)} & C_{(33)(33)} & \sqrt2C_{(33)(23)} & \sqrt2C_{(33)(13)} & \sqrt2C_{(33)(12)}\\
-\sqrt2C_{(23)(11)} & \sqrt2C_{(23)(22)} & \sqrt2C_{(23)(33)} & 2C_{(23)(23)} & 2C_{(23)(13)} & 2C_{(23)(12)}\\
-\sqrt2C_{(13)(11)} & \sqrt2C_{(13)(22)} & \sqrt2C_{(13)(33)} & 2C_{(13)(23)} & 2C_{(13)(13)} & 2C_{(13)(12)}\\
-\sqrt2C_{(12)(11)} & \sqrt2C_{(12)(22)} & \sqrt2C_{(12)(33)} & 2C_{(12)(23)} & 2C_{(12)(13)} & 2C_{(12)(12)}\\
-\end{bmatrix}
-$$
+- When providing a mesh in .msh format, physical groups need to be defined such that gmsh will create a facet_tags object upon loading.
