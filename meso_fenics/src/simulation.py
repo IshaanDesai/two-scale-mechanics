@@ -26,9 +26,30 @@ class Simulation:
             self.mesh = Mesh()
             self.mesh.load(config)
 
+        self.problem = None
+        self._write_state = config.simulation_write_state
+        self._write_state_type = config.simulation_write_state_type
+
     def run(self): pass
 
-    def write_output(self, t, n): pass
+    def write_output(self, t, n):
+        self.problem.calc_von_mises_stress()
+        with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}.bp", [self.problem.uh, self.problem.vm_stress_fun],
+                          engine="BP4") as vtx:
+            vtx.write(t)
+
+        if self._write_state is not None and type(self._write_state_type) == list:
+            with h5py.File(self._write_state, "w") as f:
+                if 'E' in self._write_state_type:
+                    eval = Evaluator(self.problem.eps_var, self.problem.W)
+                    eval.interpolate()
+                    f.create_dataset("strain_data", data=eval.var_val.x.array)
+
+                if 'S' in self._write_state_type:
+                    f.create_dataset("stress_data", data=self.problem.sig_fun.x.array)
+
+                if 'U' in self._write_state_type:
+                    f.create_dataset("displacement_data", data=self.problem.uh.x.array)
 
     @staticmethod
     def generate(config: Config):
@@ -46,30 +67,10 @@ class MesoSim(Simulation):
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MesoProblem(config, self.mesh)
-        self._write_state = config.simulation_write_state
-        self._write_state_type = config.simulation_write_state_type
 
     def run(self):
         self.problem.solve()
         self.write_output(0.0, 0)
-
-    def write_output(self, t, n):
-        self.problem.calc_von_mises_stress()
-        with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}.bp", [self.problem.uh, self.problem.vm_stress_fun], engine="BP4") as vtx:
-            vtx.write(t)
-
-        if self._write_state is not None and type(self._write_state_type) == list:
-            with h5py.File(self._write_state, "w") as f:
-                if 'E' in self._write_state_type:
-                    eval = Evaluator(self.problem.eps_var, self.problem.W)
-                    eval.interpolate()
-                    f.create_dataset("strain_data", data=eval.var_val.x.array)
-
-                if 'S' in self._write_state_type:
-                    f.create_dataset("stress_data", data=self.problem.sig_fun.x.array)
-
-                if 'U' in self._write_state_type:
-                    f.create_dataset("displacement_data", data=self.problem.uh.x.array)
 
 @Simulation.TYPES.register
 class PseudoCoupledSim(Simulation):
