@@ -198,7 +198,10 @@ class CoupledSim(Simulation):
 
         # handle first timestep: init MESO (was already computed)
         self.write_checkpoint(t, n)
-        # no need for solve and write
+        # no need to solve
+        self.eps_eval.interpolate()
+        self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
+        for name, func in self.write_fields.items(): self.precice.write_data("meso-mesh", name, func)
         dt = self.precice.get_max_time_step_size()
         self.precice.advance(dt)
         is_coupling_ongoing = self.precice.is_coupling_ongoing()

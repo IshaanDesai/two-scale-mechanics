@@ -178,7 +178,6 @@ class DataTransformer:
         DataTransformer._swap_arr(tan5[:, 0], tan5[:, 2])
         DataTransformer._swap_arr(tan6[:, 0], tan7[:, 2])
         DataTransformer._swap_arr(tan6[:, 1], tan7[:, 1])
-        DataTransformer._swap_arr(tan6[:, 2], tan7[:, 0])
 
     @staticmethod
     def _handle_sig_nasmat(sig_buffer: CouplingBuffer): pass
