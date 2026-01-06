@@ -2,7 +2,7 @@
 
 from .config import Config
 from .fnx import MesoProblem, MultiscaleProblem, Evaluator
-from .meshes import Mesh, Bar, Notch
+from .meshes import Mesh
 from .util import Registry
 from .coupling import CouplingBuffer, DataTransformer, Projectors, Mergers
 
@@ -17,14 +17,8 @@ class Simulation:
     TYPES = Registry()
     def __init__(self, config: Config):
         self.output_path = config.output_path
-        self.mesh = None
-        if config.mesh_path == 'BAR':
-            self.mesh = Bar()
-        elif config.mesh_path == 'NOTCH':
-            self.mesh = Notch()
-        else:
-            self.mesh = Mesh()
-            self.mesh.load(config)
+        self.mesh = Mesh()
+        self.mesh.load(config)
 
         self.problem = None
         self._write_state = config.simulation_write_state

@@ -1,13 +1,13 @@
 {
-  "output_path": "output/bar1-c-small-voro32",
+  "output_path": "output/bar-coupled-small-sphere32",
   "mesh": {
-    "path": "examples/mesh-scaling/bar1.msh",
+    "path": "examples/coupled-bar/bar3d.msh",
     "bc_dc_use_tag": false,
     "bc_dc_locator": "plane_yz_low",
     "bc_nm_use_tag": false,
     "bc_nm_locator": "plane_yz_high",
     "bc_nm_dim": 1,
-    "bc_nm_value": -1.0
+    "bc_nm_value": -0.01
   },
   "problem": {
     "lambda": 10.0,
