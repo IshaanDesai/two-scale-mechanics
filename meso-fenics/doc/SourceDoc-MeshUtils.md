@@ -17,8 +17,10 @@
 - [Locators](#Locators)
 
 #### Dimensions
-Gathers information about reference mesh
+
+Gathers information about reference mesh.
 
 #### Locators
+
 Provides functions to locate entities on planes of the unit cube.
-Furthermore, defines DIRICHLET_TAG as 2 and NEUMANN_TAG as 3
+Furthermore, defines DIRICHLET_TAG as 2 and NEUMANN_TAG as 3.

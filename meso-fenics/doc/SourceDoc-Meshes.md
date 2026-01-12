@@ -18,11 +18,14 @@
 - [Notch](#Notch)
 
 #### Meshes
+
 Loads mesh and normalizes it to fit within unit cube. Constructs boundary condition objects
 based on mesh and config parameters.
 
 #### Bar
+
 Customizes Mesh using predefined Bar mesh.
 
 #### Notch
+
 Customizes Mesh using predefined Notch mesh.

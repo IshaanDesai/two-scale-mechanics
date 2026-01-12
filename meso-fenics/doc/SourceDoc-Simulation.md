@@ -18,10 +18,13 @@
 - [CoupledSim](#CoupledSim)
 
 #### MesoSim
+
 Computes the pure mesoscopic problem.
 
 #### PseudoCoupledSim
+
 Computes the Multiscale Problem using input data to populate functions.
 
 #### CoupledSim
-Computes the Multiscale Problem by coupling micro simulations. 
+
+Computes the Multiscale Problem by coupling micro simulations.

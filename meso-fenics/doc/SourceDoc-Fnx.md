@@ -18,10 +18,12 @@
 - [MultiscaleProblem](#MultiscaleProblem)
 
 #### Evaluator
+
 Can be used to evaluate an arbitrary fem expression. Call `interpolate` to evaluate based on current solution.
 Data can be accessed via `var_val` field as a fem.Function.
 
 #### MesoProblem
+
 Constructs the pure mesoscopic system of equations using FenicsX for small and large strain.
 In small strain, the governing equations are:
 $$
@@ -70,6 +72,7 @@ $$
 P is the first Piola Kirchhoff Stress and is comparable to $\sigma$ in small strain.
 
 #### MultiscaleProblem
+
 The MultiscaleProblem inherits from MesoProblem, however it removes $\psi$ and replaces
 in small strain $\sigma$ as well as $\tau$ and in large strain $S$ with fem.Functions.
 Those need to be populated either via coupling or other means.

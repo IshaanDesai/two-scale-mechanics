@@ -20,10 +20,12 @@ The input file format is regular JSON and on the highest level must have the fol
   "simulation": SIMULATION_BLOCK
 }
 ```
+
 For examples see the pre-configured files in the [examples](../examples) folder.
 In the following descriptions, if no default is provided, the entry is not optional and must be provided.
 
 ### Description of all top level entries
+
 | Name        | type | Description                             | Default |
 |-------------|------|-----------------------------------------|---------|
 | output_path | str  | path to output VTX file location        | mf_out  |
@@ -32,6 +34,7 @@ In the following descriptions, if no default is provided, the entry is not optio
 | simulation  | obj  | Block describing what simulation to use | -       |
 
 ### Mesh Block
+
 | Name          | Type  | Description                                                        | Default | Options                                                                               |
 |---------------|-------|--------------------------------------------------------------------|---------|---------------------------------------------------------------------------------------|
 | path          | str   | Path to mesh file or name of shipped example                       | -       | path, BAR, NOTCH                                                                      |
@@ -44,6 +47,7 @@ In the following descriptions, if no default is provided, the entry is not optio
 | bc_nm_dim     | int   | Dimension in which nm bound should be applied                      | 1       | -                                                                                     |
 
 ### Problem Block
+
 | Name        | Type  | Description                          | Default      | Options                    |
 |-------------|-------|--------------------------------------|--------------|----------------------------|
 | lambda      | float | TODO                                 | 10.0         | -                          |
@@ -53,6 +57,7 @@ In the following descriptions, if no default is provided, the entry is not optio
 | elem_degree | int   | Element Degree                       | 2            | -                          |
 
 ### Simulation Block
+
 | Name             | Type      | Description                                                         | Default                      | Options                               |
 |------------------|-----------|---------------------------------------------------------------------|------------------------------|---------------------------------------|
 | type             | str       | What simulation method to use                                       | -                            | MesoSim, PseudoCoupledSim, CoupledSim |

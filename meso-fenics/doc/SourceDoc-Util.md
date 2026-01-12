@@ -16,6 +16,6 @@
 - [Registry](#Registry)
 
 #### Registry
-Provides python decorator to automatically register classes or functions. 
+
+Provides python decorator to automatically register classes or functions.
 Registered entities are accessible via their string name.
- 
