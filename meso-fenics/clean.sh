@@ -4,3 +4,6 @@ rm -r -f ../precice-run
 rm -r -f ./precice-profiling
 rm -r -f ./precice-exports
 rm -r -f ./multi_scale_*.bp
+
+rm -r .venv
+rm *.log

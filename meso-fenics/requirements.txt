@@ -1,9 +1,3 @@
-fenicsxprecice
+fenicsxprecice @ git+https://github.com/precice/fenicsx-adapter.git@develop
 numpy  >1, <2
-
-mpi4py~=4.1.1
-petsc4py~=3.24.1
-fenics-basix~=0.10.0
-fenics-dolfinx~=0.10.0
-fenics-ufl~=2025.2.0
 gmsh~=4.15.0

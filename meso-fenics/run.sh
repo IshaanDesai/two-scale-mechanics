@@ -30,10 +30,10 @@ case $PROBLEM in
         CONFIG_FILE="examples/config-pseudo.json"
         ;;
     bar)
-        CONFIG_FILE="examples/coupled-bar/config-coupled.json"
+        CONFIG_FILE="examples/coupled-bar/config-coupled-bar.json"
         ;;
     notch)
-        CONFIG_FILE="examples/coupled-notch/config-coupled.json"
+        CONFIG_FILE="examples/coupled-notch/config-coupled-notch.json"
         ;;
     *)
         echo "Error: Invalid problem type '$PROBLEM'"
@@ -46,4 +46,4 @@ python3 -m venv --system-site-package .venv
 . .venv/bin/activate
 pip install -r requirements.txt && pip freeze > pip-installed-packages.log
 
-python3 macro.py -problem $PROBLEM
+python3 macro.py $CONFIG_FILE
