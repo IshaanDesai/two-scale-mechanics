@@ -5,6 +5,38 @@ from dolfinx import fem
 
 
 class CouplingBuffer:
+    """
+    Buffer for managing data exchange between function spaces.
+
+    This class facilitates splitting data from one function space into
+    multiple buffer functions and merging data back.
+
+    Parameters
+    ----------
+    original : fem.Function
+        The original function to split/merge.
+    buffer_space : fem.FunctionSpace
+        Function space for the buffer functions.
+    count : int
+        Number of buffer functions to create.
+    projector : callable, optional
+        Function to project original to buffer space (default: identity).
+    merger : callable, optional
+        Function to merge buffers back to original space (default: identity).
+
+    Attributes
+    ----------
+    original : fem.Function
+        The original function.
+    buffer_space : fem.FunctionSpace
+        Function space for buffers.
+    buffers : list of fem.Function
+        List of buffer functions.
+    projector : callable
+        Projection function.
+    merger : callable
+        Merging function.
+    """
     def __init__(
             self,
             original: fem.Function,
@@ -19,11 +51,37 @@ class CouplingBuffer:
         self.projector = projector # proj orig to buffer space, fun to ndarray
         self.merger = merger # extr buffer to orig space, list[fun] to ndarray
 
-    def get_functions(self): return self.buffers
+    def get_functions(self):
+        """
+        Get the list of buffer functions.
 
-    def size(self): return len(self.buffers)
+        Returns
+        -------
+        list of fem.Function
+            The buffer functions.
+        """
+        return self.buffers
+
+    def size(self):
+        """
+        Get the number of buffer functions.
+
+        Returns
+        -------
+        int
+            Number of buffers.
+        """
+        return len(self.buffers)
 
     def write_origin_to_buffer(self, transform: Callable=lambda x: x):
+        """
+        Write data from the original function to buffer functions.
+
+        Parameters
+        ----------
+        transform : callable, optional
+            Transformation to apply after projection (default: identity).
+        """
         vec_size = self.buffer_space.value_size
         origin_proj = self.projector(self.original) # should now have shape dofs x num_buffers x vec_size
         for i, func in enumerate(self.buffers):
@@ -33,18 +91,55 @@ class CouplingBuffer:
         transform(self)
 
     def write_buffer_to_origin(self, transform: Callable=lambda x: x):
+        """
+        Write data from buffer functions back to the original function.
+
+        Parameters
+        ----------
+        transform : callable, optional
+            Transformation to apply before merging (default: identity).
+        """
         transform(self)
         self.merger(self)
 
 class Projectors:
+    """
+    Collection of projector classes for splitting function data.
+    """
     class Projector:
-        def __call__(self, func: fem.Function) -> np.ndarray: pass
+        """
+        Base projector interface.
+        """
+        def __call__(self, func: fem.Function) -> np.ndarray:
+            """Project function to buffer format."""
+            pass
 
     class InplaceSplitter(Projector):
+        """
+        Split function data into equal-sized chunks.
+
+        Parameters
+        ----------
+        buffer_space : fem.FunctionSpace
+            Function space for buffer functions.
+        """
         def __init__(self, buffer_space: fem.FunctionSpace):
             self.buffer_space = buffer_space
 
         def __call__(self, func: fem.Function) -> np.ndarray:
+            """
+            Split function data into chunks.
+
+            Parameters
+            ----------
+            func : fem.Function
+                Function to split.
+
+            Returns
+            -------
+            numpy.ndarray
+                Array with shape (n_dofs, n_buffers, buffer_size).
+            """
             data_per_dof = func.function_space.value_size
             data_per_buffer = self.buffer_space.value_size
             assert (data_per_dof % data_per_buffer) == 0
@@ -55,11 +150,34 @@ class Projectors:
             return f
 
     class SelectionSplitter(Projector):
+        """
+        Split function data by selecting specific indices.
+
+        Parameters
+        ----------
+        buffer_space : fem.FunctionSpace
+            Function space for buffer functions.
+        selection : numpy.ndarray
+            Indices to select from the original function.
+        """
         def __init__(self, buffer_space: fem.FunctionSpace, selection: np.ndarray):
             self.buffer_space = buffer_space
             self.selection = selection
 
         def __call__(self, func: fem.Function) -> np.ndarray:
+            """
+            Split function data by index selection.
+
+            Parameters
+            ----------
+            func : fem.Function
+                Function to split.
+
+            Returns
+            -------
+            numpy.ndarray
+                Array with shape (n_dofs, n_buffers, buffer_size).
+            """
             data_per_dof = func.function_space.value_size
             data_per_buffer = self.buffer_space.value_size
             assert (len(self.selection) % data_per_buffer) == 0
@@ -71,11 +189,32 @@ class Projectors:
             return res
 
 class Mergers:
+    """
+    Collection of merger classes for combining buffer data.
+    """
     class Merger:
-        def __call__(self, coupling_buffer: CouplingBuffer) -> None: return
+        """
+        Base merger interface.
+        """
+        def __call__(self, coupling_buffer: CouplingBuffer) -> None:
+            """Merge buffer data back to original function."""
+            return
 
     class InplaceMerger(Merger):
+        """
+        Merge buffer data by concatenating chunks in order.
+        """
         def __call__(self, coupling_buffer: CouplingBuffer, override_dst: Optional[np.ndarray]=None) -> None:
+            """
+            Merge buffers into the original function.
+
+            Parameters
+            ----------
+            coupling_buffer : CouplingBuffer
+                The coupling buffer to merge.
+            override_dst : numpy.ndarray, optional
+                Override destination array (default: use buffer's original).
+            """
             data_per_dof = coupling_buffer.original.function_space.value_size
             data_per_buffer = coupling_buffer.buffer_space.value_size
             assert (data_per_dof % data_per_buffer) == 0
@@ -91,6 +230,20 @@ class Mergers:
                 f[:, i, :] = func.x.array.reshape(n_dofs, data_per_buffer)[:, :]
 
     class SelectionMerger(Merger):
+        """
+        Merge buffer data using an index selection pattern.
+
+        Parameters
+        ----------
+        buffer_space : fem.FunctionSpace
+            Function space for buffer functions.
+        num_buffers : int
+            Number of buffer functions.
+        n_dofs : int
+            Number of degrees of freedom.
+        selection : numpy.ndarray
+            Index mapping for merging data.
+        """
         def __init__(self, buffer_space: fem.FunctionSpace, num_buffers: int, n_dofs: int, selection: np.ndarray) -> None:
             self.selection = selection
             self.copy_buffer = np.zeros((n_dofs, num_buffers * buffer_space.value_size))
@@ -98,6 +251,14 @@ class Mergers:
             self.n_dofs = n_dofs
 
         def __call__(self, coupling_buffer: CouplingBuffer) -> None:
+            """
+            Merge buffers using index selection.
+
+            Parameters
+            ----------
+            coupling_buffer : CouplingBuffer
+                The coupling buffer to merge.
+            """
             self.merge_to_copy_buffer(coupling_buffer, self.copy_buffer)
             data_per_dof = coupling_buffer.original.function_space.value_size
             selected = self.copy_buffer[:, self.selection].reshape(self.n_dofs, data_per_dof)
@@ -120,7 +281,17 @@ class DataTransformer:
 
     def __init__(self, type_name):
         """
-        type: either ADAPTER_OR_SURROGATE, PYFANS or NASMAT
+        Initialize data transformer for specific micro-solver type.
+
+        Parameters
+        ----------
+        type_name : str
+            Name of the micro-solver type ('ADA', 'PYFANS', or 'NASMAT').
+
+        Raises
+        ------
+        RuntimeError
+            If the micro-solver type is unknown.
         """
         type = DataTransformer.get_type_by_name(type_name)
         self.sig_impl = DataTransformer._noop
@@ -141,13 +312,43 @@ class DataTransformer:
             self.tan_impl = DataTransformer._handle_tan_nasmat
 
     def clear_transforms(self):
+        """
+        Clear all data transformations (set to no-op).
+        """
         self.sig_impl = DataTransformer._noop
         self.eps_impl = DataTransformer._noop
         self.tan_impl = DataTransformer._noop
 
-    def get_transform_sig(self): return self.sig_impl
-    def get_transform_eps(self): return self.eps_impl
-    def get_transform_tan(self): return self.tan_impl
+    def get_transform_sig(self):
+        """
+        Get the stress transformation function.
+
+        Returns
+        -------
+        callable
+            Stress transformation function.
+        """
+        return self.sig_impl
+    def get_transform_eps(self):
+        """
+        Get the strain transformation function.
+
+        Returns
+        -------
+        callable
+            Strain transformation function.
+        """
+        return self.eps_impl
+    def get_transform_tan(self):
+        """
+        Get the tangent modulus transformation function.
+
+        Returns
+        -------
+        callable
+            Tangent transformation function.
+        """
+        return self.tan_impl
 
     @staticmethod
     def _swap_arr(a, b):

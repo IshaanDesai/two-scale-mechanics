@@ -14,6 +14,29 @@ import numpy as np
 import h5py
 
 class Simulation:
+    """
+    Base class for different types of simulations.
+
+    This class provides a common interface for running simulations and
+    writing output. Specific simulation types are registered and created
+    via the factory pattern.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object containing simulation parameters.
+
+    Attributes
+    ----------
+    TYPES : Registry
+        Registry of available simulation types.
+    output_path : str
+        Path for output files.
+    mesh : Mesh
+        The computational mesh.
+    problem : MesoProblem or MultiscaleProblem
+        The problem solver instance.
+    """
     TYPES = Registry()
     def __init__(self, config: Config):
         self.output_path = config.output_path
@@ -24,9 +47,25 @@ class Simulation:
         self._write_state = config.simulation_write_state
         self._write_state_type = config.simulation_write_state_type
 
-    def run(self): pass
+    def run(self):
+        """
+        Run the simulation.
+
+        This method should be implemented by subclasses.
+        """
+        pass
 
     def write_output(self, t, n):
+        """
+        Write simulation output to file.
+
+        Parameters
+        ----------
+        t : float
+            Current simulation time.
+        n : int
+            Current time step number.
+        """
         self.problem.calc_von_mises_stress()
         with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}.bp", [self.problem.uh, self.problem.vm_stress_fun],
                           engine="BP4") as vtx:
@@ -47,6 +86,24 @@ class Simulation:
 
     @staticmethod
     def generate(config: Config):
+        """
+        Factory method to create a simulation instance based on configuration.
+
+        Parameters
+        ----------
+        config : Config
+            Configuration object specifying the simulation type.
+
+        Returns
+        -------
+        Simulation
+            An instance of the appropriate Simulation subclass.
+
+        Raises
+        ------
+        RuntimeError
+            If the simulation type is invalid.
+        """
         type = config.simulation_type
         if not Simulation.TYPES.is_name_valid(type):
             options = "["
@@ -58,16 +115,47 @@ class Simulation:
 
 @Simulation.TYPES.register
 class MesoSim(Simulation):
+    """
+    Meso-scale only simulation.
+
+    Solves a single-scale problem using the built-in constitutive law.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object containing simulation parameters.
+    """
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MesoProblem(config, self.mesh)
 
     def run(self):
+        """
+        Run the meso-scale simulation.
+
+        Solves the problem once and writes output.
+        """
         self.problem.solve()
         self.write_output(0.0, 0)
 
 @Simulation.TYPES.register
 class PseudoCoupledSim(Simulation):
+    """
+    Pseudo-coupled simulation using pre-computed micro-scale data.
+
+    Loads stress and tangent modulus from a file and solves the
+    meso-scale problem using this external constitutive response.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object containing simulation parameters.
+
+    Raises
+    ------
+    RuntimeError
+        If input path is not provided in the configuration.
+    """
     def __init__(self, config: Config):
         super().__init__(config)
         self.input_path = config.simulation_input
@@ -76,6 +164,12 @@ class PseudoCoupledSim(Simulation):
         self.problem = MultiscaleProblem(config, self.mesh)
 
     def run(self):
+        """
+        Run the pseudo-coupled simulation.
+
+        Loads stress and tangent data from file, solves the problem,
+        and writes output.
+        """
         with h5py.File(self.input_path, "r") as f:
             stress_data = f["stress_data"][:]
             self.problem.sig_fun.x.array[:] = stress_data[:]
@@ -91,6 +185,30 @@ class PseudoCoupledSim(Simulation):
 
 @Simulation.TYPES.register
 class CoupledSim(Simulation):
+    """
+    Fully coupled multiscale simulation using preCICE.
+
+    Couples the meso-scale problem with external micro-scale solvers
+    via the preCICE coupling library.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object containing simulation parameters.
+
+    Attributes
+    ----------
+    transform : DataTransformer
+        Handles data format transformations for different micro-solvers.
+    sig_buffer : CouplingBuffer
+        Buffer for stress data exchange.
+    eps_buffer : CouplingBuffer
+        Buffer for strain data exchange.
+    tan_buffer : CouplingBuffer or None
+        Buffer for tangent modulus exchange (small strain only).
+    precice : Adapter
+        preCICE adapter for coupling.
+    """
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MultiscaleProblem(config, self.mesh)
@@ -175,10 +293,32 @@ class CoupledSim(Simulation):
         self.precice.initialize([coupling_mesh])
 
     def write_checkpoint(self, t, n):
+        """
+        Write a checkpoint if required by preCICE.
+
+        Parameters
+        ----------
+        t : float
+            Current simulation time.
+        n : int
+            Current time step number.
+        """
         if self.precice.requires_writing_checkpoint():
             self.precice.store_checkpoint(self.problem.uh, t, n)
 
     def read_checkpoint(self):
+        """
+        Read a checkpoint if required by preCICE.
+
+        Returns
+        -------
+        loaded : bool
+            True if checkpoint was loaded, False otherwise.
+        t : float or None
+            Restored simulation time if checkpoint loaded.
+        n : int or None
+            Restored time step number if checkpoint loaded.
+        """
         if self.precice.requires_reading_checkpoint():
             state, t_, n_ = self.precice.retrieve_checkpoint()
             uh_arr = state
@@ -189,6 +329,12 @@ class CoupledSim(Simulation):
 
 
     def run(self):
+        """
+        Run the coupled multiscale simulation.
+
+        Executes the coupling loop, exchanging data with micro-solvers
+        via preCICE and solving the meso-scale problem at each iteration.
+        """
         is_coupling_ongoing, t, n = self.precice.is_coupling_ongoing(), 0.0, 0
 
         # handle first timestep: init MESO (was already computed)
@@ -245,4 +391,17 @@ class CoupledSim(Simulation):
 
     @staticmethod
     def coupling_bc(x):
+        """
+        Define the coupling boundary (all points).
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Array of coordinates.
+
+        Returns
+        -------
+        numpy.ndarray
+            Boolean array that is True for all points.
+        """
         return np.logical_or.reduce(np.equal(x, x))

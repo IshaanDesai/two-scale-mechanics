@@ -14,17 +14,24 @@ from .meshes import Mesh
 class Evaluator:
     """
     Evaluates the given fenicsx variable/expression for a function space.
+
+    Attributes
+    ----------
+    var_exp : fem.Expression
+        The FEniCSx expression to evaluate.
+    var_val : fem.Function
+        The function containing interpolated values.
     """
     def __init__(self, var, space):
         """
-        Constructs evaluator for
+        Construct evaluator for a variable/expression.
 
-        Params
-        ------
-        var: object
-            fenicsx variable/expression
-        space: fem.Functionspace
-            fenicsx space
+        Parameters
+        ----------
+        var : object
+            FEniCSx variable/expression to evaluate.
+        space : fem.FunctionSpace
+            FEniCSx function space for interpolation.
         """
         self.var_exp = fem.Expression(var, space.element.interpolation_points)
         self.var_val = fem.Function(space)
@@ -37,6 +44,38 @@ class Evaluator:
         return self
 
 class MesoProblem:
+    """
+    Meso-scale nonlinear elasticity problem solver.
+
+    This class sets up and solves a nonlinear elasticity problem using FEniCSx,
+    supporting both small and large strain formulations.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object containing problem parameters.
+    mesh : Mesh
+        Mesh object containing the domain and boundary conditions.
+
+    Attributes
+    ----------
+    mesh : Mesh
+        The computational mesh.
+    petsc_options : dict
+        PETSc solver options.
+    lam : fem.Constant
+        Lamé parameter lambda.
+    mu : fem.Constant
+        Lamé parameter mu.
+    alpha : fem.Constant
+        Material nonlinearity parameter.
+    V : fem.FunctionSpace
+        Vector function space for displacement.
+    uh : fem.Function
+        Displacement solution.
+    is_small_strain : bool
+        True if using small strain formulation.
+    """
     def __init__(self, config: Config, mesh: Mesh):
         self.mesh = mesh
         self.petsc_options = {
@@ -122,6 +161,12 @@ class MesoProblem:
         )
 
     def solve(self):
+        """
+        Solve the meso-scale problem and update stress and tangent fields.
+
+        This method solves the nonlinear problem and interpolates the
+        stress tensor and (for small strain) tangent modulus.
+        """
         self.meso_problem.solve()
 
         sig_eval = Evaluator(ufl.variable(self.sigma_exp), self.W).interpolate()
@@ -132,6 +177,14 @@ class MesoProblem:
             self.tan_fun.x.array[:] = tan_eval.var_val.x.array[:]
 
     def calc_psi(self):
+        """
+        Calculate the strain energy density function.
+
+        Returns
+        -------
+        ufl.core.expr.Expr
+            The strain energy density expression.
+        """
         tr_e = None
         if self.is_small_strain: tr_e = self.eps_var[0] + self.eps_var[1] + self.eps_var[2]
         else: tr_e = ufl.tr(self.eps_var)
@@ -141,6 +194,12 @@ class MesoProblem:
         return 0.5 * self.lam * (1.0 + half_alpha * tr_e2) * tr_e2 + self.mu * (1 + half_alpha * e2) * e2
 
     def calc_von_mises_stress(self):
+        """
+        Calculate the von Mises stress from the stress tensor.
+
+        Updates the vm_stress_fun attribute with the computed von Mises stress.
+        Handles both small strain (Mandel notation) and large strain formulations.
+        """
         if self.is_small_strain:
             sig = self.sig_fun.x.array.reshape(-1, 6)
             s1 = 0.5 * (np.power(sig[:, 0] - sig[:, 1], 2) +
@@ -161,6 +220,19 @@ class MesoProblem:
             self.vm_stress_fun.x.array.reshape(-1, 3)[:, 0] = np.sqrt(s1 + s2)
 
     def symgrad_mandel(self, vec):
+        """
+        Compute the symmetric gradient in Mandel notation.
+
+        Parameters
+        ----------
+        vec : ufl.core.expr.Expr
+            Vector function for which to compute the symmetric gradient.
+
+        Returns
+        -------
+        ufl.core.expr.Expr
+            Symmetric gradient as a 6-component vector in Mandel notation.
+        """
         halfsqrt2 = 0.5 * np.sqrt(2)
         return ufl.as_vector([vec[0].dx(0), vec[1].dx(1), vec[2].dx(2),
                               halfsqrt2 * (vec[1].dx(2) + vec[2].dx(1)),
@@ -168,6 +240,19 @@ class MesoProblem:
                               halfsqrt2 * (vec[0].dx(1) + vec[1].dx(0))])
 
 class MultiscaleProblem(MesoProblem):
+    """
+    Multiscale problem solver using pre-computed constitutive response.
+
+    This class extends MesoProblem to solve problems where the stress and
+    tangent modulus are provided from external micro-scale simulations.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object containing problem parameters.
+    mesh : Mesh
+        Mesh object containing the domain and boundary conditions.
+    """
     def __init__(self, config: Config, mesh: Mesh):
         super().__init__(config, mesh)
 
@@ -194,6 +279,12 @@ class MultiscaleProblem(MesoProblem):
             )
 
     def solve_meso(self):
+        """
+        Solve using the meso-scale constitutive law.
+
+        Calls the parent class solve method to compute stress and tangent
+        from the built-in material model.
+        """
         super().solve()
 
     def solve(self):

@@ -4,20 +4,112 @@ from collections import defaultdict
 from .mesh_utils import Locators
 
 def get_else(val, default):
+    """
+    Return the value if not None, otherwise return the default.
+
+    Parameters
+    ----------
+    val : any
+        The value to check.
+    default : any
+        The default value to return if val is None.
+
+    Returns
+    -------
+    any
+        The value or default.
+    """
     if val is None: return default
     return val
 
 def get_raise(val, msg=""):
+    """
+    Return the value if not None, otherwise raise a RuntimeError.
+
+    Parameters
+    ----------
+    val : any
+        The value to check.
+    msg : str, optional
+        Error message to include in the exception (default is "").
+
+    Returns
+    -------
+    any
+        The value if not None.
+
+    Raises
+    ------
+    RuntimeError
+        If val is None.
+    """
     if val is None: raise RuntimeError(msg)
     return val
 
 def make_default_dict(d=None):
+    """
+    Create a defaultdict that returns None for missing keys.
+
+    Parameters
+    ----------
+    d : dict, optional
+        Initial dictionary to populate the defaultdict (default is None).
+
+    Returns
+    -------
+    defaultdict
+        A defaultdict with None as the default value.
+    """
     if d is None:
         return defaultdict(lambda:None)
     else:
         return defaultdict(lambda:None, d)
 
 class Config:
+    """
+    Configuration class for loading and storing simulation parameters.
+
+    Attributes
+    ----------
+    output_path : str
+        Path for output files.
+    mesh_path : str
+        Path to the mesh file.
+    bc_dc_use_tag : bool
+        Whether to use tags for Dirichlet boundary conditions.
+    bc_dc_locator : str
+        Locator function name for Dirichlet BC.
+    bc_dc_value : float
+        Value for Dirichlet BC.
+    bc_nm_use_tag : bool
+        Whether to use tags for Neumann boundary conditions.
+    bc_nm_locator : str
+        Locator function name for Neumann BC.
+    bc_nm_value : float
+        Value for Neumann BC.
+    bc_nm_dim : int
+        Dimension for Neumann BC.
+    problem_lambda : float
+        Lamé parameter lambda.
+    problem_mu : float
+        Lamé parameter mu.
+    problem_alpha : float
+        Material nonlinearity parameter.
+    problem_strain_type : str
+        Type of strain formulation ('small_strain' or 'large_strain').
+    problem_element_degree : int
+        Finite element polynomial degree.
+    simulation_type : str
+        Type of simulation to run.
+    simulation_input : str
+        Path to simulation input file.
+    simulation_micro_type : str
+        Type of micro-solver.
+    simulation_write_state : str
+        Path to write state data.
+    simulation_write_state_type : list
+        Types of state data to write.
+    """
     def __init__(self):
         self._data                = None
 
@@ -46,6 +138,19 @@ class Config:
         self._output_path         = None
 
     def load(self, path: str):
+        """
+        Load configuration from a JSON file.
+
+        Parameters
+        ----------
+        path : str
+            Path to the JSON configuration file.
+
+        Raises
+        ------
+        RuntimeError
+            If required configuration fields are missing or invalid.
+        """
         with open(path, 'r') as f:
             self._data = json.load(f)
         self._data = make_default_dict(self._data)
