@@ -18,6 +18,8 @@
   },
   "simulation": {
     "type": "CoupledSim",
-    "micro_type": "PYFANS"
+    "micro_type": "PYFANS",
+    "write_state": "output/coupled_bar_state",
+    "write_state_type": ["S", "U", "E"]
   }
 }

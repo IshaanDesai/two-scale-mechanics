@@ -19,7 +19,7 @@
   "simulation": {
     "type": "MesoSim",
     "micro_type": "NONE",
-    "write_state": "output/bar_strain.h5",
-    "write_state_type": ["S", "U"]
+    "write_state": "output/bar_strain",
+    "write_state_type": ["E"]
   }
 }

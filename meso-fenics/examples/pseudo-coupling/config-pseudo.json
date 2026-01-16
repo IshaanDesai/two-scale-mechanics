@@ -19,6 +19,8 @@
   "simulation": {
     "type": "PseudoCoupledSim",
     "input": "examples/pseudo-input.h5",
-    "micro_type": "NONE"
+    "micro_type": "NONE",
+    "write_state": "output/pseudo_bar_state",
+    "write_state_type": ["S", "U", "E"]
   }
 }

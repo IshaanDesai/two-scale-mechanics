@@ -83,12 +83,14 @@ def process_outputs(num_loads):
     return stresses, tangents
 
 if __name__ == '__main__':
-    with h5py.File("../output/bar_strain.h5", "r") as f:
+    RANKS=8
+
+    with h5py.File("../output/bar_strain_0.h5", "r") as f:
         strain_data = f["strain_data"][:]
 
     num_loads = gen_fans_input(strain_data)
 
-    subprocess.call(f"FANS ./pseudo-coupling/fans-input.json ./pseudo-coupling/fans-output.h5", shell=True)
+    subprocess.call(f"mpiexec -n {RANKS} FANS ./pseudo-coupling/fans-input.json ./pseudo-coupling/fans-output.h5", shell=True)
 
     stresses, tangents = process_outputs(num_loads)
 

@@ -55,7 +55,7 @@ class Simulation:
         """
         pass
 
-    def write_output(self, t, n):
+    def write_output(self, t, n, i=None):
         """
         Write simulation output to file.
 
@@ -65,14 +65,18 @@ class Simulation:
             Current simulation time.
         n : int
             Current time step number.
+        i : int, optional
+            Optional time step iteration
         """
         self.problem.calc_von_mises_stress()
-        with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}.bp", [self.problem.uh, self.problem.vm_stress_fun],
+        iter=""
+        if i is not None: iter = f"_{i}"
+        with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}{iter}.bp", [self.problem.uh, self.problem.vm_stress_fun],
                           engine="BP4") as vtx:
             vtx.write(t)
 
         if self._write_state is not None and type(self._write_state_type) == list:
-            with h5py.File(self._write_state, "w") as f:
+            with h5py.File(f"{self._write_state}_{n}{iter}.h5", "w") as f:
                 if 'E' in self._write_state_type:
                     eval = Evaluator(self.problem.eps_var, self.problem.W)
                     eval.interpolate()
@@ -335,7 +339,7 @@ class CoupledSim(Simulation):
         Executes the coupling loop, exchanging data with micro-solvers
         via preCICE and solving the meso-scale problem at each iteration.
         """
-        is_coupling_ongoing, t, n = self.precice.is_coupling_ongoing(), 0.0, 0
+        is_coupling_ongoing, t, n, it = self.precice.is_coupling_ongoing(), 0.0, 0, 0
 
         # handle first timestep: init MESO (was already computed)
         self.write_checkpoint(t, n)
@@ -349,9 +353,11 @@ class CoupledSim(Simulation):
         loaded_checkpoint, t_, n_ = self.read_checkpoint()
         if loaded_checkpoint:
             t, n = t_, n_
+            it += 1
         else:
             t += dt
             n += 1
+            it = 0
 
         while is_coupling_ongoing:
             # Handle checkpointing
@@ -382,12 +388,14 @@ class CoupledSim(Simulation):
             loaded_checkpoint, t_, n_ = self.read_checkpoint()
             if loaded_checkpoint:
                 t, n = t_, n_
+                it += 1
             else:
                 t += float(dt)
                 n += 1
+                it = 0
 
             # Output
-            self.write_output(t, n)
+            self.write_output(t, n, it)
 
     @staticmethod
     def coupling_bc(x):
