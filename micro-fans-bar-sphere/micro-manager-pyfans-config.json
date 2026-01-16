@@ -9,6 +9,11 @@
     "simulation_params": {
         "micro_dt": 1e-1,
         "macro_domain_bounds": [-0.0001, 1.0001, -0.0001, 1.0001, -0.0001, 1.0001],
-        "decomposition": [8, 1, 1]
+        "decomposition": [1, 1, 1]
+    },
+    "tasking": {
+        "backend": "socket",
+        "is_slurm": false,
+        "num_workers": 2
     }
 }

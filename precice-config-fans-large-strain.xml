@@ -12,6 +12,8 @@
     <data:vector name="strains1to3"/>
     <data:vector name="strains4to6"/>
     <data:vector name="strains7to9"/>
+    <data:scalar name="active_state"/>
+    <data:scalar name="active_steps"/>
 
     <mesh name="meso-mesh" dimensions="3">
        <use-data name="stresses1to3"/>
@@ -20,6 +22,8 @@
        <use-data name="strains1to3"/>
        <use-data name="strains4to6"/>
        <use-data name="strains7to9"/>
+       <use-data name="active_state"/>
+       <use-data name="active_steps"/>
     </mesh>
 
     <participant name="Meso-structure">
@@ -40,6 +44,8 @@
       <write-data name="stresses1to3" mesh="meso-mesh"/>
       <write-data name="stresses4to6" mesh="meso-mesh"/>
       <write-data name="stresses7to9" mesh="meso-mesh"/>
+      <write-data name="active_state" mesh="meso-mesh"/>
+      <write-data name="active_steps" mesh="meso-mesh"/>
       <export:vtu directory="precice-exports" />
     </participant>
 

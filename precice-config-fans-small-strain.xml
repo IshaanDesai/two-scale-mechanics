@@ -17,6 +17,8 @@
     <data:vector name="cmat5"/>
     <data:vector name="cmat6"/>
     <data:vector name="cmat7"/>
+    <data:scalar name="active_state"/>
+    <data:scalar name="active_steps"/>
 
     <mesh name="meso-mesh" dimensions="3">
        <use-data name="stresses1to3"/>
@@ -30,6 +32,8 @@
        <use-data name="cmat5"/>
        <use-data name="cmat6"/>
        <use-data name="cmat7"/>
+       <use-data name="active_state"/>
+       <use-data name="active_steps"/>
     </mesh>
 
     <participant name="Meso-structure">
@@ -60,6 +64,8 @@
       <write-data name="cmat5" mesh="meso-mesh"/>
       <write-data name="cmat6" mesh="meso-mesh"/>
       <write-data name="cmat7" mesh="meso-mesh"/>
+      <write-data name="active_state" mesh="meso-mesh"/>
+      <write-data name="active_steps" mesh="meso-mesh"/>
       <export:vtu directory="precice-exports" />
     </participant>
 
