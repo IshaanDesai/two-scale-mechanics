@@ -75,7 +75,6 @@ def process_outputs(num_loads):
             swap(c_buffer, 12, 14)
             swap(c_buffer, 15, 20)
             swap(c_buffer, 16, 19)
-            swap(c_buffer, 17, 18)
 
             tangents[i, :, :] = c_buffer[selection]
             stresses[i, :] = stress[:]

@@ -8,6 +8,8 @@ from .coupling import CouplingBuffer, DataTransformer, Projectors, Mergers
 
 from mpi4py import MPI
 from fenicsxprecice import Adapter, CouplingMesh
+from fenicsxprecice.adapter_core import convert_fenicsx_to_precice, get_fenicsx_interpolation_points, \
+    interpolate_boundary_function, FunctionType
 from dolfinx import io, fem
 
 import numpy as np
@@ -47,6 +49,33 @@ class Simulation:
         self._write_state = config.simulation_write_state
         self._write_state_type = config.simulation_write_state_type
 
+        self._coords_W = None
+        self._cells_W = None
+        self._values_to_send_W = None
+        self._coords_WT = None
+        self._cells_WT = None
+        self._values_to_send_WT = None
+
+    def load_quad_coords(self):
+        """
+        Loads quadrature point coordinates into buffers.
+        Only call once self.problem is populated.
+        """
+        (self._coords_W, self._cells_W, self._values_to_send_W) = get_fenicsx_interpolation_points(
+            self.problem.W,
+            Simulation.always_true,
+            MPI.COMM_WORLD,
+            25
+        )
+
+        if self.problem.WT is not None:
+            (self._coords_WT, self._cells_WT, self._values_to_send_WT) = get_fenicsx_interpolation_points(
+                self.problem.WT,
+                Simulation.always_true,
+                MPI.COMM_WORLD,
+                25
+            )
+
     def run(self):
         """
         Run the simulation.
@@ -54,6 +83,23 @@ class Simulation:
         This method should be implemented by subclasses.
         """
         pass
+
+    @staticmethod
+    def always_true(x):
+        """
+        Define function that returns True for any np array
+
+        Parameters
+        ----------
+        x : numpy.ndarray
+            Array of coordinates.
+
+        Returns
+        -------
+        numpy.ndarray
+            Boolean array that is True for all points.
+        """
+        return np.logical_or.reduce(np.equal(x, x))
 
     def write_output(self, t, n, i=None):
         """
@@ -77,13 +123,19 @@ class Simulation:
 
         if self._write_state is not None and type(self._write_state_type) == list:
             with h5py.File(f"{self._write_state}_{n}{iter}.h5", "w") as f:
-                if 'E' in self._write_state_type:
+                if 'E' in self._write_state_type and self._coords_W is not None:
                     eval = Evaluator(self.problem.eps_var, self.problem.W)
                     eval.interpolate()
-                    f.create_dataset("strain_data", data=eval.var_val.x.array)
+                    eps = convert_fenicsx_to_precice(eval.var_val, self._coords_W, 25)
+                    f.create_dataset("strain_data", data=eps)
 
-                if 'S' in self._write_state_type:
-                    f.create_dataset("stress_data", data=self.problem.sig_fun.x.array)
+                if 'S' in self._write_state_type and self._coords_W is not None:
+                    sig = convert_fenicsx_to_precice(self.problem.sig_fun, self._coords_W, 25)
+                    f.create_dataset("stress_data", data=sig)
+
+                if 'T' in self._write_state_type and self._coords_WT is not None and self.problem.tan_fun is not None:
+                    tan = convert_fenicsx_to_precice(self.problem.tan_fun, self._coords_WT, 25)
+                    f.create_dataset("tangent_data", data=tan)
 
                 if 'U' in self._write_state_type:
                     f.create_dataset("displacement_data", data=self.problem.uh.x.array)
@@ -132,6 +184,7 @@ class MesoSim(Simulation):
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MesoProblem(config, self.mesh)
+        self.load_quad_coords()
 
     def run(self):
         """
@@ -166,6 +219,7 @@ class PseudoCoupledSim(Simulation):
         if self.input_path is None: raise RuntimeError("PseudoCoupledSim requires input path")
 
         self.problem = MultiscaleProblem(config, self.mesh)
+        self.load_quad_coords()
 
     def run(self):
         """
@@ -175,13 +229,31 @@ class PseudoCoupledSim(Simulation):
         and writes output.
         """
         with h5py.File(self.input_path, "r") as f:
-            stress_data = f["stress_data"][:]
-            self.problem.sig_fun.x.array[:] = stress_data[:]
+            stress_data = f["stress_data"][:].reshape(-1, self.problem.W.value_size) # n_quad x stress_size
+            interpolate_boundary_function(
+                {tuple(k):v for k,v in zip(self._coords_W, stress_data)},
+                FunctionType.VECTOR,
+                self._values_to_send_W,
+                self.problem.sig_fun,
+                self._cells_W,
+                MPI.COMM_WORLD,
+                False,
+                25
+            )
             self.problem.sig_fun.x.scatter_forward()
 
             if self.problem.is_small_strain:
-                tan_data = f["tan_data"][:]
-                self.problem.tan_fun.x.array[:] = tan_data[:]
+                tan_data = f["tan_data"][:].reshape(-1, self.problem.WT.value_size) # n_quad x tan_size
+                interpolate_boundary_function(
+                    {tuple(k): v for k, v in zip(self._coords_WT, tan_data)},
+                    FunctionType.VECTOR,
+                    self._values_to_send_WT,
+                    self.problem.tan_fun,
+                    self._cells_WT,
+                    MPI.COMM_WORLD,
+                    False,
+                    25
+                )
                 self.problem.tan_fun.x.scatter_forward()
 
         self.problem.solve()
@@ -216,6 +288,7 @@ class CoupledSim(Simulation):
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MultiscaleProblem(config, self.mesh)
+        self.load_quad_coords()
         self.transform = DataTransformer(config.simulation_micro_type)
 
         num_sig_buffers = int(np.ceil(self.problem.W.value_size / 3.))
@@ -346,6 +419,7 @@ class CoupledSim(Simulation):
         # no need to solve
         self.eps_eval.interpolate()
         self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
+        self.write_output(t, n, "meso-sol")
         for name, func in self.write_fields.items(): self.precice.write_data("meso-mesh", name, func)
         dt = self.precice.get_max_time_step_size()
         self.precice.advance(dt)
@@ -353,11 +427,9 @@ class CoupledSim(Simulation):
         loaded_checkpoint, t_, n_ = self.read_checkpoint()
         if loaded_checkpoint:
             t, n = t_, n_
-            it += 1
         else:
             t += dt
             n += 1
-            it = 0
 
         while is_coupling_ongoing:
             # Handle checkpointing
@@ -371,9 +443,12 @@ class CoupledSim(Simulation):
             if self.problem.is_small_strain:
                 self.tan_buffer.write_buffer_to_origin(self.transform.get_transform_tan())
                 self.tan_buffer.original.x.scatter_forward()
-
+            #if it == 0 and n == 1: self.write_output(t, n, "micro-out")
             # Solve EQ
             self.problem.solve()
+
+            # Output
+            self.write_output(t, n, it)
 
             # Write Data
             is_coupling_ongoing = self.precice.is_coupling_ongoing()
@@ -394,9 +469,6 @@ class CoupledSim(Simulation):
                 n += 1
                 it = 0
 
-            # Output
-            self.write_output(t, n, it)
-
     @staticmethod
     def coupling_bc(x):
         """
@@ -412,4 +484,4 @@ class CoupledSim(Simulation):
         numpy.ndarray
             Boolean array that is True for all points.
         """
-        return np.logical_or.reduce(np.equal(x, x))
+        return Simulation.always_true(x)

@@ -1,5 +1,5 @@
 {
-  "output_path": "output/bar",
+  "output_path": "output/bar-pseudo",
   "mesh": {
     "path": "examples/coupled-bar/bar3d.msh",
     "bc_dc_use_tag": false,
