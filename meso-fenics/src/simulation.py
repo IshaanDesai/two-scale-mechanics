@@ -291,83 +291,154 @@ class CoupledSim(Simulation):
         self.load_quad_coords()
         self.transform = DataTransformer(config.simulation_micro_type)
 
-        num_sig_buffers = int(np.ceil(self.problem.W.value_size / 3.))
-        self.sig_buffer = CouplingBuffer(
-            self.problem.sig_fun,
-            self.problem.W3,
+        (
+            self.sig_buffer,
+            self.eps_buffer,
+            self.eps_eval,
+            self.tan_buffer
+        ) = CoupledSim._construct_coupling_buffers(self.problem, self.transform)
+
+        self.init_with_micro = config.simulation_init_with_micro
+        if self.init_with_micro and not self.problem.is_small_strain:
+            raise RuntimeError("Large strain must initialize with meso values. Set init_with_micro to false!")
+        adapter_config_path = CoupledSim._get_adapter_path(self.problem.is_small_strain)
+        self.precice = Adapter(MPI.COMM_WORLD, adapter_config_path)
+        coupling_boundary = CoupledSim.coupling_bc
+
+        (
+            self.read_functions,
+            read_fields,
+            self.write_fields
+        ) = CoupledSim._construct_coupling_dicts(self.problem, self.sig_buffer, self.eps_buffer, self.tan_buffer)
+
+        coupling_mesh = CouplingMesh('meso-mesh', coupling_boundary, read_fields, self.write_fields)
+        self.precice.initialize([coupling_mesh])
+
+    @staticmethod
+    def _construct_coupling_buffers(problem, transform):
+        """
+        Constructs coupling buffers for preCICE coupling.
+
+        Parameters
+        ----------
+        problem : MultiscaleProblem
+            Problem object containing multi-scale fenics problem
+
+        transform : DataTransformer
+            Data transformer object for coupling.
+        """
+        num_sig_buffers = int(np.ceil(problem.W.value_size / 3.))
+        sig_buffer = CouplingBuffer(
+            problem.sig_fun,
+            problem.W3,
             num_sig_buffers,
-            Projectors.InplaceSplitter(self.problem.W3),
+            Projectors.InplaceSplitter(problem.W3),
             Mergers.InplaceMerger()
         )
-        self.eps_eval   = Evaluator(self.problem.eps_var, self.problem.W)
-        self.eps_buffer = CouplingBuffer(
-            self.eps_eval.var_val,
-            self.problem.W3,
+        eps_eval = Evaluator(problem.eps_var, problem.W)
+        eps_buffer = CouplingBuffer(
+            eps_eval.var_val,
+            problem.W3,
             num_sig_buffers,
-            Projectors.InplaceSplitter(self.problem.W3),
+            Projectors.InplaceSplitter(problem.W3),
             Mergers.InplaceMerger()
         )
-        self.tan_buffer = None
-        if self.problem.is_small_strain:
-            self.tan_buffer = CouplingBuffer(
-                self.problem.tan_fun,
-                self.problem.W3,
+        tan_buffer = None
+        if problem.is_small_strain:
+            tan_buffer = CouplingBuffer(
+                problem.tan_fun,
+                problem.W3,
                 7,
                 Projectors.SelectionSplitter(
-                    self.problem.W3,
-                    np.array([0, 1,  2,  3,  4,  5,
-                                 7,  8,  9, 10, 11,
-                                    14, 15, 16, 17,
-                                        21, 22, 23,
-                                            28, 29,
-                                                35])),
+                    problem.W3,
+                    np.array([0, 1, 2, 3, 4, 5,
+                              7, 8, 9, 10, 11,
+                              14, 15, 16, 17,
+                              21, 22, 23,
+                              28, 29,
+                              35])),
                 Mergers.SelectionMerger(
-                    self.problem.W3,
+                    problem.W3,
                     7,
-                    self.problem.tan_fun.x.array.reshape(-1, 6, 6).shape[0],
+                    problem.tan_fun.x.array.reshape(-1, 6, 6).shape[0],
                     np.array([
-                        [0,  1,  2,  3,  4,  5],
-                        [1,  6,  7,  8,  9, 10],
-                        [2,  7, 11, 12, 13, 14],
-                        [3,  8, 12, 15, 16, 17],
-                        [4,  9, 13, 16, 18, 19],
+                        [0, 1, 2, 3, 4, 5],
+                        [1, 6, 7, 8, 9, 10],
+                        [2, 7, 11, 12, 13, 14],
+                        [3, 8, 12, 15, 16, 17],
+                        [4, 9, 13, 16, 18, 19],
                         [5, 10, 14, 17, 19, 20],
                     ]))
             )
         else:
             # Need to remove transforms if using large strain
-            self.transform.clear_transforms()
+            transform.clear_transforms()
 
-        self.problem.solve_meso() # init fields to set up coupling
-        self.eps_eval.interpolate()
-        self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
+        return sig_buffer, eps_buffer, eps_eval, tan_buffer
 
-        adapter_config_path = 'res/precice-adapter-config-small-strain.json'
-        if not self.problem.is_small_strain:
-            adapter_config_path = 'res/precice-adapter-config-large-strain.json'
-        self.precice = Adapter(MPI.COMM_WORLD, adapter_config_path)
-        coupling_boundary = CoupledSim.coupling_bc
+    @staticmethod
+    def _get_adapter_path(is_small_strain):
+        """
+        Returns path to preCICE adapter config file based on simulation parameters.
 
-        self.read_functions = dict()
+        Parameters
+        ----------
+        is_small_strain : bool
+            Is current simulation running in small strain mode
+
+        Returns
+        -------
+        config_path : str
+            Path to preCICE adapter config file
+        """
+        strain_type = "small" if is_small_strain else "large"
+        adapter_config_path = f"res/precice-adapter-config-{strain_type}-strain.json"
+        return adapter_config_path
+
+    @staticmethod
+    def _construct_coupling_dicts(problem, sig_buffer, eps_buffer, tan_buffer):
+        """
+        Constructs coupling dicts for preCICE coupling.
+
+        Parameters
+        ----------
+        problem : MultiscaleProblem
+            Problem object containing multi-scale fenics problem
+        sig_buffer : CouplingBuffer
+            stress buffer
+        eps_buffer : CouplingBuffer
+            strain buffer
+        tan_buffer : Optional[CouplingBuffer]
+            tangent buffer
+
+        Returns
+        -------
+        read_functions : dict
+            Dictionary of coupling read functions
+        read_fields : dict
+            Dictionary of coupling read fields. Same as read_functions["key"].function_space
+        write_fields : dict
+            Dictionary of coupling write fields
+        """
+        read_functions = dict()
         read_fields = dict()
         # attach sig functions
-        for i, func in enumerate(self.sig_buffer.get_functions()):
-            key = f"stresses{3*(i+0)+1}to{3*(i+0)+1+2}"
-            self.read_functions[key] = func
-            read_fields[key] = self.problem.W3
+        for i, func in enumerate(sig_buffer.get_functions()):
+            key = f"stresses{3 * (i + 0) + 1}to{3 * (i + 0) + 1 + 2}"
+            read_functions[key] = func
+            read_fields[key] = problem.W3
         # attach tan functions
-        if self.tan_buffer is not None:
-            for i, func in enumerate(self.tan_buffer.get_functions()):
-                self.read_functions[f"cmat{i+1}"] = func
+        if tan_buffer is not None:
+            for i, func in enumerate(tan_buffer.get_functions()):
+                read_functions[f"cmat{i + 1}"] = func
 
-        self.write_fields = dict()
+        write_fields = dict()
         # attach eps functions
-        for i, func in enumerate(self.eps_buffer.get_functions()):
-            key = f"strains{3*(i+0)+1}to{3*(i+0)+1+2}"
-            self.write_fields[key] = func
+        for i, func in enumerate(eps_buffer.get_functions()):
+            key = f"strains{3 * (i + 0) + 1}to{3 * (i + 0) + 1 + 2}"
+            write_fields[key] = func
 
-        coupling_mesh = CouplingMesh('meso-mesh', coupling_boundary, read_fields, self.write_fields)
-        self.precice.initialize([coupling_mesh])
+        return read_functions, read_fields, write_fields
 
     def write_checkpoint(self, t, n):
         """
@@ -383,7 +454,7 @@ class CoupledSim(Simulation):
         if self.precice.requires_writing_checkpoint():
             self.precice.store_checkpoint(self.problem.uh, t, n)
 
-    def read_checkpoint(self):
+    def read_checkpoint(self, t, n):
         """
         Read a checkpoint if required by preCICE.
 
@@ -402,8 +473,35 @@ class CoupledSim(Simulation):
             self.problem.uh.x.array[:] = uh_arr.x.array[:]
             return True, t_, n_
         else:
-            return False, None, None
+            return False, t, n
 
+    def init_meso(self, t, n, dt):
+        self.problem.solve_meso()
+        self.coupling_write()
+        self.write_output(t, n, "init-meso-sol")
+
+    def init_micro(self, t, n, dt):
+        self.coupling_write() # write 0, only use tan result
+        self.precice.advance(dt)
+        self.read_checkpoint(t, n)
+        self.write_checkpoint(t, n)
+        self.coupling_read(dt)
+        self.problem.init_with_ms()
+        self.coupling_write() # write eps based on tan
+        self.write_output(t, n, "init-micro-sol")
+
+    def coupling_write(self):
+        self.eps_eval.interpolate()
+        self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
+        for name, func in self.write_fields.items(): self.precice.write_data("meso-mesh", name, func)
+
+    def coupling_read(self, dt):
+        for name, func in self.read_functions.items(): self.precice.read_data("meso-mesh", name, dt, func)
+        self.sig_buffer.write_buffer_to_origin(self.transform.get_transform_sig())
+        self.sig_buffer.original.x.scatter_forward()
+        if self.problem.is_small_strain:
+            self.tan_buffer.write_buffer_to_origin(self.transform.get_transform_tan())
+            self.tan_buffer.original.x.scatter_forward()
 
     def run(self):
         """
@@ -412,62 +510,36 @@ class CoupledSim(Simulation):
         Executes the coupling loop, exchanging data with micro-solvers
         via preCICE and solving the meso-scale problem at each iteration.
         """
-        is_coupling_ongoing, t, n, it = self.precice.is_coupling_ongoing(), 0.0, 0, 0
+        is_coupling_ongoing, t, n, it, init_done = self.precice.is_coupling_ongoing(), 0.0, 0, 0, False
+        def update_counters(reloaded, t_, n_, it, dt):
+            if reloaded: return t_, n_, (it+1 if init_done else it)
+            else: return t_+float(dt), n_+1, (0 if init_done else it)
 
-        # handle first timestep: init MESO (was already computed)
         self.write_checkpoint(t, n)
-        # no need to solve
-        self.eps_eval.interpolate()
-        self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
-        self.write_output(t, n, "meso-sol")
-        for name, func in self.write_fields.items(): self.precice.write_data("meso-mesh", name, func)
         dt = self.precice.get_max_time_step_size()
+        if self.init_with_micro: self.init_micro(t, n, dt)
+        else:                    self.init_meso(t, n, dt)
         self.precice.advance(dt)
         is_coupling_ongoing = self.precice.is_coupling_ongoing()
-        loaded_checkpoint, t_, n_ = self.read_checkpoint()
-        if loaded_checkpoint:
-            t, n = t_, n_
-        else:
-            t += dt
-            n += 1
+        t, n, it = update_counters(*self.read_checkpoint(t, n), it, dt)
+        init_done = True
 
         while is_coupling_ongoing:
-            # Handle checkpointing
             self.write_checkpoint(t, n)
             dt = fem.Constant(self.mesh.domain, self.precice.get_max_time_step_size())
 
-            # Read Data
-            for name, func in self.read_functions.items(): self.precice.read_data("meso-mesh", name, dt, func)
-            self.sig_buffer.write_buffer_to_origin(self.transform.get_transform_sig())
-            self.sig_buffer.original.x.scatter_forward()
-            if self.problem.is_small_strain:
-                self.tan_buffer.write_buffer_to_origin(self.transform.get_transform_tan())
-                self.tan_buffer.original.x.scatter_forward()
+            self.coupling_read(dt)
             #if it == 0 and n == 1: self.write_output(t, n, "micro-out")
-            # Solve EQ
             self.problem.solve()
-
-            # Output
             self.write_output(t, n, it)
 
-            # Write Data
             is_coupling_ongoing = self.precice.is_coupling_ongoing()
             if is_coupling_ongoing:
-                self.eps_eval.interpolate()
-                self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
-                for name, func in self.write_fields.items(): self.precice.write_data("meso-mesh", name, func)
+                self.coupling_write()
                 self.precice.advance(dt(0))
             is_coupling_ongoing = self.precice.is_coupling_ongoing()
 
-            # Load Checkpoint?
-            loaded_checkpoint, t_, n_ = self.read_checkpoint()
-            if loaded_checkpoint:
-                t, n = t_, n_
-                it += 1
-            else:
-                t += float(dt)
-                n += 1
-                it = 0
+            t, n, it = update_counters(*self.read_checkpoint(t, n), it, dt)
 
     @staticmethod
     def coupling_bc(x):

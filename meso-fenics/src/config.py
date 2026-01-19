@@ -109,6 +109,8 @@ class Config:
         Path to write state data.
     simulation_write_state_type : list
         Types of state data to write.
+    simulation_init_tan : bool
+        Whether to initialize the simulation using tangent.
     """
     def __init__(self):
         self._data                = None
@@ -134,6 +136,7 @@ class Config:
         self._simulation_micro_t  = None
         self._simulation_wstate   = None
         self._simulation_wstate_t = None
+        self._simulation_init_tan = None
 
         self._output_path         = None
 
@@ -201,6 +204,7 @@ class Config:
         self._simulation_micro_t  = get_raise(self._data['simulation']['micro_type'], 'Simulation micro type required.')
         self._simulation_wstate   = get_else(self._data['simulation']['write_state'], None)
         self._simulation_wstate_t = get_else(self._data['simulation']['write_state_type'], None)
+        self._simulation_init_tan = get_else(self._data['simulation']['init_with_micro'], False)
 
 
     @property
@@ -241,3 +245,5 @@ class Config:
     def simulation_write_state(self): return self._simulation_wstate
     @property
     def simulation_write_state_type(self): return self._simulation_wstate_t
+    @property
+    def simulation_init_with_micro(self): return self._simulation_init_tan

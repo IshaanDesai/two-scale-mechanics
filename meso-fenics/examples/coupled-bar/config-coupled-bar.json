@@ -20,6 +20,7 @@
     "type": "CoupledSim",
     "micro_type": "PYFANS",
     "write_state": "output/coupled_bar_state",
-    "write_state_type": ["S", "U", "E"]
+    "write_state_type": ["S", "U", "E"],
+    "init_with_micro": true
   }
 }

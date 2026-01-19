@@ -287,6 +287,27 @@ class MultiscaleProblem(MesoProblem):
         """
         super().solve()
 
+    def init_with_ms(self):
+        """
+        Solve problem approximately only using micro-scale tangent.
+        Use as first guess for subsequent iterations.
+        """
+        sig = ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh))
+        res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
+        jac = ufl.derivative(res, self.uh, self.u)
+        problem = NonlinearProblem(
+            res,
+            self.uh,
+            bcs=self.bc_dc,
+            J=jac,
+            petsc_options=self.petsc_options,
+            petsc_options_prefix="nonlinpoisson"
+        )
+        problem.solve()
+
+        sig_eval = Evaluator(ufl.variable(sig), self.W).interpolate()
+        self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
+
     def solve(self):
         if self.is_small_strain:
             result = self.ms_problem.solve()
