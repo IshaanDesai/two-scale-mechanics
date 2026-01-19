@@ -117,12 +117,14 @@ class Simulation:
         self.problem.calc_von_mises_stress()
         iter=""
         if i is not None: iter = f"_{i}"
+        rank = ""
+        if MPI.COMM_WORLD.Get_size() > 1: rank = f"_rank{MPI.COMM_WORLD.Get_rank()}"
         with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}{iter}.bp", [self.problem.uh, self.problem.vm_stress_fun],
                           engine="BP4") as vtx:
             vtx.write(t)
 
         if self._write_state is not None and type(self._write_state_type) == list:
-            with h5py.File(f"{self._write_state}_{n}{iter}.h5", "w") as f:
+            with h5py.File(f"{self._write_state}_{n}{iter}{rank}.h5", "w") as f:
                 if 'E' in self._write_state_type and self._coords_W is not None:
                     eval = Evaluator(self.problem.eps_var, self.problem.W)
                     eval.interpolate()

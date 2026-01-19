@@ -171,10 +171,12 @@ class MesoProblem:
 
         sig_eval = Evaluator(ufl.variable(self.sigma_exp), self.W).interpolate()
         self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
+        self.sig_fun.x.scatter_forward()
 
         if self.is_small_strain:
             tan_eval = Evaluator(ufl.variable(self.tangent_exp), self.WT).interpolate()
             self.tan_fun.x.array[:] = tan_eval.var_val.x.array[:]
+            self.tan_fun.x.scatter_forward()
 
     def calc_psi(self):
         """
@@ -218,6 +220,7 @@ class MesoProblem:
                         np.power(sig[:, 1, 2], 2) +
                         np.power(sig[:, 2, 0], 2))
             self.vm_stress_fun.x.array.reshape(-1, 3)[:, 0] = np.sqrt(s1 + s2)
+        self.vm_stress_fun.x.scatter_forward()
 
     def symgrad_mandel(self, vec):
         """
@@ -307,11 +310,13 @@ class MultiscaleProblem(MesoProblem):
 
         sig_eval = Evaluator(ufl.variable(sig), self.W).interpolate()
         self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
+        self.sig_fun.x.scatter_forward()
 
     def solve(self):
         if self.is_small_strain:
             result = self.ms_problem.solve()
             self.uh.x.array[:] = result.x.array[:]
+            self.uh.x.scatter_forward()
         else:
             self.ms_problem.solve()
 

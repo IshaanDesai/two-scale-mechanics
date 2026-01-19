@@ -113,14 +113,23 @@ class Mesh:
         low = np.min(self.domain.geometry.x, axis=0)
         high = np.max(self.domain.geometry.x, axis=0)
 
+        glob_low = np.zeros_like(low)
+        glob_high = np.zeros_like(high)
+        for d in range(len(low)):
+            glob_low[d] = MPI.COMM_WORLD.allreduce(low[d], op=MPI.MIN)
+            glob_high[d] = MPI.COMM_WORLD.allreduce(high[d], op=MPI.MAX)
+
+        glob_delta = np.abs(glob_high - glob_low)
+
         # shift lower corner to origin
-        self.domain.geometry.x[:] -= low
+        self.domain.geometry.x[:] -= glob_low
 
-        # rescale to range [0, 1]
-        dims = np.max(np.abs(high - low))
-        self.domain.geometry.x[:] /= dims
+        # rescale globally to range [0, 1]
+        # local data may be within a subset of [0, 1]
+        max_dim = np.max(glob_delta)
+        self.domain.geometry.x[:] /= max_dim
 
-        return low, dims
+        return glob_low, max_dim
 
     def get_bc_diriclet(self, V: fem.FunctionSpace):
         """
