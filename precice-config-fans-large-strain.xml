@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+
+<precice-configuration experimental="true">
+
+    <log>
+	<sink type="stream" output="stdout"  filter= "%Severity% > debug" enabled="true" />
+    </log>  
+    
+    <data:vector name="stresses1to3"/>
+    <data:vector name="stresses4to6"/>
+    <data:vector name="stresses7to9"/>
+    <data:vector name="strains1to3"/>
+    <data:vector name="strains4to6"/>
+    <data:vector name="strains7to9"/>
+    <data:scalar name="active_state"/>
+    <data:scalar name="active_steps"/>
+
+    <mesh name="meso-mesh" dimensions="3">
+       <use-data name="stresses1to3"/>
+       <use-data name="stresses4to6"/>
+       <use-data name="stresses7to9"/>
+       <use-data name="strains1to3"/>
+       <use-data name="strains4to6"/>
+       <use-data name="strains7to9"/>
+       <use-data name="active_state"/>
+       <use-data name="active_steps"/>
+    </mesh>
+
+    <participant name="Meso-structure">
+      <provide-mesh name="meso-mesh"/>
+      <read-data name="stresses1to3" mesh="meso-mesh"/>
+      <read-data name="stresses4to6" mesh="meso-mesh"/>
+      <read-data name="stresses7to9" mesh="meso-mesh"/>
+      <write-data name="strains1to3" mesh="meso-mesh"/>
+      <write-data name="strains4to6" mesh="meso-mesh"/>
+      <write-data name="strains7to9" mesh="meso-mesh"/>
+    </participant>
+
+    <participant name="Micro-Manager">
+      <receive-mesh name="meso-mesh" from="Meso-structure" api-access="true" safety-factor="0.0"/>
+      <read-data name="strains1to3" mesh="meso-mesh"/>
+      <read-data name="strains4to6" mesh="meso-mesh"/>
+      <read-data name="strains7to9" mesh="meso-mesh"/>
+      <write-data name="stresses1to3" mesh="meso-mesh"/>
+      <write-data name="stresses4to6" mesh="meso-mesh"/>
+      <write-data name="stresses7to9" mesh="meso-mesh"/>
+      <write-data name="active_state" mesh="meso-mesh"/>
+      <write-data name="active_steps" mesh="meso-mesh"/>
+      <export:vtu directory="precice-exports" />
+    </participant>
+
+    <m2n:sockets acceptor="Meso-structure" connector="Micro-Manager" exchange-directory=".."/>
+
+    <coupling-scheme:serial-implicit>
+      <participants first="Meso-structure" second="Micro-Manager"/>
+      <max-time value="0.1"/>
+      <time-window-size value="0.1"/>
+
+      <exchange data="stresses1to3" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="stresses4to6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="stresses7to9" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+      <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+      <exchange data="strains7to9" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+
+      <max-iterations value="100"/>
+      <relative-convergence-measure limit="1e-8" data="stresses1to3" mesh="meso-mesh"/>
+      <relative-convergence-measure limit="1e-8" data="stresses4to6" mesh="meso-mesh"/>
+      <relative-convergence-measure limit="1e-8" data="stresses7to9" mesh="meso-mesh"/>
+      <!--acceleration:IQN-ILS>
+        <data name="stresses1to3" mesh="meso-mesh"/>
+        <data name="stresses4to6" mesh="meso-mesh"/>
+        <data name="stresses7to9" mesh="meso-mesh"/>
+      </acceleration:IQN-ILS-->
+    </coupling-scheme:serial-implicit>
+
+</precice-configuration>

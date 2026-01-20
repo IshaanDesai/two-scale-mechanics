@@ -15,8 +15,15 @@ Point to the `pyFANS.so` file in the `micro_file_name` entry in the `micro-manag
 Run the Micro Manager
 
 ```bash
-micro-manager-precice micro-manager-config.json
+micro-manager-precice micro-manager-pyfans-config.json
 ```
+
+## Running with meso fenics
+
+- Current working directory should be the micro-fans-{MESH}-{MICROSTRUCTURE} folder
+- Run using the respective micro-manager-pyfans-config.json files from either the bar or notch config folder
+- To create the surrogate model execute `python surrogate_workflow.py`
+- Run surrogates using the respective micro-manager-surrogate-config.json files
 
 ## Notation
 

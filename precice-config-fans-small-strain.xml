@@ -17,6 +17,8 @@
     <data:vector name="cmat5"/>
     <data:vector name="cmat6"/>
     <data:vector name="cmat7"/>
+    <data:scalar name="active_state"/>
+    <data:scalar name="active_steps"/>
 
     <mesh name="meso-mesh" dimensions="3">
        <use-data name="stresses1to3"/>
@@ -30,6 +32,8 @@
        <use-data name="cmat5"/>
        <use-data name="cmat6"/>
        <use-data name="cmat7"/>
+       <use-data name="active_state"/>
+       <use-data name="active_steps"/>
     </mesh>
 
     <participant name="Meso-structure">
@@ -60,15 +64,18 @@
       <write-data name="cmat5" mesh="meso-mesh"/>
       <write-data name="cmat6" mesh="meso-mesh"/>
       <write-data name="cmat7" mesh="meso-mesh"/>
+      <write-data name="active_state" mesh="meso-mesh"/>
+      <write-data name="active_steps" mesh="meso-mesh"/>
       <export:vtu directory="precice-exports" />
     </participant>
 
     <m2n:sockets acceptor="Meso-structure" connector="Micro-Manager" exchange-directory=".."/>
 
-    <coupling-scheme:serial-explicit>
-      <participants first="Micro-Manager" second="Meso-structure"/>
-      <max-time value="0.3"/>
+    <coupling-scheme:serial-implicit>
+      <participants first="Meso-structure" second="Micro-Manager"/>
+      <max-time value="0.1"/>
       <time-window-size value="0.1"/>
+
       <exchange data="stresses1to3" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="stresses4to6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat1" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
@@ -78,8 +85,16 @@
       <exchange data="cmat5" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat7" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
-      <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager" initialize="true"/>
-      <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager" initialize="true"/>
-    </coupling-scheme:serial-explicit>
+      <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+      <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+
+      <max-iterations value="100"/>
+      <relative-convergence-measure limit="1e-8" data="stresses1to3" mesh="meso-mesh"/>
+      <relative-convergence-measure limit="1e-8" data="stresses4to6" mesh="meso-mesh"/>
+      <!--acceleration:IQN-ILS>
+        <data name="stresses1to3" mesh="meso-mesh"/>
+        <data name="stresses4to6" mesh="meso-mesh"/>
+      </acceleration:IQN-ILS-->
+    </coupling-scheme:serial-implicit>
 
 </precice-configuration>

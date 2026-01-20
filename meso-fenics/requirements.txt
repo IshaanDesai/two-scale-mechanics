@@ -1,0 +1,3 @@
+fenicsxprecice @ git+https://github.com/precice/fenicsx-adapter.git@develop
+numpy  >1, <2
+gmsh~=4.15.0

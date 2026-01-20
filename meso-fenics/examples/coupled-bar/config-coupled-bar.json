@@ -1,0 +1,26 @@
+{
+  "output_path": "output/bar-coupled-small-sphere32",
+  "mesh": {
+    "path": "examples/coupled-bar/bar3d.msh",
+    "bc_dc_use_tag": false,
+    "bc_dc_locator": "plane_yz_low",
+    "bc_nm_use_tag": false,
+    "bc_nm_locator": "plane_yz_high",
+    "bc_nm_dim": 1,
+    "bc_nm_value": -0.01
+  },
+  "problem": {
+    "lambda": 10.0,
+    "mu": 5.0,
+    "alpha": 100.0,
+    "strain_type": "small_strain",
+    "elem_degree": 2
+  },
+  "simulation": {
+    "type": "CoupledSim",
+    "micro_type": "PYFANS",
+    "write_state": "output/coupled_bar_state",
+    "write_state_type": ["S", "U", "E"],
+    "init_with_micro": true
+  }
+}
