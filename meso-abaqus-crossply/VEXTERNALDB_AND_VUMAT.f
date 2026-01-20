@@ -403,4 +403,3 @@
       write(*,*) "(t = ", totalTime, ") VUMAT: Complete."
       return
       end ! Subroutine
-
