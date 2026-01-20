@@ -3,30 +3,32 @@ import numpy as np
 import json
 import subprocess
 
+
 def swap(arr, i, j):
     tmp = arr[i]
     arr[i] = arr[j]
     arr[j] = tmp
+
 
 def gen_fans_input(strain_data):
     fans_input = dict()
     fans_input["microstructure"] = {
         "filepath": "pseudo-coupling/sphere32.h5",
         "datasetname": "/sphere/32x32x32/ms",
-        "L": [1.0, 1.0, 1.0]
+        "L": [1.0, 1.0, 1.0],
     }
     fans_input["problem_type"] = "mechanical"
     fans_input["strain_type"] = "small"
     fans_input["matmodel"] = "LinearElasticIsotropic"
     fans_input["material_properties"] = {
         "bulk_modulus": [62.5000, 222.222],
-        "shear_modulus": [28.8462, 166.6667]
+        "shear_modulus": [28.8462, 166.6667],
     }
     fans_input["method"] = "cg"
     fans_input["error_parameters"] = {
         "measure": "Linfinity",
         "type": "absolute",
-        "tolerance": 1e-10
+        "tolerance": 1e-10,
     }
     fans_input["n_it"] = 100
     fans_input["results"] = ["homogenized_tangent", "stress_average"]
@@ -40,27 +42,34 @@ def gen_fans_input(strain_data):
     fans_input["macroscale_loading"] = load_cases
     num_loads = len(load_cases)
 
-    with open('./pseudo-coupling/fans-input.json', 'w') as f:
+    with open("./pseudo-coupling/fans-input.json", "w") as f:
         json.dump(fans_input, f)
 
     return num_loads
 
+
 def process_outputs(num_loads):
     stresses = np.zeros((num_loads, 6))
     tangents = np.zeros((num_loads, 6, 6))
-    selection = np.array([
-        [0, 1, 2, 3, 4, 5],
-        [1, 6, 7, 8, 9, 10],
-        [2, 7, 11, 12, 13, 14],
-        [3, 8, 12, 15, 16, 17],
-        [4, 9, 13, 16, 18, 19],
-        [5, 10, 14, 17, 19, 20],
-    ])
+    selection = np.array(
+        [
+            [0, 1, 2, 3, 4, 5],
+            [1, 6, 7, 8, 9, 10],
+            [2, 7, 11, 12, 13, 14],
+            [3, 8, 12, 15, 16, 17],
+            [4, 9, 13, 16, 18, 19],
+            [5, 10, 14, 17, 19, 20],
+        ]
+    )
 
-    with h5py.File(f"./pseudo-coupling/fans-output.h5", 'r') as h5:
+    with h5py.File(f"./pseudo-coupling/fans-output.h5", "r") as h5:
         for i in range(num_loads):
-            c_tensor = h5["sphere"]['32x32x32']['ms_results'][f"load{i}"]['time_step0']['homogenized_tangent'][...]
-            stress = h5["sphere"]['32x32x32']['ms_results'][f"load{i}"]['time_step0']['stress_average'][...]
+            c_tensor = h5["sphere"]["32x32x32"]["ms_results"][f"load{i}"]["time_step0"][
+                "homogenized_tangent"
+            ][...]
+            stress = h5["sphere"]["32x32x32"]["ms_results"][f"load{i}"]["time_step0"][
+                "stress_average"
+            ][...]
             swap(stress, 3, 5)
 
             c_buffer = np.zeros((21,))
@@ -81,18 +90,22 @@ def process_outputs(num_loads):
 
     return stresses, tangents
 
-if __name__ == '__main__':
-    RANKS=8
+
+if __name__ == "__main__":
+    RANKS = 8
 
     with h5py.File("../output/bar_strain_0.h5", "r") as f:
         strain_data = f["strain_data"][:]
 
     num_loads = gen_fans_input(strain_data)
 
-    subprocess.call(f"mpiexec -n {RANKS} FANS ./pseudo-coupling/fans-input.json ./pseudo-coupling/fans-output.h5", shell=True)
+    subprocess.call(
+        f"mpiexec -n {RANKS} FANS ./pseudo-coupling/fans-input.json ./pseudo-coupling/fans-output.h5",
+        shell=True,
+    )
 
     stresses, tangents = process_outputs(num_loads)
 
-    with h5py.File("pseudo-input.h5", 'w') as f:
+    with h5py.File("pseudo-input.h5", "w") as f:
         f.create_dataset("stress_data", data=stresses.flatten())
-        f.create_dataset("tan_data",    data=tangents.flatten())
+        f.create_dataset("tan_data", data=tangents.flatten())

@@ -202,12 +202,12 @@
 *Elset, elset=Set-2, generate
   1,  64,   1
 *End Part
-**  
+**
 **
 ** ASSEMBLY
 **
 *Assembly, name=Assembly
-**  
+**
 *Instance, name=Part-1-1, part=Part-1
 ** Section: Section-1
 *Solid Section, elset=Set-2, material=Test1.MAC,Orientation=LONG
@@ -220,7 +220,7 @@
           0.,           1.,           0.,           1.,           0.,           0.
 3, 0.
 *End Instance
-**  
+**
 *Nset, nset=Set-1, instance=Part-1-1, generate
  101,  125,    1
 *Elset, elset=Set-1, instance=Part-1-1, generate
@@ -230,9 +230,9 @@
 *Elset, elset=Set-2, instance=Part-1-1, generate
   1,  16,   1
 *End Assembly
-** 
+**
 ** MATERIALS
-** 
+**
 *MATERIAL,NAME=Test1.MAC
 *USER MATERIAL, CONSTANTS=0
 *DEPVAR
@@ -242,15 +242,15 @@
 **Part-1-1.ALL, 19.999
 **INITIAL CONDITIONS, TYPE=SOLUTION, USER
 ** ----------------------------------------------------------------
-** 
+**
 ** STEP: Step-1
-** 
+**
 *Step, name=Step-1, INC=10000
 *Static
 10.,100.,1e-10,10.
-** 
+**
 ** BOUNDARY CONDITIONS
-** 
+**
 ** Name: BC-1 Type: Symmetry/Antisymmetry/Encastre
 *Boundary
 Set-1, XSYMM
@@ -259,19 +259,19 @@ Set-1, XSYMM
 Set-2, 1, 1, 0.03
 **
 **TEMPERATURE
-**Part-1-1.ALL, 250.00001  
+**Part-1-1.ALL, 250.00001
 ** OUTPUT REQUESTS
-** 
+**
 *Restart, write, frequency=0
-** 
+**
 ** FIELD OUTPUT: F-Output-1
-** 
+**
 *Output, field, variable=PRESELECT
-** 
+**
 *ELEMENT OUTPUT
 SDV
 **SDV27, TEMP
 ** HISTORY OUTPUT: H-Output-1
-** 
+**
 *Output, history, variable=PRESELECT
 *End Step

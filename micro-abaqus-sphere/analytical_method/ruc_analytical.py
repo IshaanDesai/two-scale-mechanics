@@ -7,7 +7,6 @@ import numpy as np
 
 
 class MicroSimulation:
-
     def __init__(self, sim_id):
         """
         Constructor of MicroSimulation class.
@@ -41,19 +40,29 @@ class MicroSimulation:
             strain_values[i + 3] = strains["strains4to6"][i]
 
         # Material model from VUMAT.f written by Minh Hoang Nguyen
-        temp = self._nu12 * self._nu21 + self._nu23 * self._nu32 + \
-            self._nu13 * self._nu31 + 2.0 * self._nu21 * self._nu32 * self._nu13
+        temp = (
+            self._nu12 * self._nu21
+            + self._nu23 * self._nu32
+            + self._nu13 * self._nu31
+            + 2.0 * self._nu21 * self._nu32 * self._nu13
+        )
 
         self._Q[:, :] = 0
 
         self._Q[0, 0] = (1.0 - self._nu23 * self._nu32) * self._E11 / (1.0 - temp)
         self._Q[1, 1] = (1.0 - self._nu13 * self._nu31) * self._E22 / (1.0 - temp)
         self._Q[2, 2] = (1.0 - self._nu12 * self._nu21) * self._E33 / (1.0 - temp)
-        self._Q[0, 1] = (self._nu21 + self._nu31 * self._nu23) * self._E11 / (1.0 - temp)
+        self._Q[0, 1] = (
+            (self._nu21 + self._nu31 * self._nu23) * self._E11 / (1.0 - temp)
+        )
         self._Q[1, 0] = self._Q[0, 1]
-        self._Q[0, 2] = (self._nu31 + self._nu21 * self._nu32) * self._E11 / (1.0 - temp)
+        self._Q[0, 2] = (
+            (self._nu31 + self._nu21 * self._nu32) * self._E11 / (1.0 - temp)
+        )
         self._Q[2, 0] = self._Q[0, 2]
-        self._Q[1, 2] = (self._nu32 + self._nu12 * self._nu31) * self._E22 / (1.0 - temp)
+        self._Q[1, 2] = (
+            (self._nu32 + self._nu12 * self._nu31) * self._E22 / (1.0 - temp)
+        )
         self._Q[2, 1] = self._Q[1, 2]
         self._Q[3, 3] = self._G12
         self._Q[4, 4] = self._G23

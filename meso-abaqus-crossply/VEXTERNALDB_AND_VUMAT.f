@@ -211,7 +211,7 @@
    !
       include 'vaba_param.inc'
 #include <SMAAspUserSubroutines.hdr>
-   
+
       dimension props(nprops), density(nblock), coordMp(nblock, *),
      1     charLength(nblock), strainInc(nblock, ndir + nshr),
      2     relSpinInc(nblock, nshr), tempOld(nblock),
@@ -257,7 +257,7 @@
      * maxTensorComponents=6,
      * max3DSize=1000,
      * max6DSize=1000)
-   
+
       real*8 :: state(nstatev), strains_total(6), stresses(6), Q(6,6)
       real*8 :: E11, E220, E33, nu12, nu23, nu13, G13, G23, nu31, nu21
       integer :: d, counter
@@ -300,7 +300,7 @@
 
       ! Initialize -- run only once
       if (totalTime < 2.*dt) then
-         
+
          state(i_sdv_eps11) = zero
          state(i_sdv_eps22) = zero
          state(i_sdv_eps33) = zero
@@ -313,7 +313,7 @@
          ! Share integers nblock, ndir, nshr
          intsToShare(1) = nblock
          intsToShare(2) = ndir
-         intsToShare(3) = nshr 
+         intsToShare(3) = nshr
 
          ! Put coordinates in the shared array
          counter = 1
@@ -403,4 +403,4 @@
       write(*,*) "(t = ", totalTime, ") VUMAT: Complete."
       return
       end ! Subroutine
-         
+

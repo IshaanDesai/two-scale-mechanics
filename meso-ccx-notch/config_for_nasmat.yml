@@ -5,5 +5,5 @@ participants:
           patch: Eall
           read-data: [conv, stresses1to3, stresses4to6, cmat1, cmat2, cmat3, cmat4, cmat5, cmat6, cmat7]
           write-data: [rve_id, mod_id, ruc_size, strains1to3, strains4to6]
-          
+
 precice-config-file: ../precice-config.xml

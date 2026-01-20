@@ -1,4 +1,3 @@
-
 class Registry:
     """
     A registry for storing and retrieving objects by name.
@@ -6,6 +5,7 @@ class Registry:
     This class provides a simple registry pattern for registering
     objects (typically classes or functions) and retrieving them by name.
     """
+
     def __init__(self):
         self._registry = dict()
 

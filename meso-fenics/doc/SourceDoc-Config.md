@@ -11,5 +11,5 @@
    - [simulation.py](SourceDoc-Simulation.md)
    - [util.py](SourceDoc-Util.md)
 
-Simple JSON based config format. 
+Simple JSON based config format.
 To extend, add backing field in `__init__`, populate in `load` and mark accessor as property.

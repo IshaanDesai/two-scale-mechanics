@@ -98,7 +98,7 @@
                do d = 1, nstatev
 
                   stateNew(k, d) = state(k, d)
-               
+
                end do ! nstatev
 
             end do ! nblock
@@ -129,7 +129,7 @@
 ! Get strains and write them to preCICE ===============================
          call get_strains(nblock, ndir, nshr, nstatev,
      *    strainInc, stateOld, state, strains)
- 
+
          counter = 1
          do k = 1, nblock
 
@@ -189,7 +189,7 @@
 
          else ! only in the first step
             call solve_material_model(nblock, ndir, nshr,
-     *       nprops, props, strains, stresses) 
+     *       nprops, props, strains, stresses)
 
             ! Apply the calculated stresses
             do k = 1, nblock

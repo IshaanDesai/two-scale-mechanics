@@ -3,7 +3,7 @@
      *   nblock, ndir, nshr, nstatev,
      *   strainInc, stateOld, state, strains)
          ! Orientation of strains: [11, 22, 33, 12, 23, 13]
- 
+
       implicit none
 
       integer, intent(in) :: nblock, ndir, nshr, nstatev
@@ -40,11 +40,11 @@
       state(:, i_sdv_gamma13) = zero
       state(:, i_sdv_active) = one
       state(:, i_sdv_t_f) = zero
- 
+
       ! Loop through material points to collect strains
       do k = 1, nblock
          state(k, :) = stateOld(k, :)
- 
+
          strain(1) = state(k, i_sdv_eps11) + strainInc(k, 1)
          strain(2) = state(k, i_sdv_eps22) + strainInc(k, 2)
          strain(3) = state(k, i_sdv_eps33) + strainInc(k, 3)
@@ -52,14 +52,14 @@
          strain(5) = state(k, i_sdv_gamma23) + two*strainInc(k, 5)
          strain(6) = state(k, i_sdv_gamma13) + two*strainInc(k, 6)
          state(k, i_sdv_eps11:i_sdv_gamma13) = strain
- 
+
          do d = 1, ndir + nshr
 
             strains(k, d) = strain(d)
- 
+
          end do ! ndir + nshr
- 
+
       end do ! nblock
- 
+
       return
       end subroutine ! subroutine get_strains

@@ -5,7 +5,7 @@
         "macro_mesh_name": "meso-mesh",
         "read_data_names": ["rve_id", "mod_id", "ruc_size", "strains1to3", "strains4to6"],
         "write_data_names": ["conv",
-                            "stresses1to3", 
+                            "stresses1to3",
                             "stresses4to6",
                             "cmat1",
                             "cmat2",

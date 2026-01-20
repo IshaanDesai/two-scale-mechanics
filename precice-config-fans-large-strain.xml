@@ -4,8 +4,8 @@
 
     <log>
 	<sink type="stream" output="stdout"  filter= "%Severity% > debug" enabled="true" />
-    </log>  
-    
+    </log>
+
     <data:vector name="stresses1to3"/>
     <data:vector name="stresses4to6"/>
     <data:vector name="stresses7to9"/>

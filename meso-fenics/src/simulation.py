@@ -8,12 +8,17 @@ from .coupling import CouplingBuffer, DataTransformer, Projectors, Mergers
 
 from mpi4py import MPI
 from fenicsxprecice import Adapter, CouplingMesh
-from fenicsxprecice.adapter_core import convert_fenicsx_to_precice, get_fenicsx_interpolation_points, \
-    interpolate_boundary_function, FunctionType
+from fenicsxprecice.adapter_core import (
+    convert_fenicsx_to_precice,
+    get_fenicsx_interpolation_points,
+    interpolate_boundary_function,
+    FunctionType,
+)
 from dolfinx import io, fem
 
 import numpy as np
 import h5py
+
 
 class Simulation:
     """
@@ -39,7 +44,9 @@ class Simulation:
     problem : MesoProblem or MultiscaleProblem
         The problem solver instance.
     """
+
     TYPES = Registry()
+
     def __init__(self, config: Config):
         self.output_path = config.output_path
         self.mesh = Mesh()
@@ -61,19 +68,21 @@ class Simulation:
         Loads quadrature point coordinates into buffers.
         Only call once self.problem is populated.
         """
-        (self._coords_W, self._cells_W, self._values_to_send_W) = get_fenicsx_interpolation_points(
-            self.problem.W,
-            Simulation.always_true,
-            MPI.COMM_WORLD,
-            25
+        (
+            self._coords_W,
+            self._cells_W,
+            self._values_to_send_W,
+        ) = get_fenicsx_interpolation_points(
+            self.problem.W, Simulation.always_true, MPI.COMM_WORLD, 25
         )
 
         if self.problem.WT is not None:
-            (self._coords_WT, self._cells_WT, self._values_to_send_WT) = get_fenicsx_interpolation_points(
-                self.problem.WT,
-                Simulation.always_true,
-                MPI.COMM_WORLD,
-                25
+            (
+                self._coords_WT,
+                self._cells_WT,
+                self._values_to_send_WT,
+            ) = get_fenicsx_interpolation_points(
+                self.problem.WT, Simulation.always_true, MPI.COMM_WORLD, 25
             )
 
     def run(self):
@@ -115,31 +124,45 @@ class Simulation:
             Optional time step iteration
         """
         self.problem.calc_von_mises_stress()
-        iter=""
-        if i is not None: iter = f"_{i}"
+        iter = ""
+        if i is not None:
+            iter = f"_{i}"
         rank = ""
-        if MPI.COMM_WORLD.Get_size() > 1: rank = f"_rank{MPI.COMM_WORLD.Get_rank()}"
-        with io.VTXWriter(MPI.COMM_WORLD, f"{self.output_path}_{n}{iter}.bp", [self.problem.uh, self.problem.vm_stress_fun],
-                          engine="BP4") as vtx:
+        if MPI.COMM_WORLD.Get_size() > 1:
+            rank = f"_rank{MPI.COMM_WORLD.Get_rank()}"
+        with io.VTXWriter(
+            MPI.COMM_WORLD,
+            f"{self.output_path}_{n}{iter}.bp",
+            [self.problem.uh, self.problem.vm_stress_fun],
+            engine="BP4",
+        ) as vtx:
             vtx.write(t)
 
         if self._write_state is not None and type(self._write_state_type) == list:
             with h5py.File(f"{self._write_state}_{n}{iter}{rank}.h5", "w") as f:
-                if 'E' in self._write_state_type and self._coords_W is not None:
+                if "E" in self._write_state_type and self._coords_W is not None:
                     eval = Evaluator(self.problem.eps_var, self.problem.W)
                     eval.interpolate()
                     eps = convert_fenicsx_to_precice(eval.var_val, self._coords_W, 25)
                     f.create_dataset("strain_data", data=eps)
 
-                if 'S' in self._write_state_type and self._coords_W is not None:
-                    sig = convert_fenicsx_to_precice(self.problem.sig_fun, self._coords_W, 25)
+                if "S" in self._write_state_type and self._coords_W is not None:
+                    sig = convert_fenicsx_to_precice(
+                        self.problem.sig_fun, self._coords_W, 25
+                    )
                     f.create_dataset("stress_data", data=sig)
 
-                if 'T' in self._write_state_type and self._coords_WT is not None and self.problem.tan_fun is not None:
-                    tan = convert_fenicsx_to_precice(self.problem.tan_fun, self._coords_WT, 25)
+                if (
+                    "T" in self._write_state_type
+                    and self._coords_WT is not None
+                    and self.problem.tan_fun is not None
+                ):
+                    tan = convert_fenicsx_to_precice(
+                        self.problem.tan_fun, self._coords_WT, 25
+                    )
                     f.create_dataset("tangent_data", data=tan)
 
-                if 'U' in self._write_state_type:
+                if "U" in self._write_state_type:
                     f.create_dataset("displacement_data", data=self.problem.uh.x.array)
 
     @staticmethod
@@ -166,10 +189,12 @@ class Simulation:
         if not Simulation.TYPES.is_name_valid(type):
             options = "["
             names = Simulation.TYPES.get_names()
-            for name in names[:-1]: options += name + ","
+            for name in names[:-1]:
+                options += name + ","
             options = options[-1] + "]"
             raise RuntimeError(f"Invalid simulation type. Select from: {options}")
         return Simulation.TYPES.get_by_name(type)(config)
+
 
 @Simulation.TYPES.register
 class MesoSim(Simulation):
@@ -183,6 +208,7 @@ class MesoSim(Simulation):
     config : Config
         Configuration object containing simulation parameters.
     """
+
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MesoProblem(config, self.mesh)
@@ -196,6 +222,7 @@ class MesoSim(Simulation):
         """
         self.problem.solve()
         self.write_output(0.0, 0)
+
 
 @Simulation.TYPES.register
 class PseudoCoupledSim(Simulation):
@@ -215,10 +242,12 @@ class PseudoCoupledSim(Simulation):
     RuntimeError
         If input path is not provided in the configuration.
     """
+
     def __init__(self, config: Config):
         super().__init__(config)
         self.input_path = config.simulation_input
-        if self.input_path is None: raise RuntimeError("PseudoCoupledSim requires input path")
+        if self.input_path is None:
+            raise RuntimeError("PseudoCoupledSim requires input path")
 
         self.problem = MultiscaleProblem(config, self.mesh)
         self.load_quad_coords()
@@ -231,21 +260,25 @@ class PseudoCoupledSim(Simulation):
         and writes output.
         """
         with h5py.File(self.input_path, "r") as f:
-            stress_data = f["stress_data"][:].reshape(-1, self.problem.W.value_size) # n_quad x stress_size
+            stress_data = f["stress_data"][:].reshape(
+                -1, self.problem.W.value_size
+            )  # n_quad x stress_size
             interpolate_boundary_function(
-                {tuple(k):v for k,v in zip(self._coords_W, stress_data)},
+                {tuple(k): v for k, v in zip(self._coords_W, stress_data)},
                 FunctionType.VECTOR,
                 self._values_to_send_W,
                 self.problem.sig_fun,
                 self._cells_W,
                 MPI.COMM_WORLD,
                 False,
-                25
+                25,
             )
             self.problem.sig_fun.x.scatter_forward()
 
             if self.problem.is_small_strain:
-                tan_data = f["tan_data"][:].reshape(-1, self.problem.WT.value_size) # n_quad x tan_size
+                tan_data = f["tan_data"][:].reshape(
+                    -1, self.problem.WT.value_size
+                )  # n_quad x tan_size
                 interpolate_boundary_function(
                     {tuple(k): v for k, v in zip(self._coords_WT, tan_data)},
                     FunctionType.VECTOR,
@@ -254,12 +287,13 @@ class PseudoCoupledSim(Simulation):
                     self._cells_WT,
                     MPI.COMM_WORLD,
                     False,
-                    25
+                    25,
                 )
                 self.problem.tan_fun.x.scatter_forward()
 
         self.problem.solve()
         self.write_output(0.0, 0)
+
 
 @Simulation.TYPES.register
 class CoupledSim(Simulation):
@@ -287,6 +321,7 @@ class CoupledSim(Simulation):
     precice : Adapter
         preCICE adapter for coupling.
     """
+
     def __init__(self, config: Config):
         super().__init__(config)
         self.problem = MultiscaleProblem(config, self.mesh)
@@ -297,12 +332,14 @@ class CoupledSim(Simulation):
             self.sig_buffer,
             self.eps_buffer,
             self.eps_eval,
-            self.tan_buffer
+            self.tan_buffer,
         ) = CoupledSim._construct_coupling_buffers(self.problem, self.transform)
 
         self.init_with_micro = config.simulation_init_with_micro
         if self.init_with_micro and not self.problem.is_small_strain:
-            raise RuntimeError("Large strain must initialize with meso values. Set init_with_micro to false!")
+            raise RuntimeError(
+                "Large strain must initialize with meso values. Set init_with_micro to false!"
+            )
         adapter_config_path = CoupledSim._get_adapter_path(self.problem.is_small_strain)
         self.precice = Adapter(MPI.COMM_WORLD, adapter_config_path)
         coupling_boundary = CoupledSim.coupling_bc
@@ -310,10 +347,14 @@ class CoupledSim(Simulation):
         (
             self.read_functions,
             read_fields,
-            self.write_fields
-        ) = CoupledSim._construct_coupling_dicts(self.problem, self.sig_buffer, self.eps_buffer, self.tan_buffer)
+            self.write_fields,
+        ) = CoupledSim._construct_coupling_dicts(
+            self.problem, self.sig_buffer, self.eps_buffer, self.tan_buffer
+        )
 
-        coupling_mesh = CouplingMesh('meso-mesh', coupling_boundary, read_fields, self.write_fields)
+        coupling_mesh = CouplingMesh(
+            "meso-mesh", coupling_boundary, read_fields, self.write_fields
+        )
         self.precice.initialize([coupling_mesh])
 
     @staticmethod
@@ -329,13 +370,13 @@ class CoupledSim(Simulation):
         transform : DataTransformer
             Data transformer object for coupling.
         """
-        num_sig_buffers = int(np.ceil(problem.W.value_size / 3.))
+        num_sig_buffers = int(np.ceil(problem.W.value_size / 3.0))
         sig_buffer = CouplingBuffer(
             problem.sig_fun,
             problem.W3,
             num_sig_buffers,
             Projectors.InplaceSplitter(problem.W3),
-            Mergers.InplaceMerger()
+            Mergers.InplaceMerger(),
         )
         eps_eval = Evaluator(problem.eps_var, problem.W)
         eps_buffer = CouplingBuffer(
@@ -343,7 +384,7 @@ class CoupledSim(Simulation):
             problem.W3,
             num_sig_buffers,
             Projectors.InplaceSplitter(problem.W3),
-            Mergers.InplaceMerger()
+            Mergers.InplaceMerger(),
         )
         tan_buffer = None
         if problem.is_small_strain:
@@ -353,24 +394,47 @@ class CoupledSim(Simulation):
                 7,
                 Projectors.SelectionSplitter(
                     problem.W3,
-                    np.array([0, 1, 2, 3, 4, 5,
-                              7, 8, 9, 10, 11,
-                              14, 15, 16, 17,
-                              21, 22, 23,
-                              28, 29,
-                              35])),
+                    np.array(
+                        [
+                            0,
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            7,
+                            8,
+                            9,
+                            10,
+                            11,
+                            14,
+                            15,
+                            16,
+                            17,
+                            21,
+                            22,
+                            23,
+                            28,
+                            29,
+                            35,
+                        ]
+                    ),
+                ),
                 Mergers.SelectionMerger(
                     problem.W3,
                     7,
                     problem.tan_fun.x.array.reshape(-1, 6, 6).shape[0],
-                    np.array([
-                        [0, 1, 2, 3, 4, 5],
-                        [1, 6, 7, 8, 9, 10],
-                        [2, 7, 11, 12, 13, 14],
-                        [3, 8, 12, 15, 16, 17],
-                        [4, 9, 13, 16, 18, 19],
-                        [5, 10, 14, 17, 19, 20],
-                    ]))
+                    np.array(
+                        [
+                            [0, 1, 2, 3, 4, 5],
+                            [1, 6, 7, 8, 9, 10],
+                            [2, 7, 11, 12, 13, 14],
+                            [3, 8, 12, 15, 16, 17],
+                            [4, 9, 13, 16, 18, 19],
+                            [5, 10, 14, 17, 19, 20],
+                        ]
+                    ),
+                ),
             )
         else:
             # Need to remove transforms if using large strain
@@ -483,22 +547,24 @@ class CoupledSim(Simulation):
         self.write_output(t, n, "init-meso-sol")
 
     def init_micro(self, t, n, dt):
-        self.coupling_write() # write 0, only use tan result
+        self.coupling_write()  # write 0, only use tan result
         self.precice.advance(dt)
         self.read_checkpoint(t, n)
         self.write_checkpoint(t, n)
         self.coupling_read(dt)
         self.problem.init_with_ms()
-        self.coupling_write() # write eps based on tan
+        self.coupling_write()  # write eps based on tan
         self.write_output(t, n, "init-micro-sol")
 
     def coupling_write(self):
         self.eps_eval.interpolate()
         self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
-        for name, func in self.write_fields.items(): self.precice.write_data("meso-mesh", name, func)
+        for name, func in self.write_fields.items():
+            self.precice.write_data("meso-mesh", name, func)
 
     def coupling_read(self, dt):
-        for name, func in self.read_functions.items(): self.precice.read_data("meso-mesh", name, dt, func)
+        for name, func in self.read_functions.items():
+            self.precice.read_data("meso-mesh", name, dt, func)
         self.sig_buffer.write_buffer_to_origin(self.transform.get_transform_sig())
         self.sig_buffer.original.x.scatter_forward()
         if self.problem.is_small_strain:
@@ -512,15 +578,26 @@ class CoupledSim(Simulation):
         Executes the coupling loop, exchanging data with micro-solvers
         via preCICE and solving the meso-scale problem at each iteration.
         """
-        is_coupling_ongoing, t, n, it, init_done = self.precice.is_coupling_ongoing(), 0.0, 0, 0, False
+        is_coupling_ongoing, t, n, it, init_done = (
+            self.precice.is_coupling_ongoing(),
+            0.0,
+            0,
+            0,
+            False,
+        )
+
         def update_counters(reloaded, t_, n_, it, dt):
-            if reloaded: return t_, n_, (it+1 if init_done else it)
-            else: return t_+float(dt), n_+1, (0 if init_done else it)
+            if reloaded:
+                return t_, n_, (it + 1 if init_done else it)
+            else:
+                return t_ + float(dt), n_ + 1, (0 if init_done else it)
 
         self.write_checkpoint(t, n)
         dt = self.precice.get_max_time_step_size()
-        if self.init_with_micro: self.init_micro(t, n, dt)
-        else:                    self.init_meso(t, n, dt)
+        if self.init_with_micro:
+            self.init_micro(t, n, dt)
+        else:
+            self.init_meso(t, n, dt)
         self.precice.advance(dt)
         is_coupling_ongoing = self.precice.is_coupling_ongoing()
         t, n, it = update_counters(*self.read_checkpoint(t, n), it, dt)
@@ -531,7 +608,7 @@ class CoupledSim(Simulation):
             dt = fem.Constant(self.mesh.domain, self.precice.get_max_time_step_size())
 
             self.coupling_read(dt)
-            #if it == 0 and n == 1: self.write_output(t, n, "micro-out")
+            # if it == 0 and n == 1: self.write_output(t, n, "micro-out")
             self.problem.solve()
             self.write_output(t, n, it)
 

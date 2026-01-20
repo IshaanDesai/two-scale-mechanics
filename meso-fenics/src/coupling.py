@@ -37,19 +37,20 @@ class CouplingBuffer:
     merger : callable
         Merging function.
     """
+
     def __init__(
-            self,
-            original: fem.Function,
-            buffer_space: fem.FunctionSpace,
-            count: int,
-            projector: Callable=lambda x: x,
-            merger: Callable=lambda x: x,
+        self,
+        original: fem.Function,
+        buffer_space: fem.FunctionSpace,
+        count: int,
+        projector: Callable = lambda x: x,
+        merger: Callable = lambda x: x,
     ):
         self.original = original
         self.buffer_space = buffer_space
         self.buffers = [fem.Function(buffer_space) for _ in range(count)]
-        self.projector = projector # proj orig to buffer space, fun to ndarray
-        self.merger = merger # extr buffer to orig space, list[fun] to ndarray
+        self.projector = projector  # proj orig to buffer space, fun to ndarray
+        self.merger = merger  # extr buffer to orig space, list[fun] to ndarray
 
     def get_functions(self):
         """
@@ -73,7 +74,7 @@ class CouplingBuffer:
         """
         return len(self.buffers)
 
-    def write_origin_to_buffer(self, transform: Callable=lambda x: x):
+    def write_origin_to_buffer(self, transform: Callable = lambda x: x):
         """
         Write data from the original function to buffer functions.
 
@@ -83,14 +84,16 @@ class CouplingBuffer:
             Transformation to apply after projection (default: identity).
         """
         vec_size = self.buffer_space.value_size
-        origin_proj = self.projector(self.original) # should now have shape dofs x num_buffers x vec_size
+        origin_proj = self.projector(
+            self.original
+        )  # should now have shape dofs x num_buffers x vec_size
         for i, func in enumerate(self.buffers):
             func_arr = func.x.array.reshape((-1, vec_size))
-            func_arr[:, :]  = origin_proj[:, i, :]
+            func_arr[:, :] = origin_proj[:, i, :]
 
         transform(self)
 
-    def write_buffer_to_origin(self, transform: Callable=lambda x: x):
+    def write_buffer_to_origin(self, transform: Callable = lambda x: x):
         """
         Write data from buffer functions back to the original function.
 
@@ -102,14 +105,17 @@ class CouplingBuffer:
         transform(self)
         self.merger(self)
 
+
 class Projectors:
     """
     Collection of projector classes for splitting function data.
     """
+
     class Projector:
         """
         Base projector interface.
         """
+
         def __call__(self, func: fem.Function) -> np.ndarray:
             """Project function to buffer format."""
             pass
@@ -123,6 +129,7 @@ class Projectors:
         buffer_space : fem.FunctionSpace
             Function space for buffer functions.
         """
+
         def __init__(self, buffer_space: fem.FunctionSpace):
             self.buffer_space = buffer_space
 
@@ -144,7 +151,7 @@ class Projectors:
             data_per_buffer = self.buffer_space.value_size
             assert (data_per_dof % data_per_buffer) == 0
 
-            f = func.x.array.reshape(-1, data_per_dof) # n x data_per_dof
+            f = func.x.array.reshape(-1, data_per_dof)  # n x data_per_dof
             n_dofs = f.shape[0]
             f = f.reshape(n_dofs, -1, data_per_buffer)
             return f
@@ -160,6 +167,7 @@ class Projectors:
         selection : numpy.ndarray
             Indices to select from the original function.
         """
+
         def __init__(self, buffer_space: fem.FunctionSpace, selection: np.ndarray):
             self.buffer_space = buffer_space
             self.selection = selection
@@ -188,14 +196,17 @@ class Projectors:
             res = selected.reshape(n_dofs, -1, data_per_buffer)
             return res
 
+
 class Mergers:
     """
     Collection of merger classes for combining buffer data.
     """
+
     class Merger:
         """
         Base merger interface.
         """
+
         def __call__(self, coupling_buffer: CouplingBuffer) -> None:
             """Merge buffer data back to original function."""
             return
@@ -204,7 +215,12 @@ class Mergers:
         """
         Merge buffer data by concatenating chunks in order.
         """
-        def __call__(self, coupling_buffer: CouplingBuffer, override_dst: Optional[np.ndarray]=None) -> None:
+
+        def __call__(
+            self,
+            coupling_buffer: CouplingBuffer,
+            override_dst: Optional[np.ndarray] = None,
+        ) -> None:
             """
             Merge buffers into the original function.
 
@@ -220,7 +236,9 @@ class Mergers:
             assert (data_per_dof % data_per_buffer) == 0
 
             if override_dst is None:
-                f = coupling_buffer.original.x.array.reshape(-1, data_per_dof)  # n x data_per_dof
+                f = coupling_buffer.original.x.array.reshape(
+                    -1, data_per_dof
+                )  # n x data_per_dof
             else:
                 f = override_dst
             n_dofs = f.shape[0]
@@ -244,7 +262,14 @@ class Mergers:
         selection : numpy.ndarray
             Index mapping for merging data.
         """
-        def __init__(self, buffer_space: fem.FunctionSpace, num_buffers: int, n_dofs: int, selection: np.ndarray) -> None:
+
+        def __init__(
+            self,
+            buffer_space: fem.FunctionSpace,
+            num_buffers: int,
+            n_dofs: int,
+            selection: np.ndarray,
+        ) -> None:
             self.selection = selection
             self.copy_buffer = np.zeros((n_dofs, num_buffers * buffer_space.value_size))
             self.merge_to_copy_buffer = Mergers.InplaceMerger()
@@ -261,23 +286,33 @@ class Mergers:
             """
             self.merge_to_copy_buffer(coupling_buffer, self.copy_buffer)
             data_per_dof = coupling_buffer.original.function_space.value_size
-            selected = self.copy_buffer[:, self.selection].reshape(self.n_dofs, data_per_dof)
-            coupling_buffer.original.x.array.reshape(self.n_dofs, data_per_dof)[:, :] = selected[:, :]
+            selected = self.copy_buffer[:, self.selection].reshape(
+                self.n_dofs, data_per_dof
+            )
+            coupling_buffer.original.x.array.reshape(self.n_dofs, data_per_dof)[
+                :, :
+            ] = selected[:, :]
+
 
 class DataTransformer:
     """
     Transforms data from internal representation to external micro-solver format.
     """
+
     ADAPTER_OR_SURROGATE = 0
     PYFANS = 1
     NASMAT = 2
 
     @staticmethod
     def get_type_by_name(name):
-        if name == "ADA": return DataTransformer.ADAPTER_OR_SURROGATE
-        elif name == "PYFANS": return DataTransformer.PYFANS
-        elif name == "NASMAT": return DataTransformer.NASMAT
-        else: raise RuntimeError("Unknown MicroType")
+        if name == "ADA":
+            return DataTransformer.ADAPTER_OR_SURROGATE
+        elif name == "PYFANS":
+            return DataTransformer.PYFANS
+        elif name == "NASMAT":
+            return DataTransformer.NASMAT
+        else:
+            raise RuntimeError("Unknown MicroType")
 
     def __init__(self, type_name):
         """
@@ -329,6 +364,7 @@ class DataTransformer:
             Stress transformation function.
         """
         return self.sig_impl
+
     def get_transform_eps(self):
         """
         Get the strain transformation function.
@@ -339,6 +375,7 @@ class DataTransformer:
             Strain transformation function.
         """
         return self.eps_impl
+
     def get_transform_tan(self):
         """
         Get the tangent modulus transformation function.
@@ -357,7 +394,8 @@ class DataTransformer:
         b[:] = tmp[:]
 
     @staticmethod
-    def _noop(dummy_arg: CouplingBuffer): pass
+    def _noop(dummy_arg: CouplingBuffer):
+        pass
 
     @staticmethod
     def _handle_sig_eps_fans(coupling_buffer: CouplingBuffer):
@@ -366,7 +404,7 @@ class DataTransformer:
 
     @staticmethod
     def _handle_tan_fans(tan_buffer: CouplingBuffer):
-        #tan1 = buffers[0].x.array.reshape(-1, 3)
+        # tan1 = buffers[0].x.array.reshape(-1, 3)
         tan2 = tan_buffer.buffers[1].x.array.reshape(-1, 3)
         tan3 = tan_buffer.buffers[2].x.array.reshape(-1, 3)
         tan4 = tan_buffer.buffers[3].x.array.reshape(-1, 3)
@@ -381,8 +419,13 @@ class DataTransformer:
         DataTransformer._swap_arr(tan6[:, 1], tan7[:, 1])
 
     @staticmethod
-    def _handle_sig_nasmat(sig_buffer: CouplingBuffer): pass
+    def _handle_sig_nasmat(sig_buffer: CouplingBuffer):
+        pass
+
     @staticmethod
-    def _handle_eps_nasmat(eps_buffer: CouplingBuffer): pass
+    def _handle_eps_nasmat(eps_buffer: CouplingBuffer):
+        pass
+
     @staticmethod
-    def _handle_tan_nasmat(tan_buffer: CouplingBuffer): pass
+    def _handle_tan_nasmat(tan_buffer: CouplingBuffer):
+        pass
