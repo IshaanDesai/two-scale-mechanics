@@ -535,8 +535,8 @@ class CoupledSim(Simulation):
         """
         if self.precice.requires_reading_checkpoint():
             state, t_, n_ = self.precice.retrieve_checkpoint()
-            uh_arr = state
-            self.problem.uh.x.array[:] = uh_arr.x.array[:]
+            #uh_arr = state
+            #self.problem.uh.x.array[:] = uh_arr.x.array[:]
             return True, t_, n_
         else:
             return False, t, n

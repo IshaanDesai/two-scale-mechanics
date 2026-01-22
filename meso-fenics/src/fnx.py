@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Optional
 
 import numpy as np
@@ -5,12 +6,172 @@ import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
 from dolfinx import fem, mesh, io
-from dolfinx.fem.petsc import NonlinearProblem, LinearProblem
+from dolfinx.fem.petsc import (NonlinearProblem, LinearProblem, assign,
+                               assemble_vector, assemble_matrix, create_vector,
+                               create_matrix, apply_lifting, set_bc)
 import gmsh
 
 from .config import Config
 from .meshes import Mesh
 
+class LineSearchStep:
+    def __init__(self, uh: fem.Function, calc_res: callable, max_iter=10, alpha_start=1.0, tau=0.8, alpha_min=1e-4):
+        self.uh = uh
+        self.calc_res = calc_res
+        self.max_iter = max_iter
+        self.alpha_start = alpha_start
+        self.alpha_min = alpha_min
+        self.tau = tau
+        self.reduction_factor = 0.5
+
+        self.is_active = False
+        self.curr_alpha = alpha_start
+        self.uh0 = np.zeros_like(uh.x.array)
+        self.res0 = 0
+        self.last_res = self.res0
+        self.curr_du = None
+        self.iter = 0
+        self.suf_decrease = 1e-3
+
+    def is_searching(self):
+        return self.is_active
+
+    def initialize(self, du: fem.Function):
+        # call after ksp solve
+        self.is_active = True
+        self.iter = 0
+        self.curr_alpha = min(self.alpha_start, 1.2*self.curr_alpha)
+        self.uh0[:] = self.uh.x.array
+        self.res0 = self.calc_res().norm(0)
+        self.last_res = self.res0
+
+        self.curr_du = du
+        self.update_uh(self.curr_alpha)
+
+    def step(self):
+        new_res = self.calc_res().norm(0)
+        if self.iter == 0: # just computed R(u + 1 * du) = F
+            if new_res <= (1 - self.suf_decrease * self.curr_alpha) * self.res0:
+                # no need to perform LS
+                self.is_active = False
+                return True
+            else:
+                print(f"Solving LS - iter: {self.iter}, alpha: 0, res: {self.res0}")
+
+        if new_res > self.last_res:
+            self.is_active = False
+            print(f"Solving LS - iter: {self.iter}, bad alpha: {self.curr_alpha}, res: {new_res}")
+            self.curr_alpha /= self.tau
+            return True
+
+        if new_res < self.res0 * self.reduction_factor:
+            self.is_active = False
+            print(f"Final LS - iter: {self.iter}, accepted alpha: {self.curr_alpha}, res: {new_res}")
+            return True # last attempt was accepted
+
+        self.last_res = new_res
+        self.curr_alpha *= self.tau
+        self.iter += 1
+
+        if self.curr_alpha < self.alpha_min or self.iter >= self.max_iter:
+            self.is_active = False
+            return True
+
+        print(f"Solving LS - iter: {self.iter}, alpha: {self.curr_alpha}, res: {new_res}")
+        self.update_uh(self.curr_alpha)
+        return False
+
+    def update_uh(self, alpha):
+        self.uh.x.array[:] = self.uh0 + alpha * self.curr_du.x.array
+        self.uh.x.scatter_forward()
+
+
+class NonlinearProblemStep:
+    def __init__(self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None):
+        self.res = fem.form(F)
+        self.jac = fem.form(J)
+        self.du = fem.Function(uh.function_space)
+        self.uh = uh
+        self.A = create_matrix(self.jac)
+        self.L = create_vector(fem.extract_function_spaces(self.res))
+
+        self.bcs = bcs
+        self.iter = 0
+        self.max_iter = 100
+        self.threshold = 1e-10
+        self.solver = PETSc.KSP().create(comm)
+        self.solver.setOperators(self.A)
+        opts = PETSc.Options()
+        if options is not None:
+            if "ksp_max_it" in options:
+                self.max_iter = options["ksp_max_it"]
+            if "ksp_rtol" in options:
+                self.threshold = options["ksp_rtol"]
+            if "ksp_type" in options:
+                opts["ksp_type"] = options["ksp_type"]
+            if "pc_type" in options:
+                opts["pc_type"] = options["pc_type"]
+            if "pc_hypre_type" in options:
+                opts["pc_hypre_type"] = options["pc_hypre_type"]
+            if "pc_hypre_boomeramg_max_iter" in options:
+                opts["pc_hypre_boomeramg_max_iter"] = options["pc_hypre_boomeramg_max_iter"]
+            if "pc_hypre_boomeramg_cycle_type" in options:
+                opts["pc_hypre_boomeramg_cycle_type"] = options["pc_hypre_boomeramg_cycle_type"]
+        #opts.prefixPush(self.solver.getOptionsPrefix())
+        self.solver.setFromOptions()
+        #opts.prefixPop()
+        self.pc = self.solver.getPC()
+
+        self.last_correction = self.threshold * 10
+        self.construct_L_res = partial(
+            NonlinearProblemStep._compute_residual_vec,
+            self.L,
+            self.res,
+            self.jac,
+            self.bcs,
+            self.uh,
+        )
+
+        self.ls = LineSearchStep(self.uh, self.construct_L_res)
+
+    def solve(self):
+        if self.iter >= self.max_iter: return
+        if self.last_correction < self.threshold: return
+
+        if self.ls.is_searching():
+            success = self.ls.step()
+            if not success: return
+            self.last_correction = self.du.x.petsc_vec.norm(0) * self.ls.curr_alpha
+            print(f"Solving KSP - iter {self.iter} du-norm: {self.last_correction}")
+        
+        self._solve_ksp()
+        self.ls.initialize(self.du)
+
+
+    def _solve_ksp(self):
+        self.construct_L_res()
+        self.A.zeroEntries()
+        assemble_matrix(self.A, self.jac, bcs=self.bcs)
+        self.A.assemble()
+
+        self.solver.solve(self.L, self.du.x.petsc_vec)
+        self.du.x.scatter_forward()
+
+        self.iter += 1
+
+    @staticmethod
+    def _compute_residual_vec(L, res, jac, bcs, uh):
+        with L.localForm() as loc_L:
+            loc_L.set(0)
+        assemble_vector(L, res)
+        L.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+        L.scale(-1)
+
+        apply_lifting(L, [jac], [bcs], x0=[uh.x.petsc_vec], alpha=1)
+        set_bc(L, bcs, uh.x.petsc_vec, 1.0)
+        L.ghostUpdate(addv=PETSc.InsertMode.INSERT_VALUES, mode=PETSc.ScatterMode.FORWARD)
+
+        return L
 
 class Evaluator:
     """
@@ -90,7 +251,7 @@ class MesoProblem:
             "snes_monitor": None,
             "ksp_error_if_not_converged": True,
             "ksp_type": "gmres",
-            "ksp_rtol": 1e-10,
+            "ksp_rtol": 1e-8,
             "ksp_max_it": 1000,
             "ksp_monitor": None,
             "pc_type": "hypre",
@@ -299,20 +460,21 @@ class MultiscaleProblem(MesoProblem):
         super().__init__(config, mesh)
 
         if self.is_small_strain:
-            a = (
+            self.res = ufl.inner(self.sig_fun, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
+            self.jac = (
                 ufl.inner(
                     ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)),
                     self.symgrad_mandel(self.v),
                 )
                 * ufl.dx
             )
-            L = self.bc_nm(self.v)
-            self.ms_problem = LinearProblem(
-                a=a,
-                L=L,
-                bcs=self.bc_dc,
-                petsc_options={"ksp_type": "preonly", "pc_type": "lu"},
-                petsc_options_prefix="Poisson",
+            self.ms_problem = NonlinearProblemStep(
+                self.mesh.domain.comm,
+                self.uh,
+                self.res,
+                self.jac,
+                self.bc_dc,
+                self.petsc_options
             )
         else:
             self.res = ufl.inner(
@@ -344,7 +506,7 @@ class MultiscaleProblem(MesoProblem):
         """
         sig = ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh))
         res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
-        jac = ufl.derivative(res, self.uh, self.u)
+        jac = ufl.inner(ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)), self.symgrad_mandel(self.v)) * ufl.dx
         problem = NonlinearProblem(
             res,
             self.uh,
@@ -360,9 +522,4 @@ class MultiscaleProblem(MesoProblem):
         self.sig_fun.x.scatter_forward()
 
     def solve(self):
-        if self.is_small_strain:
-            result = self.ms_problem.solve()
-            self.uh.x.array[:] = result.x.array[:]
-            self.uh.x.scatter_forward()
-        else:
-            self.ms_problem.solve()
+        self.ms_problem.solve()
