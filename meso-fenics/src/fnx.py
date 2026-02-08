@@ -46,7 +46,10 @@ class Anderson_AdaGuard:
             return self.w_hist[0]
 
         delta_w = self.w_hist[1] - self.w_hist[0]
-        gamma = np.inner(delta_w, self.w_hist[1]) / np.sum(delta_w * delta_w)
+        delta_w2_sum = np.sum(delta_w * delta_w)
+        if delta_w2_sum == 0.0:
+            return self.w_hist[1]
+        gamma = np.inner(delta_w, self.w_hist[1]) / delta_w2_sum
         lam = self.gamma_safeguard(gamma)
 
         delta_u = self.u_hist[1] - self.u_hist[0]
@@ -102,7 +105,7 @@ class LineSearchStep:
                 print(f"Solving LS - iter: {self.iter}, alpha: 0, res: {self.res0}")
                 ignore_res_check = True
 
-        if not ignore_res_check and (new_res > self.last_res):
+        if not ignore_res_check and (new_res >= self.last_res):
             self.is_active = False
             print(f"Solving LS - iter: {self.iter}, bad alpha: {self.curr_alpha}, res: {new_res}")
             self.curr_alpha /= self.tau
@@ -157,7 +160,6 @@ class GradApprox:
         self.steps = self.max_steps
         self.uh.x.array[:] = self.uh0
         self.uh.x.scatter_forward()
-
 
 
 class NonlinearProblemStep:
