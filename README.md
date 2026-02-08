@@ -12,3 +12,5 @@ All setups require
 - [Micro Manager](https://precice.org/tooling-micro-manager-installation.html)
 
 Each setup individually requires the relevant software to be installed. These details are specified in the README file in the respective folders.
+
+For known issues and tips regarding running on SuperMUC-NG see [here](./SuperMUC-NG-Notes.md).
