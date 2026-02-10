@@ -340,8 +340,12 @@ class CoupledSim(Simulation):
             raise RuntimeError(
                 "Large strain must initialize with meso values. Set init_with_micro to false!"
             )
-        adapter_config_path = CoupledSim._get_adapter_path(self.problem.is_small_strain)
-        self.precice = Adapter(MPI.COMM_WORLD, adapter_config_path)
+        self.adapter_config_path = CoupledSim._get_adapter_path(
+            self.problem.is_small_strain,
+            config.simulation_precice_xml_path,
+            config.simulation_slurm_id
+        )
+        self.precice = Adapter(MPI.COMM_WORLD, self.adapter_config_path)
         coupling_boundary = CoupledSim.coupling_bc
 
         (
@@ -443,7 +447,7 @@ class CoupledSim(Simulation):
         return sig_buffer, eps_buffer, eps_eval, tan_buffer
 
     @staticmethod
-    def _get_adapter_path(is_small_strain):
+    def _get_adapter_path(is_small_strain, prc_path, run_id):
         """
         Returns path to preCICE adapter config file based on simulation parameters.
 
@@ -451,6 +455,10 @@ class CoupledSim(Simulation):
         ----------
         is_small_strain : bool
             Is current simulation running in small strain mode
+        prc_path : str
+            Path to preCICE adapter config file
+        run_id : str
+            Unique run id to split potentially parallel jobs
 
         Returns
         -------
@@ -458,8 +466,34 @@ class CoupledSim(Simulation):
             Path to preCICE adapter config file
         """
         strain_type = "small" if is_small_strain else "large"
-        adapter_config_path = f"res/precice-adapter-config-{strain_type}-strain.json"
-        return adapter_config_path
+        adapter_config_path_base = f"res/precice-adapter-config-{strain_type}-strain.json"
+        adapter_config_path_run  = f"res/precice-adapter-config-{strain_type}-strain-{run_id}.json"
+
+        # create job specific adapter config
+        if MPI.COMM_WORLD.Get_rank() == 0:
+            try:
+                import json
+                with open(adapter_config_path_base, "r") as infile:
+                    base_conf = json.load(infile)
+
+                if prc_path is not None:
+                    base_conf["config_file_name"] = prc_path
+
+                with open(adapter_config_path_run, "w") as outfile:
+                    json.dump(base_conf, outfile, indent=4)
+            except Exception as e:
+                print(e)
+                raise RuntimeError("Failed to modify adapter config file")
+
+        return adapter_config_path_run
+
+    @staticmethod
+    def _delete_adapter_file(path):
+        if MPI.COMM_WORLD.Get_rank() != 0: return
+
+        import os
+        if os.path.exists(path):
+            os.remove(path)
 
     @staticmethod
     def _construct_coupling_dicts(problem, sig_buffer, eps_buffer, tan_buffer):
@@ -619,6 +653,9 @@ class CoupledSim(Simulation):
             is_coupling_ongoing = self.precice.is_coupling_ongoing()
 
             t, n, it = update_counters(*self.read_checkpoint(t, n), it, dt)
+
+        # clean up
+        CoupledSim._delete_adapter_file(self.adapter_config_path)
 
     @staticmethod
     def coupling_bc(x):
