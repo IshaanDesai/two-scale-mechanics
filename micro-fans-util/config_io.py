@@ -49,23 +49,12 @@ def add_stateless(config, has_mada):
         config["micro_stateless"] = True
     return config
 
-
-if __name__ == "__main__":
-    num_mm_ranks = 1
-    num_workers = 2
-
+def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, target_configs):
     base_config = load_json("micro-manager-pyfans-config.json")
-
-    target_configs = [
-        # ADA MADA Stateless
-        (True, False, False),
-        (True, True, False),
-        (True, True, True),
-        (True, False, True),
-        (False, True, False),
-        (False, True, True),
-        (False, False, True),
-    ]
+    base_config["simulation_params"]["decomposition"][decomp_dim] = num_mm_ranks
+    base_config["tasking"]["num_workers"] = num_workers
+    base_config["tasking"]["is_slurm"] = use_slurm
+    base_config["tasking"]["mpi_impl"] = mpi_impl
 
     for use_ada, use_mada, use_stateless in target_configs:
         config = copy.deepcopy(base_config)
@@ -85,3 +74,16 @@ if __name__ == "__main__":
             file_name += "-stateless"
         file_name += ".json"
         write_json(config, file_name)
+
+USE_ADA = True
+NO_ADA = False
+USE_MADA = True
+NO_MADA = False
+USE_STATELESS = True
+NO_STATELESS = False
+
+MPI_INTEL = "intel"
+MPI_OPEN = "open"
+
+USE_SLURM = True
+NO_SLURM = False
