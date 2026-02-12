@@ -484,6 +484,7 @@ class CoupledSim(Simulation):
             except Exception as e:
                 print(e)
                 raise RuntimeError("Failed to modify adapter config file")
+        MPI.COMM_WORLD.Barrier()
 
         return adapter_config_path_run
 
