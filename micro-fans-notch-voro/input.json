@@ -1,6 +1,6 @@
 {
     "microstructure": {
-        "filepath": "voro_foam32.h5",
+        "filepath": "voro32.h5",
         "datasetname": "/dset_0",
         "L": [1.0, 1.0, 1.0]
     },

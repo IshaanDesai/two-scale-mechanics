@@ -32,7 +32,7 @@ def add_MADA(config):
     config_mada = config
     config_mada["simulation_params"]["model_adaptivity"] = True
     config_mada["simulation_params"]["model_adaptivity_settings"] = {
-        "micro_file_names": ["PyFANS", "PyFANS", "PyFANS"],
+        "micro_file_names": ["PyFANS0", "PyFANS1", "PyFANS2"],
         "switching_function": "mada_switcher",
     }
     return config_mada
