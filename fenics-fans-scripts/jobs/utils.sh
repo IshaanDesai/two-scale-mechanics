@@ -52,11 +52,17 @@ edit::precice_input() {
     local prof_dir="$3"
     local export_dir="$4"
     local exch_dir="$5"
+    local num_nodes="$6"
 
     sed -Ei "s#<sink.*\$#<sink type=\"file\" output=\"${log_out}\" filter=\"%Severity% > debug\" enabled=\"true\" />#g" "$file"
     sed -Ei "s#<!--profiling.*\$#<profiling directory=\"${prof_dir}\" />#g" "$file"
     sed -Ei "s#<export:vtu.*\$#<export:vtu directory=\"${export_dir}\" />#g" "$file"
-    sed -Ei "s#<m2n:sockets.*\$#<m2n:sockets acceptor=\"Meso-structure\" connector=\"Micro-Manager\" exchange-directory=\"${exch_dir}\" network=\"ib0\" use-two-level-initialization=\"true\" />#g" "$file"
+
+    if [[ $num_nodes -gt 1 ]]; then
+        sed -Ei "s#<m2n:sockets.*\$#<m2n:sockets acceptor=\"Meso-structure\" connector=\"Micro-Manager\" exchange-directory=\"${exch_dir}\" network=\"ib0\" use-two-level-initialization=\"true\" />#g" "$file"
+    else
+        sed -Ei "s#<m2n:sockets.*\$#<m2n:sockets acceptor=\"Meso-structure\" connector=\"Micro-Manager\" exchange-directory=\"${exch_dir}\" network=\"ib0\" />#g" "$file"
+    fi
 }
 
 edit::mm_input() {
@@ -77,4 +83,37 @@ edit::fans_input() {
     if [[ $num_worker -eq 0 ]]; then
         sed -Ei "s#results\":.*\$#results\": [],\n\"no_mpi\": true#g" "$file"
     fi
+}
+
+edit::fans_input_switch() {
+    local file="$1"
+    local num_worker="$2"
+    local m_file="$3"
+
+    edit::fans_input "$file" "$num_worker"
+    sed -Ei "s#filepath\":.*\$#filepath\": \"${m_file}\",#g" "$file"
+    if [[ $num_worker -eq 0 ]]; then
+        sed -Ei "s#results\":.*\$#results\": [],\n\"no_mpi\": true#g" "$file"
+    fi
+}
+
+save_inputs() {
+    local out_dir="$1"
+
+    mkdir -p "${out_dir}/run_config"
+    mv ./* "${out_dir}/run_config"
+}
+
+gen_host_files() {
+    local meso_nodes="$1"
+    local micro_nodes="$2"
+
+    rm -rfv hosts.total
+    for host in $(scontrol show hostname "${SLURM_JOB_NODELIST}"); do
+        echo "$host" >> hosts.total
+    done
+    echo "Running on Nodes:"
+    cat hosts.total
+    head -n "${meso_nodes}" hosts.total > hosts.meso
+    tail -n "${micro_nodes}" hosts.total > hosts.micro
 }

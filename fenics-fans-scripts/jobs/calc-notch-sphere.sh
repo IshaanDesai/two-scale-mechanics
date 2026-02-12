@@ -4,7 +4,7 @@
 #SBATCH --licenses=scratch:0,work:0
 #
 # Job name:
-#SBATCH -J calc-bar-sphere
+#SBATCH -J calc-notch-sphere
 #
 # Error and Output files
 #SBATCH -o ../output/%x/%j.out
@@ -46,10 +46,10 @@ JOB_DIR=$(path::get_full .)
 OUT_DIR=$(path::get_full ../../output/${SLURM_JOB_NAME}/${SLURM_JOB_ID})
 TSM_PATH=$(path::get_tsm)
 MESO_PATH=$(path::get_meso)
-MICRO_PATH="${TSM_PATH}/micro-fans-bar-sphere"
+MICRO_PATH="${TSM_PATH}/micro-fans-notch-sphere"
 
 cp $TSM_PATH/precice-config-fans-small-strain.xml ./precice-config.xml
-cp $MESO_PATH/examples/coupled-bar/config-coupled-bar.json ./config-meso.json
+cp $MESO_PATH/examples/coupled-notch/config-coupled-notch.json ./config-meso.json
 cp $MICRO_PATH/PyFANS.so ./
 cp $MICRO_PATH/input.json ./
 cp $MICRO_PATH/micro-manager-pyfans-config-stateless.json ./micro-manager-config.json
