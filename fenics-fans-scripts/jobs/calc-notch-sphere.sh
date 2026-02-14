@@ -24,7 +24,7 @@
 #Setup of execution environment
 #SBATCH --get-user-env
 #SBATCH --account=pn76so
-#SBATCH --partition=test
+#SBATCH --partition=micro
 #
 #Number of nodes and MPI tasks per node:
 #SBATCH --nodes=1
@@ -56,20 +56,18 @@ cp $MICRO_PATH/micro-manager-pyfans-config-stateless.json ./micro-manager-config
 cp $MICRO_PATH/sphere32.h5 ./
 
 edit::meso_input ./config-meso.json "${OUT_DIR}/meso-geom" "${OUT_DIR}/meso-state" "${JOB_DIR}/precice-config.xml"
-edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 1
+edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 8 ${NUM_MM_RANKS}
 edit::mm_input ./micro-manager-config.json "${JOB_DIR}/precice-config.xml" ${NUM_MM_RANKS} ${NUM_MM_WORKERS}
 edit::fans_input ./input.json ${NUM_MM_WORKERS}
 
-echo "Starting Meso Simulations"
 touch "${OUT_DIR}/meso.log"
-cd "${MESO_PATH}" || return
-(I_MPI_PIN=1 I_MPI_PIN_CELL=core I_MPI_PIN_PROCESSOR_LIST=40,41,42,43,44,45,46,47 mpiexec -n 8 python macro.py "${JOB_DIR}/config-meso.json" &> "${OUT_DIR}/meso.log")&
-
-echo "Starting Micro Simulations"
 touch "${OUT_DIR}/micro.log"
-cd "${JOB_DIR}" || return
-I_MPI_PIN=1 I_MPI_PIN_CELL=core I_MPI_PIN_DOMAIN=${NUM_MM_WORKERS} I_MPI_PIN_ORDER=compact mpiexec -n ${NUM_MM_RANKS} micro-manager-precice "${JOB_DIR}/micro-manager-config.json" &> "${OUT_DIR}/micro.log"
-
+echo "Starting Simulations"
+set -m
+(
+    (cd "${MESO_PATH}" && (I_MPI_PIN=1 I_MPI_PIN_CELL=core I_MPI_PIN_PROCESSOR_LIST=40,41,42,43,44,45,46,47 mpiexec -n 8 python macro.py "${JOB_DIR}/config-meso.json" &> "${OUT_DIR}/meso.log"))&
+    (cd "${JOB_DIR}" && (I_MPI_PIN=1 I_MPI_PIN_CELL=core I_MPI_PIN_DOMAIN=${NUM_MM_WORKERS} I_MPI_PIN_ORDER=compact mpiexec -n ${NUM_MM_RANKS} micro-manager-precice "${JOB_DIR}/micro-manager-config.json" &> "${OUT_DIR}/micro.log"))&
+)
 echo "Simulation with $SLURM_NNODES nodes launched."
 
 save_inputs "${OUT_DIR}"

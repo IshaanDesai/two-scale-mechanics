@@ -52,13 +52,14 @@ edit::precice_input() {
     local prof_dir="$3"
     local export_dir="$4"
     local exch_dir="$5"
-    local num_nodes="$6"
+    local me_ranks="$6"
+    local mm_ranks="$7"
 
     sed -Ei "s#<sink.*\$#<sink type=\"file\" output=\"${log_out}\" filter=\"%Severity% > debug\" enabled=\"true\" />#g" "$file"
     sed -Ei "s#<!--profiling.*\$#<profiling directory=\"${prof_dir}\" />#g" "$file"
     sed -Ei "s#<export:vtu.*\$#<export:vtu directory=\"${export_dir}\" />#g" "$file"
 
-    if [[ $num_nodes -gt 1 ]]; then
+    if [[ $me_ranks -gt 1  &&  $mm_ranks -gt 1 ]]; then
         sed -Ei "s#<m2n:sockets.*\$#<m2n:sockets acceptor=\"Meso-structure\" connector=\"Micro-Manager\" exchange-directory=\"${exch_dir}\" network=\"ib0\" use-two-level-initialization=\"true\" />#g" "$file"
     else
         sed -Ei "s#<m2n:sockets.*\$#<m2n:sockets acceptor=\"Meso-structure\" connector=\"Micro-Manager\" exchange-directory=\"${exch_dir}\" network=\"ib0\" />#g" "$file"
