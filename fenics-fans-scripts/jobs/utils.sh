@@ -46,6 +46,17 @@ edit::meso_input() {
     sed -Ei "s#\"slurm_id\".*\$#\"slurm_id\": \"${SLURM_JOB_ID}\"#g" "$file"
 }
 
+edit::meso_input_switch() {
+    local file="$1"
+    local meso_out="$2"
+    local meso_state_out="$3"
+    local precice_path="$4"
+    local mesh_path="$5"
+    edit::meso_input "$file" "$meso_out" "$meso_state_out" "$precice_path"
+
+    sed -Ei "s#\"path\":.*\$#\"path\": \"${mesh_path}\",#g" "$file"
+}
+
 edit::precice_input() {
     local file="$1"
     local log_out="$2"
