@@ -19,7 +19,7 @@
   "simulation": {
     "type": "CoupledSim",
     "micro_type": "PYFANS",
-    "precice_xml_path": "../precice-config-fans-small-strain.xml",
+    "precice_xml_path": "../../precice-config-fans-small-strain.xml",
     "slurm_id": "default"
   }
 }
