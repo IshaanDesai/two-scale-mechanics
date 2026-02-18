@@ -4,7 +4,7 @@
 #SBATCH --licenses=scratch:0,work:0
 #
 # Job name:
-#SBATCH -J calc-bar-sphere
+#SBATCH -J scale-meso-bar5-sphere32
 #
 # Error and Output files
 #SBATCH -o ../output/%x/%j.out
@@ -18,7 +18,7 @@
 #SBATCH --mail-user=alex.hocks@tum.de
 #
 # Wall clock limit:
-#SBATCH --time=00:20:00
+#SBATCH --time=43:00:00
 #SBATCH --no-requeue
 #
 #Setup of execution environment
@@ -27,7 +27,7 @@
 #SBATCH --partition=micro
 #
 #Number of nodes and MPI tasks per node:
-#SBATCH --nodes=5
+#SBATCH --nodes=2
 #SBATCH --ntasks-per-node=48
 #
 #Ensure exclusive access to compute nodes
@@ -37,9 +37,9 @@ source ../jobs/utils.sh
 load_env
 
 NUM_MESO_NODES=1
-NUM_MM_NODES=4
+NUM_MM_NODES=1
 NUM_NODES=${SLURM_NNODES}
-NUM_MM_RANKS=4
+NUM_MM_RANKS=8
 NUM_MM_WORKERS=4
 NUM_MM_PPN=$((NUM_MM_RANKS / NUM_MM_NODES))
 
@@ -59,10 +59,10 @@ cp $MICRO_PATH/input.json ./
 cp $MICRO_PATH/micro-manager-pyfans-config-stateless.json ./micro-manager-config.json
 cp $MICRO_PATH/sphere32.h5 ./
 
-edit::meso_input ./config-meso.json "${OUT_DIR}/meso-geom" "${OUT_DIR}/meso-state" "${JOB_DIR}/precice-config.xml"
+edit::meso_input_switch ./config-meso.json "${OUT_DIR}/meso-geom" "${OUT_DIR}/meso-state" "${JOB_DIR}/precice-config.xml" "examples/coupled-bar/bar5.msh"
 edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 8 "${NUM_MM_RANKS}"
 edit::mm_input ./micro-manager-config.json "${JOB_DIR}/precice-config.xml" ${NUM_MM_RANKS} ${NUM_MM_WORKERS}
-edit::fans_input ./input.json ${NUM_MM_WORKERS}
+edit::fans_input_switch ./input.json ${NUM_MM_WORKERS} "sphere32.h5"
 gen_host_files ${NUM_MESO_NODES} ${NUM_MM_NODES}
 
 touch "${OUT_DIR}/meso.log"

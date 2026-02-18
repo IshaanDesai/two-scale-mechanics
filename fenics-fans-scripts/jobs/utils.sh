@@ -88,11 +88,22 @@ edit::mm_input() {
     sed -Ei "s#num_workers\":.*\$#num_workers\": ${num_worker},#g" "$file"
 }
 
+edit::mm_input_dy() {
+    local file="$1"
+    local precice_path="$2"
+    local num_mm="$3"
+    local num_worker="$4"
+
+    sed -Ei "s#precice_config_file_name\":.*\$#precice_config_file_name\": \"${precice_path}\",#g" "$file"
+    sed -Ei ":a;N;\$!ba;s#\"decomposition\":[[:space:]]*\[[^]]*]#\"decomposition\": [1, ${num_mm}, 1]#g" "$file"
+    sed -Ei "s#num_workers\":.*\$#num_workers\": ${num_worker},#g" "$file"
+}
+
 edit::fans_input() {
     local file="$1"
     local num_worker="$2"
 
-    if [[ $num_worker -eq 0 ]]; then
+    if [[ $num_worker -le 1 ]]; then
         sed -Ei "s#results\":.*\$#results\": [],\n\"no_mpi\": true#g" "$file"
     fi
 }

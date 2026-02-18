@@ -4,7 +4,7 @@
 #SBATCH --licenses=scratch:0,work:0
 #
 # Job name:
-#SBATCH -J calc-bar-sphere
+#SBATCH -J calc-notch-sphere-mada-fix-32to128
 #
 # Error and Output files
 #SBATCH -o ../output/%x/%j.out
@@ -18,7 +18,7 @@
 #SBATCH --mail-user=alex.hocks@tum.de
 #
 # Wall clock limit:
-#SBATCH --time=00:20:00
+#SBATCH --time=08:00:00
 #SBATCH --no-requeue
 #
 #Setup of execution environment
@@ -40,7 +40,7 @@ NUM_MESO_NODES=1
 NUM_MM_NODES=4
 NUM_NODES=${SLURM_NNODES}
 NUM_MM_RANKS=4
-NUM_MM_WORKERS=4
+NUM_MM_WORKERS=32
 NUM_MM_PPN=$((NUM_MM_RANKS / NUM_MM_NODES))
 
 # pwd = tsm/ffs/work/job-id
@@ -50,17 +50,24 @@ JOB_DIR=$(path::get_full .)
 OUT_DIR=$(path::get_full ../../output/${SLURM_JOB_NAME}/${SLURM_JOB_ID})
 TSM_PATH=$(path::get_tsm)
 MESO_PATH=$(path::get_meso)
-MICRO_PATH="${TSM_PATH}/micro-fans-bar-sphere"
+MICRO_PATH="${TSM_PATH}/micro-fans-notch-sphere"
 
 cp $TSM_PATH/precice-config-fans-small-strain.xml ./precice-config.xml
-cp $MESO_PATH/examples/coupled-bar/config-coupled-bar.json ./config-meso.json
-cp $MICRO_PATH/PyFANS.so ./
-cp $MICRO_PATH/input.json ./
-cp $MICRO_PATH/micro-manager-pyfans-config-stateless.json ./micro-manager-config.json
+cp $MESO_PATH/examples/coupled-notch/config-coupled-notch.json ./config-meso.json
+cp $MICRO_PATH/PyFANS0.so ./PyFANS0.so
+cp $MICRO_PATH/PyFANS1.so ./PyFANS1.so
+cp $MICRO_PATH/PyFANS2.so ./PyFANS2.so
+cp $MICRO_PATH/input.json ./input0.json
+cp $MICRO_PATH/input.json ./input1.json
+cp $MICRO_PATH/input.json ./input2.json
+cp $MICRO_PATH/micro-manager-pyfans-config-mada-stateless.json ./micro-manager-config.json
+cp $MICRO_PATH/mada_switcher_fix.py ./mada_switcher.py
 cp $MICRO_PATH/sphere32.h5 ./
+cp $MICRO_PATH/sphere64.h5 ./
+cp $MICRO_PATH/sphere128.h5 ./
 
 edit::meso_input ./config-meso.json "${OUT_DIR}/meso-geom" "${OUT_DIR}/meso-state" "${JOB_DIR}/precice-config.xml"
-edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 8 "${NUM_MM_RANKS}"
+edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 8 ${NUM_MM_RANKS}
 edit::mm_input ./micro-manager-config.json "${JOB_DIR}/precice-config.xml" ${NUM_MM_RANKS} ${NUM_MM_WORKERS}
 edit::fans_input ./input.json ${NUM_MM_WORKERS}
 gen_host_files ${NUM_MESO_NODES} ${NUM_MM_NODES}
