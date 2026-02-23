@@ -1,5 +1,6 @@
 import json
 import copy
+from typing import Optional
 
 
 def write_json(data, filename):
@@ -28,28 +29,30 @@ def add_ADA(config):
     return config_ada
 
 
-def add_MADA(config):
+def add_MADA(config, dim_mada:Optional[int]=None):
+    micro_names = ["PyFANS0", "PyFANS1", "PyFANS2"]
+    if dim_mada is None: dim_mada = 3
+    if dim_mada < 2 or dim_mada > 3: raise ValueError("dim_mada must be 2 or 3")
+
     config_mada = config
     config_mada["simulation_params"]["model_adaptivity"] = True
     config_mada["simulation_params"]["model_adaptivity_settings"] = {
-        "micro_file_names": ["PyFANS0", "PyFANS1", "PyFANS2"],
+        "micro_file_names": [micro_names[idx] for idx in range(dim_mada)],
         "switching_function": "mada_switcher",
     }
     return config_mada
 
 
-def add_stateless(config, has_mada):
+def add_stateless(config, has_mada, dim_mada:Optional[int]=None):
+    if dim_mada is None: dim_mada = 3
+
     if has_mada:
-        config["simulation_params"]["model_adaptivity_settings"]["micro_stateless"] = [
-            True,
-            True,
-            True,
-        ]
+        config["simulation_params"]["model_adaptivity_settings"]["micro_stateless"] = [True] * dim_mada
     else:
         config["micro_stateless"] = True
     return config
 
-def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, target_configs):
+def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, target_configs, dim_mada:Optional[int]=None):
     base_config = load_json("micro-manager-pyfans-config.json")
     base_config["simulation_params"]["decomposition"][decomp_dim] = num_mm_ranks
     base_config["tasking"]["num_workers"] = num_workers
@@ -61,15 +64,16 @@ def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, targe
         if use_ada:
             add_ADA(config)
         if use_mada:
-            add_MADA(config)
+            add_MADA(config, dim_mada)
         if use_stateless:
-            add_stateless(config, use_mada)
+            add_stateless(config, use_mada, dim_mada)
 
         file_name = "micro-manager-pyfans-config"
         if use_ada:
             file_name += "-ada"
         if use_mada:
-            file_name += "-mada"
+            if dim_mada is not None: file_name += f"-mada{dim_mada}"
+            else: file_name += "-mada"
         if use_stateless:
             file_name += "-stateless"
         file_name += ".json"

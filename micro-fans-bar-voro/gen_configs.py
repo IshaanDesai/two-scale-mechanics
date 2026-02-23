@@ -24,5 +24,6 @@ if __name__ == '__main__':
         NO_SLURM,
         MPI_INTEL,
         decomp_dim=0,
-        target_configs=target_configs
+        target_configs=target_configs,
+        dim_mada=None,
     )

@@ -24,5 +24,15 @@ if __name__ == '__main__':
         NO_SLURM,
         MPI_INTEL,
         decomp_dim=1,
-        target_configs=target_configs
+        target_configs=target_configs,
+        dim_mada=2,
+    )
+    gen_config(
+        num_mm_ranks,
+        num_workers,
+        NO_SLURM,
+        MPI_INTEL,
+        decomp_dim=1,
+        target_configs=target_configs,
+        dim_mada=3,
     )

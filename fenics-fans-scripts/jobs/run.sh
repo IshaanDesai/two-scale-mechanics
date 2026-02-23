@@ -47,7 +47,22 @@ main() {
     partition=$(extract "--partition" "$jobscript")
     nodes=$(extract "--nodes" "$jobscript")
 
-    salloc_args="--licenses=${licenses} -J ${name} -D ${work_dir} --mail-type=${mail_t} --mail-user=${mail_u} --time=${time_limit} --account=${account} --partition=${partition} --nodes=${nodes} --exclusive ${jobscript}"
+    part="${PARTITION:-$partition}"
+    allowed=(test micro general large fat)
+    valid=false
+    for v in "${allowed[@]}"; do
+        if [[ "$part" == "$v" ]]; then
+            valid=true
+            break
+        fi
+    done
+    if ! "$valid"; then
+        echo "Error: invalid partition '$part'"
+        exit 1
+    fi
+    time="${TIME:-$time_limit}"
+
+    salloc_args="--licenses=${licenses} -J ${name} -D ${work_dir} --mail-type=${mail_t} --mail-user=${mail_u} --time=${time} --account=${account} --partition=${part} --nodes=${nodes} --exclusive ${jobscript}"
     echo "${salloc_args}"
     salloc_args=(
         --licenses="${licenses}"
@@ -55,9 +70,9 @@ main() {
         -D "${work_dir}"
         --mail-type="${mail_t}"
         --mail-user="${mail_u}"
-        --time="${time_limit}"
+        --time="${time}"
         --account="${account}"
-        --partition="${partition}"
+        --partition="${part}"
         --nodes="${nodes}"
         --exclusive
     )
