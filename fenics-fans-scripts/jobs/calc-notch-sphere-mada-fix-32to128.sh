@@ -39,8 +39,8 @@ load_env
 NUM_MESO_NODES=1
 NUM_MM_NODES=4
 NUM_NODES=${SLURM_NNODES}
-NUM_MM_RANKS=1
-NUM_MM_WORKERS=128
+NUM_MM_RANKS=128
+NUM_MM_WORKERS=1
 NUM_MM_PPN=$((NUM_MM_RANKS / NUM_MM_NODES))
 
 # pwd = tsm/ffs/work/job-id
@@ -68,7 +68,7 @@ cp $MICRO_PATH/sphere128.h5 ./
 
 edit::meso_input ./config-meso.json "${OUT_DIR}/meso-geom" "${OUT_DIR}/meso-state" "${JOB_DIR}/precice-config.xml"
 edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 8 ${NUM_MM_RANKS}
-edit::mm_input ./micro-manager-config.json "${JOB_DIR}/precice-config.xml" ${NUM_MM_RANKS} ${NUM_MM_WORKERS}
+edit::mm_input_dy ./micro-manager-config.json "${JOB_DIR}/precice-config.xml" ${NUM_MM_RANKS} ${NUM_MM_WORKERS}
 edit::fans_input_switch ./input0.json ${NUM_MM_WORKERS} "sphere128.h5"
 edit::fans_input_switch ./input1.json ${NUM_MM_WORKERS} "sphere64.h5"
 edit::fans_input_switch ./input2.json ${NUM_MM_WORKERS} "sphere32.h5"
