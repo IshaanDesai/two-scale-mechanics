@@ -15,10 +15,10 @@ class MicroSimulation:
             self._load_input_file()
 
     def _load_input_file(self):
-        found_input1 = os.path.exists("./input1.json")
+        found_input1 = os.path.exists("./input0.json")
         found_lin_np = os.path.exists("./lin_np_input.json")
         inp_path = None
-        if found_input1: inp_path = "./input1.json"
+        if found_input1: inp_path = "./input0.json"
         elif found_lin_np: inp_path = "./lin_np_input.json"
         else: raise RuntimeError("No input file found")
 
