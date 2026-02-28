@@ -19,6 +19,9 @@
   "simulation": {
     "type": "CoupledSim",
     "micro_type": "PYFANS",
+    "write_state": "output/coupled_notch_state",
+    "write_state_type": ["S", "U", "E"],
+    "init_with_micro": true,
     "precice_xml_path": "../../precice-config-fans-small-strain.xml",
     "slurm_id": "default"
   }
