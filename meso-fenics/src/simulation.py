@@ -275,21 +275,20 @@ class PseudoCoupledSim(Simulation):
             )
             self.problem.sig_fun.x.scatter_forward()
 
-            if self.problem.is_small_strain:
-                tan_data = f["tan_data"][:].reshape(
-                    -1, self.problem.WT.value_size
-                )  # n_quad x tan_size
-                interpolate_boundary_function(
-                    {tuple(k): v for k, v in zip(self._coords_WT, tan_data)},
-                    FunctionType.VECTOR,
-                    self._values_to_send_WT,
-                    self.problem.tan_fun,
-                    self._cells_WT,
-                    MPI.COMM_WORLD,
-                    False,
-                    25,
-                )
-                self.problem.tan_fun.x.scatter_forward()
+            tan_data = f["tan_data"][:].reshape(
+                -1, self.problem.WT.value_size
+            )  # n_quad x tan_size
+            interpolate_boundary_function(
+                {tuple(k): v for k, v in zip(self._coords_WT, tan_data)},
+                FunctionType.VECTOR,
+                self._values_to_send_WT,
+                self.problem.tan_fun,
+                self._cells_WT,
+                MPI.COMM_WORLD,
+                False,
+                25,
+            )
+            self.problem.tan_fun.x.scatter_forward()
 
         self.problem.solve()
         self.write_output(0.0, 0)
@@ -441,6 +440,14 @@ class CoupledSim(Simulation):
                 ),
             )
         else:
+            num_tan_buffers = int(np.ceil(problem.WT.value_size / 3.0))
+            tan_buffer = CouplingBuffer(
+                problem.tan_fun,
+                problem.W3,
+                num_tan_buffers,
+                Projectors.InplaceSplitter(problem.W3),
+                Mergers.InplaceMerger(),
+            )
             # Need to remove transforms if using large strain
             transform.clear_transforms()
 

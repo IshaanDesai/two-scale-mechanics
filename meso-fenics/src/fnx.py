@@ -133,37 +133,8 @@ class LineSearchStep:
         self.uh.x.scatter_forward()
 
 
-class GradApprox:
-    def __init__(self, task, steps, uh):
-        self.task = task
-        self.max_steps = steps
-        self.steps = 0
-        self.uh0 = np.zeros_like(uh.x.array)
-        self.uh = uh
-        self.du = None
-
-    def initialize(self, du):
-        self.steps = 0
-        self.du = du
-        self.uh0[:] = self.uh.x.array[:]
-
-    def solve(self):
-        self.task(self.du, self.uh0, self.uh, self.steps)
-        self.steps += 1
-        return self.is_running()
-
-    def is_running(self):
-        return self.steps < self.max_steps
-
-    def finalize(self):
-        self.task(self.du, self.uh0, self.uh, self.max_steps)
-        self.steps = self.max_steps
-        self.uh.x.array[:] = self.uh0
-        self.uh.x.scatter_forward()
-
-
 class NonlinearProblemStep:
-    def __init__(self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None, grad_approx: GradApprox = None):
+    def __init__(self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None):
         self.res = fem.form(F)
         self.jac = fem.form(J)
         self.du = fem.Function(uh.function_space)
@@ -177,7 +148,6 @@ class NonlinearProblemStep:
         self.threshold = 1e-10
         self.solver = PETSc.KSP().create(comm)
         self.solver.setOperators(self.A)
-        self.grad_approx = grad_approx
         opts = PETSc.Options()
         if options is not None:
             if "ksp_max_it" in options:
@@ -215,18 +185,11 @@ class NonlinearProblemStep:
         if self.iter >= self.max_iter: return True
         if self.last_correction < self.threshold: return True
 
-        if self.grad_approx is not None and self.grad_approx.is_running():
-            ongoing = self.grad_approx.solve()
-            if ongoing: return False
-            else: self.grad_approx.finalize()
-
         if self.ls.is_searching():
             success = self.ls.step()
             if not success: return False
             self.last_correction = self.du.x.petsc_vec.norm(0) * self.ls.curr_alpha
             print(f"Solving KSP - iter {self.iter} du-norm: {self.last_correction} res-norm: {self.L.norm(0)}")
-            if self.grad_approx is not None:
-                self.grad_approx.initialize(self.du)
         
         self._solve_ksp()
         self.ls.initialize(self.du)
@@ -394,25 +357,29 @@ class MesoProblem:
         elif config.problem_strain_type == "large_strain":
             self.is_small_strain = False
             self.W = fem.functionspace(self.mesh.domain, ("DG", 0, (3, 3)))
-            self.WT = None  # only use tangent implicitly
+            self.WT = fem.functionspace(self.mesh.domain, ("DG", 0, (3, 3, 3, 3)))
 
             Id = ufl.Identity(3)
-            self.F = Id + ufl.grad(self.uh)
+            self.F = ufl.variable(Id + ufl.grad(self.uh))
             self.eps_exp = fem.Constant(self.mesh.domain, 0.5) * (
                 self.F.T * self.F - Id
             )
             self.eps_var = ufl.variable(self.eps_exp)
             self.sig_fun = fem.Function(self.W)
-            self.tan_fun = None  # only use tangent implicitly
+            self.tan_fun = fem.Function(self.WT)
 
             self.psi_exp = self.calc_psi()
             self.sigma_exp = ufl.diff(self.psi_exp, self.eps_var)
-            self.tangent_exp = None
+            self.tangent_exp = ufl.diff(self.sigma_exp, self.F)
 
             self.meso_res = ufl.inner(
                 self.F * self.sigma_exp, ufl.grad(self.v)
             ) * ufl.dx - self.bc_nm(self.v)
-            self.meso_jac = ufl.derivative(self.meso_res, self.uh, self.u)
+            self.meso_jac = ufl.inner(
+                ufl.derivative(self.F, self.uh, self.u) * self.sigma_exp +
+                self.F * ufl.derivative(self.sigma_exp, self.uh, self.u),
+                ufl.grad(self.v)
+            ) * ufl.dx
         else:
             raise ValueError("Unknown strain type")
 
@@ -431,10 +398,10 @@ class MesoProblem:
         self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
         self.sig_fun.x.scatter_forward()
 
-        if self.is_small_strain:
-            tan_eval = Evaluator(ufl.variable(self.tangent_exp), self.WT).interpolate()
-            self.tan_fun.x.array[:] = tan_eval.var_val.x.array[:]
-            self.tan_fun.x.scatter_forward()
+        #if self.is_small_strain:
+        tan_eval = Evaluator(ufl.variable(self.tangent_exp), self.WT).interpolate()
+        self.tan_fun.x.array[:] = tan_eval.var_val.x.array[:]
+        self.tan_fun.x.scatter_forward()
 
     def calc_psi(self):
         """
@@ -535,23 +502,6 @@ class MultiscaleProblem(MesoProblem):
         Mesh object containing the domain and boundary conditions.
     """
 
-    class StressGradApproximator:
-        def __init__(self, sig_fun: fem.Function, sig_grad_fun: fem.Function):
-            self.sig_fun = sig_fun
-            self.sig_grad_fun = sig_grad_fun
-            self.sig_step_data = np.zeros((2, sig_fun.x.array.shape[0]))
-            self.eps = 1e-6
-
-        def __call__(self, du: fem.Function, uh0: np.ndarray, uh: fem.Function, step: int):
-            # gather prev compute sig data
-            if step > 0: self.sig_step_data[step-1][:] = self.sig_fun.x.array[:]
-            # create new uh data
-            if step == 0: uh.x.array[:] = uh0 + (self.eps * du.x.array / du.x.petsc_vec.norm(0))
-            if step == 1: uh.x.array[:] = uh0 - (self.eps * du.x.array / du.x.petsc_vec.norm(0))
-            # compute grad
-            if step == 2: self.sig_grad_fun.x.array[:] = (self.sig_step_data[0] - self.sig_step_data[1]) / (2.0 * self.eps)
-
-
     def __init__(self, config: Config, mesh: Mesh):
         super().__init__(config, mesh)
 
@@ -573,16 +523,11 @@ class MultiscaleProblem(MesoProblem):
                 self.petsc_options
             )
         else:
-            self.res = ufl.inner(
-                self.F * self.sig_fun, ufl.grad(self.v)
-            ) * ufl.dx - self.bc_nm(self.v)
-
-            self.sig_grad_fun = fem.Function(self.W)
-            self.sig_grad_approximator = MultiscaleProblem.StressGradApproximator(self.sig_fun, self.sig_grad_fun)
-            self.grad_approx = GradApprox(self.sig_grad_approximator, 2, self.uh)
+            self.res = ufl.inner(self.F * self.sig_fun, ufl.grad(self.v)) * ufl.dx - self.bc_nm(self.v)
+            i,j,k,l = ufl.indices(4)
             self.jac = ufl.inner(
                 ufl.derivative(self.F, self.uh, self.u) * self.sig_fun +
-                self.F * self.sig_grad_fun * ufl.grad(self.u),
+                self.F * ufl.as_tensor(self.tan_fun[i, j, k, l] * ufl.derivative(self.F, self.uh, self.u)[k, l], (i, j)),
                 ufl.grad(self.v)
             ) * ufl.dx
             self.ms_problem = NonlinearProblemStep(
@@ -592,7 +537,6 @@ class MultiscaleProblem(MesoProblem):
                 self.jac,
                 self.bc_dc,
                 self.petsc_options,
-                self.grad_approx
             )
 
     def solve_meso(self):
@@ -609,9 +553,21 @@ class MultiscaleProblem(MesoProblem):
         Solve problem approximately only using micro-scale tangent.
         Use as first guess for subsequent iterations.
         """
-        sig = ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh))
-        res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
-        jac = ufl.inner(ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)), self.symgrad_mandel(self.v)) * ufl.dx
+        if self.is_small_strain:
+            sig = ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh))
+            res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
+            jac = ufl.inner(ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)), self.symgrad_mandel(self.v)) * ufl.dx
+        else:
+            #i, j, k, l = ufl.indices(4)
+            #eps = fem.Constant(self.mesh.domain, 0.5) * (self.F.T * self.F - ufl.Identity(3))
+            #sig = ufl.as_tensor(self.tan_fun[i, j, k, l] * eps[k, l], (i, j))
+            #res = ufl.inner(self.F * sig, ufl.grad(self.v)) * ufl.dx - self.bc_nm(self.v)
+            #dF = ufl.derivative(self.F, self.uh, self.u)
+            #jac = ufl.inner(dF * sig + self.F * ufl.as_tensor(self.tan_fun[i, j, k, l] * dF[k, l], (i, j)), ufl.grad(self.v)) * ufl.dx
+
+            # something wrong here, for now raise error
+            raise NotImplementedError("Initialization with micro-scale only supported for small strain")
+
         problem = NonlinearProblem(
             res,
             self.uh,

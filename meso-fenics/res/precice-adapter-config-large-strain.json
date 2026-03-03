@@ -4,7 +4,7 @@
   "interfaces": {
     "meso-mesh": {
       "write_data_names": ["strains1to3", "strains4to6", "strains7to9"],
-      "read_data_names": ["stresses1to3", "stresses4to6", "stresses7to9"]
+      "read_data_names": ["stresses1to3", "stresses4to6", "stresses7to9", "cmat1", "cmat2", "cmat3", "cmat4", "cmat5", "cmat6", "cmat7", "cmat8", "cmat9", "cmat10", "cmat11", "cmat12", "cmat13", "cmat14", "cmat15", "cmat16", "cmat17", "cmat18", "cmat19", "cmat20", "cmat21", "cmat22", "cmat23", "cmat24", "cmat25", "cmat26", "cmat27"]
       }
     }
 }

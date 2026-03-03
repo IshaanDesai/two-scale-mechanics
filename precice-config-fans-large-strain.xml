@@ -14,6 +14,33 @@
     <data:vector name="strains1to3"/>
     <data:vector name="strains4to6"/>
     <data:vector name="strains7to9"/>
+    <data:vector name="cmat1"/>
+    <data:vector name="cmat2"/>
+    <data:vector name="cmat3"/>
+    <data:vector name="cmat4"/>
+    <data:vector name="cmat5"/>
+    <data:vector name="cmat6"/>
+    <data:vector name="cmat7"/>
+    <data:vector name="cmat8"/>
+    <data:vector name="cmat9"/>
+    <data:vector name="cmat10"/>
+    <data:vector name="cmat11"/>
+    <data:vector name="cmat12"/>
+    <data:vector name="cmat13"/>
+    <data:vector name="cmat14"/>
+    <data:vector name="cmat15"/>
+    <data:vector name="cmat16"/>
+    <data:vector name="cmat17"/>
+    <data:vector name="cmat18"/>
+    <data:vector name="cmat19"/>
+    <data:vector name="cmat20"/>
+    <data:vector name="cmat21"/>
+    <data:vector name="cmat22"/>
+    <data:vector name="cmat23"/>
+    <data:vector name="cmat24"/>
+    <data:vector name="cmat25"/>
+    <data:vector name="cmat26"/>
+    <data:vector name="cmat27"/>
     <data:scalar name="active_state"/>
     <data:scalar name="active_steps"/>
 
@@ -24,6 +51,33 @@
        <use-data name="strains1to3"/>
        <use-data name="strains4to6"/>
        <use-data name="strains7to9"/>
+       <use-data name="cmat1"/>
+       <use-data name="cmat2"/>
+       <use-data name="cmat3"/>
+       <use-data name="cmat4"/>
+       <use-data name="cmat5"/>
+       <use-data name="cmat6"/>
+       <use-data name="cmat7"/>
+       <use-data name="cmat8"/>
+       <use-data name="cmat9"/>
+       <use-data name="cmat10"/>
+       <use-data name="cmat11"/>
+       <use-data name="cmat12"/>
+       <use-data name="cmat13"/>
+       <use-data name="cmat14"/>
+       <use-data name="cmat15"/>
+       <use-data name="cmat16"/>
+       <use-data name="cmat17"/>
+       <use-data name="cmat18"/>
+       <use-data name="cmat19"/>
+       <use-data name="cmat20"/>
+       <use-data name="cmat21"/>
+       <use-data name="cmat22"/>
+       <use-data name="cmat23"/>
+       <use-data name="cmat24"/>
+       <use-data name="cmat25"/>
+       <use-data name="cmat26"/>
+       <use-data name="cmat27"/>
        <use-data name="active_state"/>
        <use-data name="active_steps"/>
     </mesh>
@@ -33,6 +87,33 @@
       <read-data name="stresses1to3" mesh="meso-mesh"/>
       <read-data name="stresses4to6" mesh="meso-mesh"/>
       <read-data name="stresses7to9" mesh="meso-mesh"/>
+      <read-data name="cmat1" mesh="meso-mesh"/>
+      <read-data name="cmat2" mesh="meso-mesh"/>
+      <read-data name="cmat3" mesh="meso-mesh"/>
+      <read-data name="cmat4" mesh="meso-mesh"/>
+      <read-data name="cmat5" mesh="meso-mesh"/>
+      <read-data name="cmat6" mesh="meso-mesh"/>
+      <read-data name="cmat7" mesh="meso-mesh"/>
+      <read-data name="cmat8" mesh="meso-mesh"/>
+      <read-data name="cmat9" mesh="meso-mesh"/>
+      <read-data name="cmat10" mesh="meso-mesh"/>
+      <read-data name="cmat11" mesh="meso-mesh"/>
+      <read-data name="cmat12" mesh="meso-mesh"/>
+      <read-data name="cmat13" mesh="meso-mesh"/>
+      <read-data name="cmat14" mesh="meso-mesh"/>
+      <read-data name="cmat15" mesh="meso-mesh"/>
+      <read-data name="cmat16" mesh="meso-mesh"/>
+      <read-data name="cmat17" mesh="meso-mesh"/>
+      <read-data name="cmat18" mesh="meso-mesh"/>
+      <read-data name="cmat19" mesh="meso-mesh"/>
+      <read-data name="cmat20" mesh="meso-mesh"/>
+      <read-data name="cmat21" mesh="meso-mesh"/>
+      <read-data name="cmat22" mesh="meso-mesh"/>
+      <read-data name="cmat23" mesh="meso-mesh"/>
+      <read-data name="cmat24" mesh="meso-mesh"/>
+      <read-data name="cmat25" mesh="meso-mesh"/>
+      <read-data name="cmat26" mesh="meso-mesh"/>
+      <read-data name="cmat27" mesh="meso-mesh"/>
       <write-data name="strains1to3" mesh="meso-mesh"/>
       <write-data name="strains4to6" mesh="meso-mesh"/>
       <write-data name="strains7to9" mesh="meso-mesh"/>
@@ -46,6 +127,33 @@
       <write-data name="stresses1to3" mesh="meso-mesh"/>
       <write-data name="stresses4to6" mesh="meso-mesh"/>
       <write-data name="stresses7to9" mesh="meso-mesh"/>
+      <write-data name="cmat1" mesh="meso-mesh"/>
+      <write-data name="cmat2" mesh="meso-mesh"/>
+      <write-data name="cmat3" mesh="meso-mesh"/>
+      <write-data name="cmat4" mesh="meso-mesh"/>
+      <write-data name="cmat5" mesh="meso-mesh"/>
+      <write-data name="cmat6" mesh="meso-mesh"/>
+      <write-data name="cmat7" mesh="meso-mesh"/>
+      <write-data name="cmat8" mesh="meso-mesh"/>
+      <write-data name="cmat9" mesh="meso-mesh"/>
+      <write-data name="cmat10" mesh="meso-mesh"/>
+      <write-data name="cmat11" mesh="meso-mesh"/>
+      <write-data name="cmat12" mesh="meso-mesh"/>
+      <write-data name="cmat13" mesh="meso-mesh"/>
+      <write-data name="cmat14" mesh="meso-mesh"/>
+      <write-data name="cmat15" mesh="meso-mesh"/>
+      <write-data name="cmat16" mesh="meso-mesh"/>
+      <write-data name="cmat17" mesh="meso-mesh"/>
+      <write-data name="cmat18" mesh="meso-mesh"/>
+      <write-data name="cmat19" mesh="meso-mesh"/>
+      <write-data name="cmat20" mesh="meso-mesh"/>
+      <write-data name="cmat21" mesh="meso-mesh"/>
+      <write-data name="cmat22" mesh="meso-mesh"/>
+      <write-data name="cmat23" mesh="meso-mesh"/>
+      <write-data name="cmat24" mesh="meso-mesh"/>
+      <write-data name="cmat25" mesh="meso-mesh"/>
+      <write-data name="cmat26" mesh="meso-mesh"/>
+      <write-data name="cmat27" mesh="meso-mesh"/>
       <write-data name="active_state" mesh="meso-mesh"/>
       <write-data name="active_steps" mesh="meso-mesh"/>
       <export:vtu directory="precice-exports" />
@@ -61,6 +169,33 @@
       <exchange data="stresses1to3" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="stresses4to6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="stresses7to9" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat1" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat2" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat3" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat4" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat5" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat7" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat8" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat9" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat10" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat11" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat12" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat13" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat14" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat15" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat16" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat17" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat18" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat19" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat20" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat21" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat22" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat23" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat24" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat25" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat26" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
+      <exchange data="cmat27" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
       <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
       <exchange data="strains7to9" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
