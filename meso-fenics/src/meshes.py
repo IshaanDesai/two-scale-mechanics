@@ -69,7 +69,29 @@ class Mesh:
         config : Config
             Configuration object containing mesh path and BC parameters.
         """
-        mesh_data = io.gmsh.read_from_msh(config.mesh_path, MPI.COMM_WORLD, gdim=3)
+        if config.mesh_path.endswith(".xdmf"):
+            with io.XDMFFile(MPI.COMM_WORLD, config.mesh_path, "r") as xdmf:
+                base_mesh = xdmf.read_mesh(name="Grid")
+            tdim = base_mesh.topology.dim
+            fdim = tdim - 1
+
+            base_mesh.topology.create_connectivity(tdim, fdim)
+            base_mesh.topology.create_connectivity(fdim, tdim)
+            facet_indices = mesh.exterior_facet_indices(base_mesh.topology)
+            facet_values = np.zeros_like(facet_indices)
+            facet_tags = mesh.meshtags(base_mesh, fdim, facet_indices, facet_values)
+
+            base_mesh.topology.create_connectivity(tdim, tdim)
+            num_cells = base_mesh.topology.index_map(tdim).size_local
+            cell_indices = np.arange(num_cells, dtype=np.int32)
+            cell_values = np.ones(num_cells, dtype=np.int32)
+            cell_tags = mesh.meshtags(base_mesh, tdim, cell_indices, cell_values)
+
+            mesh_data = io.gmsh.MeshData(base_mesh, cell_tags, facet_tags, None, None, {})
+        elif config.mesh_path.endswith(".msh"):
+            mesh_data = io.gmsh.read_from_msh(config.mesh_path, MPI.COMM_WORLD, gdim=3)
+        else:
+            raise NotImplementedError("Unsupported mesh format")
         self.domain = mesh_data.mesh
         low, dims = self.normalize_domain()
         self.dimensions = Dimensions(low, dims, [0, 0, 0])
