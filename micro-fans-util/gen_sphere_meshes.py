@@ -384,10 +384,27 @@ def select_optimal_blocks_symmetric(grid: np.ndarray, N_target: int) -> np.ndarr
 
     return coarse
 
-def compute_vol_frac(grid):
+def compute_vol_frac(grid, sphere_val=None):
     N = grid.shape[0]
     cube_vol = np.power(1.0 / N, 3)
-    return np.sum(grid) * cube_vol
+
+    if sphere_val is None:
+        return np.sum(grid) * cube_vol
+    else:
+        return np.sum(grid == sphere_val) * cube_vol
+
+
+def convert_to_3phase(grid):
+    N = grid.shape[0]
+    mid_point = N // 2
+
+    # shift all phases up by one
+    grid += 1
+
+    # mark lower slab outside of sphere as new phase 0
+    mask = grid[:, 0:mid_point, :] == 1
+    grid[:, 0:mid_point, :][mask] = 0
+    return grid
 
 def compute_true_frac(rad):
     return 4.0 / 3.0 * np.pi * np.power(rad, 3)
@@ -422,3 +439,31 @@ def generate_spheres():
     write_h5(grid128, "./sphere128.h5")
     write_h5(grid64, "./sphere64.h5")
     write_h5(grid32, "./sphere32.h5")
+
+def generate_spheres_3phase():
+    rad = np.power(3.0 / 4.0 /np.pi * 0.0654, 1.0/3.0)
+    grid1024 = mark_sphere_cells_blocked(1024, 4, rad)
+    grid512 = select_optimal_blocks_symmetric(grid1024, 512)
+    grid256 = select_optimal_blocks_symmetric(grid512, 256)
+    grid128 = select_optimal_blocks_symmetric(grid256, 128)
+    grid64 = select_optimal_blocks_symmetric(grid128, 64)
+    grid32 = select_optimal_blocks_symmetric(grid64, 32)
+
+    convert_to_3phase(grid512)
+    convert_to_3phase(grid256)
+    convert_to_3phase(grid128)
+    convert_to_3phase(grid64)
+    convert_to_3phase(grid32)
+
+    print(f"1024 Volume: {compute_vol_frac(grid1024)}")
+    print(f"512 Volume: {compute_vol_frac(grid512, 2)}")
+    print(f"256 Volume: {compute_vol_frac(grid256, 2)}")
+    print(f"128 Volume: {compute_vol_frac(grid128, 2)}")
+    print(f"64 Volume: {compute_vol_frac(grid64, 2)}")
+    print(f"32 Volume: {compute_vol_frac(grid32, 2)}")
+
+    write_h5(grid512, "./sphere3p512.h5")
+    write_h5(grid256, "./sphere3p256.h5")
+    write_h5(grid128, "./sphere3p128.h5")
+    write_h5(grid64, "./sphere3p64.h5")
+    write_h5(grid32, "./sphere3p32.h5")

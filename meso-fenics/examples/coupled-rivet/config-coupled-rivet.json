@@ -1,0 +1,28 @@
+{
+  "output_path": "output/coupled-rivet-lin-1734",
+  "mesh": {
+    "path": "examples/coupled-rivet/rivettest_1_1734el.xdmf",
+    "bc_dc_use_tag": false,
+    "bc_dc_locator": "plane_yz_low",
+    "bc_nm_use_tag": false,
+    "bc_nm_locator": "plane_yz_high",
+    "bc_nm_dim": 0,
+    "bc_nm_value": 0.01
+  },
+  "problem": {
+    "lambda": 10.0,
+    "mu": 5.0,
+    "alpha": 100.0,
+    "strain_type": "small_strain",
+    "elem_degree": 1
+  },
+  "simulation": {
+    "type": "CoupledSim",
+    "micro_type": "PYFANS",
+    "write_state": "output/coupled_rivet_state_lin_1734",
+    "write_state_type": ["S", "U", "E"],
+    "init_with_micro": true,
+    "precice_xml_path": "../../precice-config-fans-small-strain.xml",
+    "slurm_id": "default"
+  }
+}
