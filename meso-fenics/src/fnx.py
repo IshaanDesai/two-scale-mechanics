@@ -305,7 +305,7 @@ class MesoProblem:
             "ksp_monitor": None,
             "pc_type": "hypre",
             "pc_hypre_type": "boomeramg",
-            "pc_hypre_boomeramg_max_iter": 1,
+            "pc_hypre_boomeramg_max_iter": 3,
             "pc_hypre_boomeramg_cycle_type": "v",
         }
 
