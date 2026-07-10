@@ -108,6 +108,7 @@ class Mesh:
             facet_indices = facet_markers.indices.copy()
             facet_values = facet_markers.values.copy()
             com = mesh.compute_midpoints(mesh_data.mesh, 2, facet_markers.indices)
+            facet_values[facet_values == Locators.NEUMANN_TAG] = 99
             facet_values[
                 self.bc_nm_locator(np.swapaxes(com, 0, 1))
             ] = Locators.NEUMANN_TAG
@@ -122,8 +123,10 @@ class Mesh:
             "ds", domain=self.domain, subdomain_data=self.facet_markers
         )
 
-        self.bc_dc_value = fem.Constant(self.domain, config.bc_dc_value)
-        self.bc_nm_value = fem.Constant(self.domain, config.bc_nm_value)
+        conversion_factor = 1000.0 / np.power(dims, 2)
+
+        self.bc_dc_value = fem.Constant(self.domain, config.bc_dc_value * conversion_factor)
+        self.bc_nm_value = fem.Constant(self.domain, config.bc_nm_value * conversion_factor)
 
     def normalize_domain(self):
         """

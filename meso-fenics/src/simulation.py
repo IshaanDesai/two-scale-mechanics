@@ -55,6 +55,8 @@ class Simulation:
         self.problem = None
         self._write_state = config.simulation_write_state
         self._write_state_type = config.simulation_write_state_type
+        self._write_checkpoint = config.simulation_write_checkpoint
+        self._read_checkpoint = config.simulation_read_checkpoint
 
         self._coords_W = None
         self._cells_W = None
@@ -164,6 +166,12 @@ class Simulation:
 
                 if "U" in self._write_state_type:
                     f.create_dataset("displacement_data", data=self.problem.uh.x.array)
+
+        if self._write_checkpoint is not None and type(self._write_checkpoint) == str:
+            with h5py.File(f"{self._write_checkpoint}{rank}.h5", "w") as f:
+                f.create_dataset("displacement_data", data=self.problem.uh.x.array)
+                f.create_dataset("stress_data", data=self.problem.sig_fun.x.array)
+                f.create_dataset("tangent_data", data=self.problem.tan_fun.x.array)
 
     @staticmethod
     def generate(config: Config):
@@ -334,11 +342,16 @@ class CoupledSim(Simulation):
             self.tan_buffer,
         ) = CoupledSim._construct_coupling_buffers(self.problem, self.transform)
 
+        self.init_with_checkpoint = self._read_checkpoint is not None
         self.init_with_micro = config.simulation_init_with_micro
         if self.init_with_micro and not self.problem.is_small_strain:
             raise RuntimeError(
                 "Large strain must initialize with meso values. Set init_with_micro to false!"
             )
+        if not self.init_with_micro:
+            self.problem.solve_meso()
+            self.eps_eval.interpolate()
+            self.eps_buffer.write_origin_to_buffer(self.transform.get_transform_eps())
         self.adapter_config_path = CoupledSim._get_adapter_path(
             self.problem.is_small_strain,
             config.simulation_precice_xml_path,
@@ -583,6 +596,20 @@ class CoupledSim(Simulation):
         else:
             return False, t, n
 
+    def init_checkpoint(self, t, n ,dt):
+        rank = ""
+        if MPI.COMM_WORLD.Get_size() > 1:
+            rank = f"_rank{MPI.COMM_WORLD.Get_rank()}"
+        with h5py.File(f"{self._read_checkpoint}{rank}.h5", "r") as f:
+            self.problem.uh.x.array[:] = f["displacement_data"][...]
+            self.problem.sig_fun.x.array[:] = f["stress_data"][...]
+            self.problem.tan_fun.x.array[:] = f["tangent_data"][...]
+            self.problem.uh.x.scatter_forward()
+            self.problem.sig_fun.x.scatter_forward()
+            self.problem.tan_fun.x.scatter_forward()
+        self.coupling_write()
+        self.write_output(t, n, "init-checkpoint-sol")
+
     def init_meso(self, t, n, dt):
         self.problem.solve_meso()
         self.coupling_write()
@@ -636,7 +663,9 @@ class CoupledSim(Simulation):
 
         self.write_checkpoint(t, n)
         dt = self.precice.get_max_time_step_size()
-        if self.init_with_micro:
+        if self.init_with_checkpoint:
+            self.init_checkpoint(t, n, dt)
+        elif self.init_with_micro:
             self.init_micro(t, n, dt)
         else:
             self.init_meso(t, n, dt)

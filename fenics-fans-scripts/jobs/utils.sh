@@ -41,9 +41,9 @@ edit::meso_input() {
     local precice_path="$4"
 
     sed -Ei "s#\"output_path\".*\$#\"output_path\": \"${meso_out}\",#g" "$file"
-    sed -Ei "s#\"write_state\".*\$#\"write_smeso-statetate\": \"${meso_state_out}\",#g" "$file"
+    sed -Ei "s#\"write_state\".*\$#\"write_state\": \"${meso_state_out}\",#g" "$file"
     sed -Ei "s#\"precice_xml_path\".*\$#\"precice_xml_path\": \"${precice_path}\",#g" "$file"
-    sed -Ei "s#\"slurm_id\".*\$#\"slurm_id\": \"${SLURM_JOB_ID}\"#g" "$file"
+    sed -Ei "s#\"slurm_id\".*\$#\"slurm_id\": \"${SLURM_JOB_ID}\",#g" "$file"
 }
 
 edit::meso_input_switch() {
@@ -55,6 +55,17 @@ edit::meso_input_switch() {
     edit::meso_input "$file" "$meso_out" "$meso_state_out" "$precice_path"
 
     sed -Ei "s#\"path\":.*\$#\"path\": \"${mesh_path}\",#g" "$file"
+}
+
+edit::meso_input_checkpoint() {
+    local file="$1"
+    local meso_out="$2"
+    local meso_state_out="$3"
+    local precice_path="$4"
+    local checkpoint_path="$5"
+    edit::meso_input "$file" "$meso_out" "$meso_state_out" "$precice_path"
+
+    sed -Ei "s#\"write_checkpoint\":.*\$#\"write_checkpoint\": \"${checkpoint_path}\",#g" "$file"
 }
 
 edit::precice_input() {

@@ -39,7 +39,7 @@ load_env
 NUM_MESO_NODES=1
 NUM_MM_NODES=4
 NUM_NODES=${SLURM_NNODES}
-NUM_MM_RANKS=128
+NUM_MM_RANKS=192
 NUM_MM_WORKERS=1
 NUM_MM_PPN=$((NUM_MM_RANKS / NUM_MM_NODES))
 
@@ -54,10 +54,10 @@ MICRO_PATH="${TSM_PATH}/micro-fans-notch-sphere"
 
 cp $TSM_PATH/precice-config-fans-small-strain.xml ./precice-config.xml
 cp $MESO_PATH/examples/coupled-notch/config-coupled-notch.json ./config-meso.json
-cp $MICRO_PATH/PyFANS0.so ./PyFANS0.so
-cp $MICRO_PATH/model_lin.py ./PyFANS1.py
-cp $MICRO_PATH/input.json ./input0.json
-cp $MICRO_PATH/lin_np_input.json ./input1.json
+cp $MICRO_PATH/PyFANS1.so ./PyFANS1.so
+cp $MICRO_PATH/model_lin.py ./PyFANS0.py
+cp $MICRO_PATH/input.json ./input1.json
+cp $MICRO_PATH/lin_np_input.json ./input0.json
 cp $MICRO_PATH/micro-manager-pyfans-config-mada2-stateless.json ./micro-manager-config.json
 cp $MICRO_PATH/mada_switcher_fix2.py ./mada_switcher.py
 cp $MICRO_PATH/sphere32.h5 ./
@@ -65,7 +65,7 @@ cp $MICRO_PATH/sphere32.h5 ./
 edit::meso_input ./config-meso.json "${OUT_DIR}/meso-geom" "${OUT_DIR}/meso-state" "${JOB_DIR}/precice-config.xml"
 edit::precice_input ./precice-config.xml "${OUT_DIR}/precice.log" "${OUT_DIR}/precice-profiling" "${OUT_DIR}/precice-exports" "${JOB_DIR}" 8 ${NUM_MM_RANKS}
 edit::mm_input_dy ./micro-manager-config.json "${JOB_DIR}/precice-config.xml" ${NUM_MM_RANKS} ${NUM_MM_WORKERS}
-edit::fans_input ./input0.json ${NUM_MM_WORKERS}
+edit::fans_input_switch ./input1.json ${NUM_MM_WORKERS} "sphere32.h5"
 gen_host_files ${NUM_MESO_NODES} ${NUM_MM_NODES}
 
 touch "${OUT_DIR}/meso.log"

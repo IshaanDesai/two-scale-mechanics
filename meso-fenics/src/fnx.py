@@ -57,8 +57,9 @@ class Anderson_AdaGuard:
 
 
 class LineSearchStep:
-    def __init__(self, uh: fem.Function, calc_res: callable, max_iter=10, alpha_start=1.0, tau=0.8, alpha_min=1e-4, r=1e-4):
+    def __init__(self, uh: fem.Function, du_eff: Optional[fem.Function], calc_res: callable, max_iter=10, alpha_start=1.0, tau=0.8, alpha_min=1e-4, r=1e-4):
         self.uh = uh
+        self.du_eff = du_eff
         self.calc_res = calc_res
         self.max_iter = max_iter
         self.alpha_start = alpha_start
@@ -97,23 +98,23 @@ class LineSearchStep:
         new_res = self.calc_res().norm(0)
         ignore_res_check = False
         if self.iter == 0: # just computed R(u + 1 * du) = F
-            if new_res <= (1 - self.suf_decrease * self.curr_alpha) * self.res0:
+            if new_res <= (1 - self.suf_decrease * self.curr_alpha) * self.res0 or True:
                 # no need to perform LS
                 self.is_active = False
                 return True
             else:
-                print(f"Solving LS - iter: {self.iter}, alpha: 0, res: {self.res0}")
+                print(f"Solving LS - iter: {self.iter}, alpha: 0, res: {self.res0}", flush=True)
                 ignore_res_check = True
 
         if not ignore_res_check and (new_res >= self.last_res):
             self.is_active = False
-            print(f"Solving LS - iter: {self.iter}, bad alpha: {self.curr_alpha}, res: {new_res}")
+            print(f"Solving LS - iter: {self.iter}, bad alpha: {self.curr_alpha}, res: {new_res}", flush=True)
             self.curr_alpha /= self.tau
             return True
 
         if new_res < self.res0 * self.reduction_factor:
             self.is_active = False
-            print(f"Final LS - iter: {self.iter}, accepted alpha: {self.curr_alpha}, res: {new_res}")
+            print(f"Final LS - iter: {self.iter}, accepted alpha: {self.curr_alpha}, res: {new_res}", flush=True)
             return True # last attempt was accepted
 
         self.last_res = new_res
@@ -124,21 +125,26 @@ class LineSearchStep:
             self.is_active = False
             return True
 
-        print(f"Solving LS - iter: {self.iter}, alpha: {self.curr_alpha}, res: {new_res}")
+        print(f"Solving LS - iter: {self.iter}, alpha: {self.curr_alpha}, res: {new_res}", flush=True)
         self.update_uh(self.curr_alpha, self.curr_du)
         return False
 
     def update_uh(self, alpha, du):
+        if self.du_eff is not None:
+            self.du_eff.x.array[:] = alpha * du
+            self.du_eff.x.scatter_forward()
+
         self.uh.x.array[:] = self.uh0 + alpha * du
         self.uh.x.scatter_forward()
 
 
 class NonlinearProblemStep:
-    def __init__(self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None):
+    def __init__(self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None, du_eff = None):
         self.res = fem.form(F)
         self.jac = fem.form(J)
         self.du = fem.Function(uh.function_space)
         self.uh = uh
+        self.du_eff = du_eff
         self.A = create_matrix(self.jac)
         self.L = create_vector(fem.extract_function_spaces(self.res))
 
@@ -170,6 +176,7 @@ class NonlinearProblemStep:
         self.pc = self.solver.getPC()
 
         self.last_correction = self.threshold * 10
+        self.last_res = 1
         self.construct_L_res = partial(
             NonlinearProblemStep._compute_residual_vec,
             self.L,
@@ -179,7 +186,7 @@ class NonlinearProblemStep:
             self.uh,
         )
 
-        self.ls = LineSearchStep(self.uh, self.construct_L_res)
+        self.ls = LineSearchStep(self.uh, self.du_eff, self.construct_L_res)
 
     def solve(self):
         if self.iter >= self.max_iter: return True
@@ -189,7 +196,8 @@ class NonlinearProblemStep:
             success = self.ls.step()
             if not success: return False
             self.last_correction = self.du.x.petsc_vec.norm(0) * self.ls.curr_alpha
-            print(f"Solving KSP - iter {self.iter} du-norm: {self.last_correction} res-norm: {self.L.norm(0)}")
+            self.last_res = self.L.norm(0)
+            print(f"Solving KSP - iter {self.iter} du-norm: {self.last_correction} res-norm: {self.last_res}", flush=True)
         
         self._solve_ksp()
         self.ls.initialize(self.du)
@@ -504,23 +512,33 @@ class MultiscaleProblem(MesoProblem):
 
     def __init__(self, config: Config, mesh: Mesh):
         super().__init__(config, mesh)
+        self.lin_ord1 = config.problem_lin_ord1
+        self.couple_tight = config.simulation_couple_tight
 
+        self.uh_old = fem.Function(self.V)
+        self.uh_old.x.array[:] = 0
+        self.uh_old.x.scatter_forward()
+        self.sig_old = fem.Function(self.W)
+        self.sig_old.x.array[:] = 0
+        self.sig_old.x.scatter_forward()
+        self.du_eff = fem.Function(self.V)
+        #self.du_eff.x.array[:] = 0
+        #self.du_eff.x.scatter_forward()
         if self.is_small_strain:
-            self.res = ufl.inner(self.sig_fun, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
-            self.jac = (
-                ufl.inner(
-                    ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)),
-                    self.symgrad_mandel(self.v),
-                )
-                * ufl.dx
-            )
+            if self.lin_ord1:
+                sig = self.sig_fun
+            else:
+                sig = ufl.variable(ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh)))
+            self.res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
+            self.jac = ufl.inner(ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)), self.symgrad_mandel(self.v)) * ufl.dx
             self.ms_problem = NonlinearProblemStep(
                 self.mesh.domain.comm,
                 self.uh,
                 self.res,
                 self.jac,
                 self.bc_dc,
-                self.petsc_options
+                self.petsc_options,
+                self.du_eff
             )
         else:
             self.res = ufl.inner(self.F * self.sig_fun, ufl.grad(self.v)) * ufl.dx - self.bc_nm(self.v)
@@ -583,4 +601,18 @@ class MultiscaleProblem(MesoProblem):
         self.sig_fun.x.scatter_forward()
 
     def solve(self):
-        self.ms_problem.solve()
+        self.uh_old.x.array[:] = self.uh.x.array[:]
+        self.uh_old.x.scatter_forward()
+        self.sig_old.x.array[:] = self.sig_fun.x.array[:]
+        self.sig_old.x.scatter_forward()
+        while True:
+            done = self.ms_problem.solve()
+            if self.couple_tight:
+                break
+            if self.lin_ord1:
+                sig_eval = Evaluator(ufl.variable(self.sig_old + ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh - self.uh_old))), self.W).interpolate()
+                self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
+                self.sig_fun.x.scatter_forward()
+            if done: break
+        self.ms_problem.last_res = 1.0
+        self.ms_problem.last_correction = self.ms_problem.threshold * 10

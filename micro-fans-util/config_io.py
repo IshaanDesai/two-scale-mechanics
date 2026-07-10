@@ -18,7 +18,7 @@ def add_ADA(config):
     config_ada = config
     config_ada["simulation_params"]["adaptivity"] = True
     config_ada["simulation_params"]["adaptivity_settings"] = {
-        "type": "local",
+        "type": "global",
         "data": config_ada["coupling_params"]["read_data_names"],
         "history_param": 0.5,
         "coarsening_constant": 0.3,

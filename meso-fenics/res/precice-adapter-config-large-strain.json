@@ -1,10 +1,112 @@
 {
   "participant_name": "Meso-structure",
-  "config_file_name": "../../precice-config-fans-large-strain.xml",
-  "interfaces": {
-    "meso-mesh": {
-      "write_data_names": ["strains1to3", "strains4to6", "strains7to9"],
-      "read_data_names": ["stresses1to3", "stresses4to6", "stresses7to9", "cmat1", "cmat2", "cmat3", "cmat4", "cmat5", "cmat6", "cmat7", "cmat8", "cmat9", "cmat10", "cmat11", "cmat12", "cmat13", "cmat14", "cmat15", "cmat16", "cmat17", "cmat18", "cmat19", "cmat20", "cmat21", "cmat22", "cmat23", "cmat24", "cmat25", "cmat26", "cmat27"]
-      }
+  "precice_config_file_path": "../../precice-config-fans-large-strain.xml",
+  "interfaces": [
+    {
+      "mesh_name": "meso-mesh",
+      "write_data": [
+        {
+          "name" : "strains1to3"
+        },
+        {
+          "name": "strains4to6"
+        },
+        {
+          "name": "strains7to9"
+        }
+      ],
+      "read_data": [
+        {
+          "name" : "stresses1to3"
+        },
+        {
+          "name" : "stresses4to6"
+        },
+        {
+          "name" : "strains7to9"
+        },
+        {
+          "name" : "cmat1"
+        },
+        {
+          "name" : "cmat2"
+        },
+        {
+          "name" : "cmat3"
+        },
+        {
+          "name" : "cmat4"
+        },
+        {
+          "name" : "cmat5"
+        },
+        {
+          "name" : "cmat6"
+        },
+        {
+          "name" : "cmat7"
+        },
+        {
+          "name": "cmat8"
+        },
+        {
+          "name": "cmat9"
+        },
+        {
+          "name": "cmat10"
+        },
+        {
+          "name": "cmat11"
+        },
+        {
+          "name": "cmat12"
+        },
+        {
+          "name": "cmat13"
+        },
+        {
+          "name": "cmat14"
+        },
+        {
+          "name": "cmat15"
+        },
+        {
+          "name": "cmat16"
+        },
+        {
+          "name": "cmat17"
+        },
+        {
+          "name": "cmat18"
+        },
+        {
+          "name": "cmat19"
+        },
+        {
+          "name": "cmat20"
+        },
+        {
+          "name": "cmat21"
+        },
+        {
+          "name": "cmat22"
+        },
+        {
+          "name": "cmat23"
+        },
+        {
+          "name": "cmat24"
+        },
+        {
+          "name": "cmat25"
+        },
+        {
+          "name": "cmat26"
+        },
+        {
+          "name": "cmat27"
+        }
+      ]
     }
+  ]
 }

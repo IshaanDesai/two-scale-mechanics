@@ -27,7 +27,7 @@
 #SBATCH --partition=micro
 #
 #Number of nodes and MPI tasks per node:
-#SBATCH --nodes=2
+#SBATCH --nodes=5
 #SBATCH --ntasks-per-node=48
 #
 #Ensure exclusive access to compute nodes
@@ -37,9 +37,9 @@ source ../jobs/utils.sh
 load_env
 
 NUM_MESO_NODES=1
-NUM_MM_NODES=1
+NUM_MM_NODES=4
 NUM_NODES=${SLURM_NNODES}
-NUM_MM_RANKS=8
+NUM_MM_RANKS=64
 NUM_MM_WORKERS=2
 NUM_MM_PPN=$((NUM_MM_RANKS / NUM_MM_NODES))
 

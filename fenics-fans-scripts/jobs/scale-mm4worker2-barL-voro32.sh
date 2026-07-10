@@ -18,16 +18,16 @@
 #SBATCH --mail-user=alex.hocks@tum.de
 #
 # Wall clock limit:
-#SBATCH --time=08:00:00
+#SBATCH --time=00:30:00
 #SBATCH --no-requeue
 #
 #Setup of execution environment
 #SBATCH --get-user-env
 #SBATCH --account=pn76so
-#SBATCH --partition=micro
+#SBATCH --partition=general
 #
 #Number of nodes and MPI tasks per node:
-#SBATCH --nodes=2
+#SBATCH --nodes=17
 #SBATCH --ntasks-per-node=48
 #
 #Ensure exclusive access to compute nodes
@@ -37,9 +37,9 @@ source ../jobs/utils.sh
 load_env
 
 NUM_MESO_NODES=1
-NUM_MM_NODES=1
+NUM_MM_NODES=16
 NUM_NODES=${SLURM_NNODES}
-NUM_MM_RANKS=4
+NUM_MM_RANKS=256
 NUM_MM_WORKERS=2
 NUM_MM_PPN=$((NUM_MM_RANKS / NUM_MM_NODES))
 

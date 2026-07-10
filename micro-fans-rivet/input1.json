@@ -1,25 +1,24 @@
 {
     "microstructure": {
-        "filepath": "voro32.h5",
-        "datasetname": "/dset_0",
+        "filepath": "sphere3p32.h5",
+        "datasetname": "/sphere/32x32x32/ms",
         "L": [1.0, 1.0, 1.0]
     },
     "problem_type": "mechanical",
+    "strain_type": "small",
     "materials": [
         {
-            "phases": [0],
-            "matmodel": "PseudoPlasticNonLinearHardening",
+            "phases": [0, 1],
+            "matmodel": "PseudoPlasticLinearHardening",
             "material_properties": {
-                "bulk_modulus": [62.5000],
-                "shear_modulus": [28.8462],
-                "yield_stress": [0.1],
-                "hardening_parameter": [0.0],
-                "hardening_exponent": [0.2],
-                "eps_0": [0.01]
+                "bulk_modulus": [62.5000, 62.5000],
+                "shear_modulus": [28.8462, 28.8462],
+                "yield_stress": [0.1, 0.115],
+                "hardening_parameter": [2.0, 0.0]
             }
         },
         {
-            "phases": [1],
+            "phases": [2],
             "matmodel": "LinearElasticIsotropic",
             "material_properties": {
                 "bulk_modulus": [222.222],
