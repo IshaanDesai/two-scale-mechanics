@@ -7,39 +7,40 @@
 * Load python/3.10.xx-extended (is not listed but exists)
 * When using venv, create env using `python -m venv --system-site-packages --copies venv/py310/` site packages should provide a numpy and mpi4py version linked against intel-mpi. --copies is needed (fails to discover system packages otherwise)
 * The following python packages can be installed via wheels:
-  * `pip install --no-index --find-links=wheels --no-build-isolation --upgrade exceptiongroup joblib packaging pathspec pkgconfig poetry-core psutil "scikit-build-core[pyproject]" scikit-learn threadpoolctl tomli typing_extensions wheel`
-  * when downloading wheels, make sure to have a local python install of version 3.10.xx
-  * download with: e.g. `pip download --only-binary=:all: --dest wheels "scikit-build-core[pyproject]"`
-  * --upgrade is required as some must be updated
-  * all other packages must be installed via build from src to link against the correct MPI version
-  * some python packages use an older style for pyproject.toml -> just comment out license-files and replace license with: `license = {text="LICENSE-TYPE"}`
-  * some python packages have version 0.0.0 when building from src -> dependency detection will fail, remove dependency version
+   * `pip install --no-index --find-links=wheels --no-build-isolation --upgrade exceptiongroup joblib packaging pathspec pkgconfig poetry-core psutil "scikit-build-core[pyproject]" scikit-learn threadpoolctl tomli typing_extensions wheel`
+   * when downloading wheels, make sure to have a local python install of version 3.10.xx
+   * download with: e.g. `pip download --only-binary=:all: --dest wheels "scikit-build-core[pyproject]"`
+   * --upgrade is required as some must be updated
+   * all other packages must be installed via build from src to link against the correct MPI version
+   * some python packages use an older style for pyproject.toml -> just comment out license-files and replace license with: `license = {text="LICENSE-TYPE"}`
+   * some python packages have version 0.0.0 when building from src -> dependency detection will fail, remove dependency version
 * As early as possible replace the MPI4PY version with 3.1.6
-  * See: [DolfinX nanobind issue](https://fenicsproject.discourse.group/t/no-attribute-qualname-due-to-mpi4py-4-0-0/15375)
+   * See: [DolfinX nanobind issue](https://fenicsproject.discourse.group/t/no-attribute-qualname-due-to-mpi4py-4-0-0/15375)
 * Install h5py from source
-  * set `HDF5_MPI=ON`
-  * set `HDF5_INCLUDEDIR` to the correct path, find it using `module show hdf5/<your_version>`
+   * set `HDF5_MPI=ON`
+   * set `HDF5_INCLUDEDIR` to the correct path, find it using `module show hdf5/<your_version>`
 * If you (for some reason) decide to compile with intel compiler: install cython with:
-  * `export SETUPTOOLS_USE_DISTUTILS=1`
-  * `CC=icx LINKCC=icx LDSHARED="icx -shared" pip install cython-3.2.4.zip --no-index --no-build-isolation`
+   * `export SETUPTOOLS_USE_DISTUTILS=1`
+   * `CC=icx LINKCC=icx LDSHARED="icx -shared" pip install cython-3.2.4.zip --no-index --no-build-isolation`
 * Configure petsc with:
-  * `export PETSC_ARCH=arch-linux-c-opt`
-  * `export PETSC_DIR=<petsc_src_dir>`
-  * `./configure --prefix=<install_dir> --with-python-exec=$HOME/venv/py310/bin/python --with-shared-libraries=1 --with-memalign=64 --with-petsc4py=1 --with-eigen=1 --with-eigen-dir=$EIGEN_BASE --with-fftw=1 --with-fftw-dir=$FFTW_BASE --with-hdf5=1 --with-hdf5-dir=$HDF5_BASE --with-hypre=1 --with-hypre-dir=$HYPRE_BASE --with-mpi=1 --with-mpi4py=1 --with-nanobind=1 --with-openmp=1 --with-debugging=0`
+   * `export PETSC_ARCH=arch-linux-c-opt`
+   * `export PETSC_DIR=<petsc_src_dir>`
+   * `./configure --prefix=<install_dir> --with-python-exec=$HOME/venv/py310/bin/python --with-shared-libraries=1 --with-memalign=64 --with-petsc4py=1 --with-eigen=1 --with-eigen-dir=$EIGEN_BASE --with-fftw=1 --with-fftw-dir=$FFTW_BASE --with-hdf5=1 --with-hdf5-dir=$HDF5_BASE --with-hypre=1 --with-hypre-dir=$HYPRE_BASE --with-mpi=1 --with-mpi4py=1 --with-nanobind=1 --with-openmp=1 --with-debugging=0`
 * Install petsc4py with:
-  * `PETSC_ARCH` and `PETSC_DIR` must be set as above
-  * from the petsc-src dir: `pip install src/binding/petsc4py --no-index --no-build-isolation`
+   * `PETSC_ARCH` and `PETSC_DIR` must be set as above
+   * from the petsc-src dir: `pip install src/binding/petsc4py --no-index --no-build-isolation`
 * Configure slepc with:
-  * petsc4py must be installed
-  * `PETSC_ARCH` and `PETSC_DIR` must be set as above
-  * `export SLEPC_DIR=<slepc_src_dir>`
-  * `./configure --prefix=<install_dir> --with-slepc4py`
+   * petsc4py must be installed
+   * `PETSC_ARCH` and `PETSC_DIR` must be set as above
+   * `export SLEPC_DIR=<slepc_src_dir>`
+   * `./configure --prefix=<install_dir> --with-slepc4py`
 * When using gcc14 and intel-mpi compiling FANS and pyFANS will result in CMAKE errors
-  * comment out include(FetchContent)... and FetchContent_Declare(...), insert find_package(pybind11 REQUIRED) 
-  * add FFTW3_INCLUDE_DIRS to all targets, not just FANS_FANS
-  * and do the following in ./cmake/modules/FindFFTW3.cmake:
+   * comment out include(FetchContent)... and FetchContent_Declare(...), insert find_package(pybind11 REQUIRED)
+   * add FFTW3_INCLUDE_DIRS to all targets, not just FANS_FANS
+   * and do the following in ./cmake/modules/FindFFTW3.cmake:
 
 Replace:
+
 ```CMake
 ## MPI
 if(PARALLEL STREQUAL "MPI")
@@ -51,7 +52,9 @@ if(PARALLEL STREQUAL "MPI")
   endif()
 endif()
 ```
+
 with:
+
 ```CMake
 ## MPI
 if(PARALLEL STREQUAL "MPI")
@@ -65,10 +68,9 @@ if(PARALLEL STREQUAL "MPI")
       INTERFACE_LINK_LIBRARIES "${MPI_C_LIBRARIES}"
     )
   endif()
-endif() 
+endif()
 ```
 
-     
 Packages built from src:
 
 |                         |                   |                  |                           |               |
@@ -83,6 +85,7 @@ Packages built from src:
 __Remember:__ set `LD_LIBRARY_PATH CMAKE_PREFIX_PATH PATH PKG_CONFIG_PATH` when applicable
 
 Loaded Modules:
+
 ```bash
 module purge
 module load stack/24.5.0

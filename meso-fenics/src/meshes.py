@@ -87,7 +87,9 @@ class Mesh:
             cell_values = np.ones(num_cells, dtype=np.int32)
             cell_tags = mesh.meshtags(base_mesh, tdim, cell_indices, cell_values)
 
-            mesh_data = io.gmsh.MeshData(base_mesh, cell_tags, facet_tags, None, None, {})
+            mesh_data = io.gmsh.MeshData(
+                base_mesh, cell_tags, facet_tags, None, None, {}
+            )
         elif config.mesh_path.endswith(".msh"):
             mesh_data = io.gmsh.read_from_msh(config.mesh_path, MPI.COMM_WORLD, gdim=3)
         else:
@@ -125,8 +127,12 @@ class Mesh:
 
         conversion_factor = 1000.0 / np.power(dims, 2)
 
-        self.bc_dc_value = fem.Constant(self.domain, config.bc_dc_value * conversion_factor)
-        self.bc_nm_value = fem.Constant(self.domain, config.bc_nm_value * conversion_factor)
+        self.bc_dc_value = fem.Constant(
+            self.domain, config.bc_dc_value * conversion_factor
+        )
+        self.bc_nm_value = fem.Constant(
+            self.domain, config.bc_nm_value * conversion_factor
+        )
 
     def normalize_domain(self):
         """

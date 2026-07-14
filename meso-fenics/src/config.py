@@ -219,9 +219,7 @@ class Config:
             self._problem_elem_degree = get_else(
                 self._data["problem"]["elem_degree"], 2
             )
-            self._problem_lin_ord1 = get_else(
-                self._data["problem"]["lin_ord1"], False
-            )
+            self._problem_lin_ord1 = get_else(self._data["problem"]["lin_ord1"], False)
         else:
             self._problem_lambda = 10.0
             self._problem_mu = 5.0

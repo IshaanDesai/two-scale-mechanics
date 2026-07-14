@@ -355,7 +355,7 @@ class CoupledSim(Simulation):
         self.adapter_config_path = CoupledSim._get_adapter_path(
             self.problem.is_small_strain,
             config.simulation_precice_xml_path,
-            config.simulation_slurm_id
+            config.simulation_slurm_id,
         )
         self.precice = Adapter(MPI.COMM_WORLD, self.adapter_config_path)
         coupling_boundary = CoupledSim.coupling_bc
@@ -486,13 +486,18 @@ class CoupledSim(Simulation):
             Path to preCICE adapter config file
         """
         strain_type = "small" if is_small_strain else "large"
-        adapter_config_path_base = f"res/precice-adapter-config-{strain_type}-strain.json"
-        adapter_config_path_run  = f"res/precice-adapter-config-{strain_type}-strain-{run_id}.json"
+        adapter_config_path_base = (
+            f"res/precice-adapter-config-{strain_type}-strain.json"
+        )
+        adapter_config_path_run = (
+            f"res/precice-adapter-config-{strain_type}-strain-{run_id}.json"
+        )
 
         # create job specific adapter config
         if MPI.COMM_WORLD.Get_rank() == 0:
             try:
                 import json
+
                 with open(adapter_config_path_base, "r") as infile:
                     base_conf = json.load(infile)
 
@@ -510,9 +515,11 @@ class CoupledSim(Simulation):
 
     @staticmethod
     def _delete_adapter_file(path):
-        if MPI.COMM_WORLD.Get_rank() != 0: return
+        if MPI.COMM_WORLD.Get_rank() != 0:
+            return
 
         import os
+
         if os.path.exists(path):
             os.remove(path)
 
@@ -590,13 +597,13 @@ class CoupledSim(Simulation):
         """
         if self.precice.requires_reading_checkpoint():
             state, t_, n_ = self.precice.retrieve_checkpoint()
-            #uh_arr = state
-            #self.problem.uh.x.array[:] = uh_arr.x.array[:]
+            # uh_arr = state
+            # self.problem.uh.x.array[:] = uh_arr.x.array[:]
             return True, t_, n_
         else:
             return False, t, n
 
-    def init_checkpoint(self, t, n ,dt):
+    def init_checkpoint(self, t, n, dt):
         rank = ""
         if MPI.COMM_WORLD.Get_size() > 1:
             rank = f"_rank{MPI.COMM_WORLD.Get_rank()}"

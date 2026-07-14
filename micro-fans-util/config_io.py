@@ -30,37 +30,31 @@ def add_ADA(config):
             {
                 "src_fields": config_ada["coupling_params"]["read_data_names"],
                 "dst_fields": config_ada["coupling_params"]["write_data_names"],
-                "interp_id": "adaptivity"
+                "interp_id": "adaptivity",
             }
-        ]
+        ],
     }
     config_ada["simulation_params"]["interpolation_configs"] = [
         {
             "type": "RBF",
             "id": "adaptivity",
-            "rbf_config": {
-                "basis": {
-                    "type": "c6"
-                },
-                "n_neighbors": 50
-            },
+            "rbf_config": {"basis": {"type": "c6"}, "n_neighbors": 50},
             "domain_config": {
                 "max_filling": 8,
                 "coarsening_factor": 2,
-                "projection": {
-                    "type": "std",
-                    "target_dims": 3
-                }
-            }
+                "projection": {"type": "std", "target_dims": 3},
+            },
         }
     ]
     return config_ada
 
 
-def add_MADA(config, dim_mada:Optional[int]=None):
+def add_MADA(config, dim_mada: Optional[int] = None):
     micro_names = ["PyFANS0", "PyFANS1", "PyFANS2"]
-    if dim_mada is None: dim_mada = 3
-    if dim_mada < 2 or dim_mada > 3: raise ValueError("dim_mada must be 2 or 3")
+    if dim_mada is None:
+        dim_mada = 3
+    if dim_mada < 2 or dim_mada > 3:
+        raise ValueError("dim_mada must be 2 or 3")
 
     config_mada = config
     config_mada["simulation_params"]["model_adaptivity"] = True
@@ -76,7 +70,16 @@ def add_stateless(config, has_mada):
     config["micro_stateless_flags"] = [True] * dim
     return config
 
-def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, target_configs, dim_mada:Optional[int]=None):
+
+def gen_config(
+    num_mm_ranks,
+    num_workers,
+    use_slurm,
+    mpi_impl,
+    decomp_dim,
+    target_configs,
+    dim_mada: Optional[int] = None,
+):
     base_config = load_json("micro-manager-pyfans-config.json")
     base_config["simulation_params"]["decomposition"][decomp_dim] = num_mm_ranks
     base_config["tasking"]["num_workers"] = num_workers
@@ -96,12 +99,15 @@ def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, targe
         if use_ada:
             file_name += "-ada"
         if use_mada:
-            if dim_mada is not None: file_name += f"-mada{dim_mada}"
-            else: file_name += "-mada"
+            if dim_mada is not None:
+                file_name += f"-mada{dim_mada}"
+            else:
+                file_name += "-mada"
         if use_stateless:
             file_name += "-stateless"
         file_name += ".json"
         write_json(config, file_name)
+
 
 USE_ADA = True
 NO_ADA = False

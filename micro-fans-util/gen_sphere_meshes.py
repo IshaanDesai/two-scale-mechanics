@@ -2,11 +2,11 @@ import numpy as np
 import h5py
 
 
-
 def write_h5(grid, filename):
     with h5py.File(filename, "w") as f:
         f.create_dataset("sphere/32x32x32/ms", data=grid)
     return grid
+
 
 def mark_sphere_cells(N: int, K: int, r: float) -> np.ndarray:
     """
@@ -49,24 +49,22 @@ def mark_sphere_cells(N: int, K: int, r: float) -> np.ndarray:
 
     # Count how many of the 8 corners of each cell are inside
     corner_count = (
-        inside[:-1, :-1, :-1].astype(np.uint8) +
-        inside[1:, :-1, :-1].astype(np.uint8) +
-        inside[:-1, 1:, :-1].astype(np.uint8) +
-        inside[:-1, :-1, 1:].astype(np.uint8) +
-        inside[1:, 1:, :-1].astype(np.uint8) +
-        inside[1:, :-1, 1:].astype(np.uint8) +
-        inside[:-1, 1:, 1:].astype(np.uint8) +
-        inside[1:, 1:, 1:].astype(np.uint8)
+        inside[:-1, :-1, :-1].astype(np.uint8)
+        + inside[1:, :-1, :-1].astype(np.uint8)
+        + inside[:-1, 1:, :-1].astype(np.uint8)
+        + inside[:-1, :-1, 1:].astype(np.uint8)
+        + inside[1:, 1:, :-1].astype(np.uint8)
+        + inside[1:, :-1, 1:].astype(np.uint8)
+        + inside[:-1, 1:, 1:].astype(np.uint8)
+        + inside[1:, 1:, 1:].astype(np.uint8)
     )
 
     grid = (corner_count >= K).astype(np.uint8)
     return grid
 
+
 def mark_sphere_cells_blocked(
-    N: int,
-    K: int,
-    r: float,
-    block_size: int = 64
+    N: int, K: int, r: float, block_size: int = 64
 ) -> np.ndarray:
     """
     Memory-efficient blocked version of mark_sphere_cells.
@@ -125,19 +123,20 @@ def mark_sphere_cells_blocked(
 
         # Corner aggregation
         corner_count = (
-            inside[:-1, :-1, :-1].astype(np.uint8) +
-            inside[1:, :-1, :-1].astype(np.uint8) +
-            inside[:-1, 1:, :-1].astype(np.uint8) +
-            inside[:-1, :-1, 1:].astype(np.uint8) +
-            inside[1:, 1:, :-1].astype(np.uint8) +
-            inside[1:, :-1, 1:].astype(np.uint8) +
-            inside[:-1, 1:, 1:].astype(np.uint8) +
-            inside[1:, 1:, 1:].astype(np.uint8)
+            inside[:-1, :-1, :-1].astype(np.uint8)
+            + inside[1:, :-1, :-1].astype(np.uint8)
+            + inside[:-1, 1:, :-1].astype(np.uint8)
+            + inside[:-1, :-1, 1:].astype(np.uint8)
+            + inside[1:, 1:, :-1].astype(np.uint8)
+            + inside[1:, :-1, 1:].astype(np.uint8)
+            + inside[:-1, 1:, 1:].astype(np.uint8)
+            + inside[1:, 1:, 1:].astype(np.uint8)
         )
 
         grid[:, :, z_start:z_end] = (corner_count >= K).astype(np.uint8)
 
     return grid
+
 
 def downsample_majority(grid: np.ndarray) -> np.ndarray:
     """
@@ -168,16 +167,13 @@ def downsample_majority(grid: np.ndarray) -> np.ndarray:
     fine = grid.astype(np.uint8, copy=False)
 
     # Reshape into (N/2, 2, N/2, 2, N/2, 2)
-    coarse_counts = fine.reshape(
-        N // 2, 2,
-        N // 2, 2,
-        N // 2, 2
-    ).sum(axis=(1, 3, 5))
+    coarse_counts = fine.reshape(N // 2, 2, N // 2, 2, N // 2, 2).sum(axis=(1, 3, 5))
 
     # Majority rule: >= 4 out of 8
     coarse = (coarse_counts >= 4).astype(np.uint8)
 
     return coarse
+
 
 def downsample_to_resolution(grid: np.ndarray, N_target: int) -> np.ndarray:
     """
@@ -212,21 +208,18 @@ def downsample_to_resolution(grid: np.ndarray, N_target: int) -> np.ndarray:
     fine = grid.astype(np.uint32, copy=False)
 
     # reshape into blocks
-    reshaped = fine.reshape(
-        N_target, factor,
-        N_target, factor,
-        N_target, factor
-    )
+    reshaped = fine.reshape(N_target, factor, N_target, factor, N_target, factor)
 
     # sum inside each block
     block_sum = reshaped.sum(axis=(1, 3, 5))
 
     # majority threshold
-    threshold = (factor ** 3) / 2
+    threshold = (factor**3) / 2
 
     coarse = (block_sum >= threshold).astype(np.uint8)
 
     return coarse
+
 
 def downsample_fractional_volume(grid: np.ndarray, N_target: int) -> np.ndarray:
     """
@@ -243,11 +236,7 @@ def downsample_fractional_volume(grid: np.ndarray, N_target: int) -> np.ndarray:
     fine = grid.astype(np.uint32, copy=False)
 
     # Compute sum of ones in each coarse block
-    reshaped = fine.reshape(
-        N_target, factor,
-        N_target, factor,
-        N_target, factor
-    )
+    reshaped = fine.reshape(N_target, factor, N_target, factor, N_target, factor)
     block_sum = reshaped.sum(axis=(1, 3, 5))
 
     flat_sum = block_sum.flatten()
@@ -267,6 +256,7 @@ def downsample_fractional_volume(grid: np.ndarray, N_target: int) -> np.ndarray:
     coarse = coarse_flat.reshape((N_target, N_target, N_target))
     return coarse
 
+
 def select_optimal_blocks(grid: np.ndarray, N_target: int) -> np.ndarray:
     """
     Select coarse blocks to preserve volume using a greedy fraction-error approach.
@@ -276,11 +266,7 @@ def select_optimal_blocks(grid: np.ndarray, N_target: int) -> np.ndarray:
     fine = grid.astype(np.uint32, copy=False)
 
     # Sum of ones per coarse block
-    reshaped = fine.reshape(
-        N_target, factor,
-        N_target, factor,
-        N_target, factor
-    )
+    reshaped = fine.reshape(N_target, factor, N_target, factor, N_target, factor)
     block_sum = reshaped.sum(axis=(1, 3, 5))
 
     total_ones = fine.sum()
@@ -289,7 +275,7 @@ def select_optimal_blocks(grid: np.ndarray, N_target: int) -> np.ndarray:
     fractions = block_sum / total_ones
 
     # Fraction of zeros (error)
-    block_size = factor ** 3
+    block_size = factor**3
     errors = block_size - block_sum
     error_fractions = errors / total_ones
 
@@ -300,7 +286,7 @@ def select_optimal_blocks(grid: np.ndarray, N_target: int) -> np.ndarray:
 
     # Number of blocks we can set to 1 to preserve total volume
     # total ones in fine grid / block_size, rounded
-    n_set = int(round(total_ones / block_size))+1
+    n_set = int(round(total_ones / block_size)) + 1
 
     # Indices of top scoring blocks
     top_indices = np.argpartition(-flat_score, n_set - 1)[:n_set]
@@ -311,6 +297,7 @@ def select_optimal_blocks(grid: np.ndarray, N_target: int) -> np.ndarray:
     coarse = coarse_flat.reshape((N_target, N_target, N_target))
 
     return coarse
+
 
 def select_optimal_blocks_symmetric(grid: np.ndarray, N_target: int) -> np.ndarray:
     """
@@ -338,18 +325,14 @@ def select_optimal_blocks_symmetric(grid: np.ndarray, N_target: int) -> np.ndarr
     # Compute coarse block sums for the lower octant
     half = N_target // 2 + N_target % 2  # include center if odd
 
-    reshaped = fine.reshape(
-        N_target, factor,
-        N_target, factor,
-        N_target, factor
-    )
+    reshaped = fine.reshape(N_target, factor, N_target, factor, N_target, factor)
     block_sum = reshaped.sum(axis=(1, 3, 5))
 
     # Take only lower quadrant
     lower_octant = block_sum[:half, :half, :half]
 
     total_ones = fine.sum()
-    block_size = factor ** 3
+    block_size = factor**3
 
     # Fraction and error fraction
     fractions = lower_octant / total_ones
@@ -384,6 +367,7 @@ def select_optimal_blocks_symmetric(grid: np.ndarray, N_target: int) -> np.ndarr
 
     return coarse
 
+
 def compute_vol_frac(grid, sphere_val=None):
     N = grid.shape[0]
     cube_vol = np.power(1.0 / N, 3)
@@ -406,8 +390,10 @@ def convert_to_3phase(grid):
     grid[:, 0:mid_point, :][mask] = 0
     return grid
 
+
 def compute_true_frac(rad):
     return 4.0 / 3.0 * np.pi * np.power(rad, 3)
+
 
 # ==================================================================
 # Call this to generate the sphere meshes
@@ -440,8 +426,9 @@ def generate_spheres():
     write_h5(grid64, "./sphere64.h5")
     write_h5(grid32, "./sphere32.h5")
 
+
 def generate_spheres_3phase():
-    rad = np.power(3.0 / 4.0 /np.pi * 0.0654, 1.0/3.0)
+    rad = np.power(3.0 / 4.0 / np.pi * 0.0654, 1.0 / 3.0)
     grid1024 = mark_sphere_cells_blocked(1024, 4, rad)
     grid512 = select_optimal_blocks_symmetric(grid1024, 512)
     grid256 = select_optimal_blocks_symmetric(grid512, 256)

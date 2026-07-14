@@ -14,14 +14,15 @@ def switching_function(resolution, location, t, input, prev_output):
 
     # ROM
     if resolution == 0:
-        if in_inner: return 1
+        if in_inner:
+            return 1
         return 0
     # FOM
     elif resolution == 1:
-        if in_inner: return 0
+        if in_inner:
+            return 0
         # -1 allows going back to lower resolution
         # if one way path is desired return 0 here
         return -1
     else:
         return 0
-
