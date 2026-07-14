@@ -24,8 +24,36 @@ def add_ADA(config):
         "coarsening_constant": 0.3,
         "refining_constant": 0.4,
         "every_implicit_iteration": True,
-        "output_cpu_time": True,
+        "output_type": "all",
+        "output_n": 1,
+        "mappings": [
+            {
+                "src_fields": config_ada["coupling_params"]["read_data_names"],
+                "dst_fields": config_ada["coupling_params"]["write_data_names"],
+                "interp_id": "adaptivity"
+            }
+        ]
     }
+    config_ada["simulation_params"]["interpolation_configs"] = [
+        {
+            "type": "RBF",
+            "id": "adaptivity",
+            "rbf_config": {
+                "basis": {
+                    "type": "c6"
+                },
+                "n_neighbors": 50
+            },
+            "domain_config": {
+                "max_filling": 8,
+                "coarsening_factor": 2,
+                "projection": {
+                    "type": "std",
+                    "target_dims": 3
+                }
+            }
+        }
+    ]
     return config_ada
 
 
@@ -37,19 +65,15 @@ def add_MADA(config, dim_mada:Optional[int]=None):
     config_mada = config
     config_mada["simulation_params"]["model_adaptivity"] = True
     config_mada["simulation_params"]["model_adaptivity_settings"] = {
-        "micro_file_names": [micro_names[idx] for idx in range(dim_mada)],
-        "switching_function": "mada_switcher",
+        "switching_function": "mada_switcher"
     }
+    config_mada["micro_file_names"] = [micro_names[idx] for idx in range(dim_mada)]
     return config_mada
 
 
-def add_stateless(config, has_mada, dim_mada:Optional[int]=None):
-    if dim_mada is None: dim_mada = 3
-
-    if has_mada:
-        config["simulation_params"]["model_adaptivity_settings"]["micro_stateless"] = [True] * dim_mada
-    else:
-        config["micro_stateless"] = True
+def add_stateless(config, has_mada):
+    dim = len(config["micro_file_names"])
+    config["micro_stateless_flags"] = [True] * dim
     return config
 
 def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, target_configs, dim_mada:Optional[int]=None):
@@ -66,7 +90,7 @@ def gen_config(num_mm_ranks, num_workers, use_slurm, mpi_impl, decomp_dim, targe
         if use_mada:
             add_MADA(config, dim_mada)
         if use_stateless:
-            add_stateless(config, use_mada, dim_mada)
+            add_stateless(config, use_mada)
 
         file_name = "micro-manager-pyfans-config"
         if use_ada:

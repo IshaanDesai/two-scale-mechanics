@@ -1,7 +1,7 @@
 {
   "output_path": "output/bar-coupled-small-sphere32",
   "mesh": {
-    "path": "examples/coupled-bar/bar1.msh",
+    "path": "examples/coupled-bar/bar3d.msh",
     "bc_dc_use_tag": false,
     "bc_dc_locator": "plane_yz_low",
     "bc_nm_use_tag": false,
@@ -22,7 +22,7 @@
     "micro_type": "PYFANS",
     "write_state": "output/coupled_bar_small_state",
     "write_state_type": ["S", "U", "E"],
-    "init_with_micro": false,
+    "init_with_micro": true,
     "write_checkpoint": "output/checkpoint_bar",
     "precice_xml_path": "../../precice-config-fans-small-strain.xml",
     "slurm_id": "default",

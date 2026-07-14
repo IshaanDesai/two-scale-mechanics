@@ -1,5 +1,6 @@
 {
-    "micro_file_name": "PyFANS",
+    "micro_file_names": ["PyFANS"],
+    "micro_stateless_flags": [false],
     "coupling_params": {
         "precice_config_file_name": "../precice-config-fans-small-strain.xml",
         "macro_mesh_name": "meso-mesh",
@@ -9,8 +10,9 @@
     "simulation_params": {
         "load_balancing": true,
         "load_balancing_settings": {
+            "type": "time",
             "partitioning": "lpt",
-            "every_n_time_windows": 10
+            "every_n_time_windows": 2
         },
         "micro_dt": 1e-1,
         "macro_domain_bounds": [-0.0001, 1.0001, -0.0001, 1.0001, -0.0001, 1.0001],
@@ -19,7 +21,7 @@
     "tasking": {
         "backend": "socket",
         "is_slurm": false,
-        "num_workers": 4,
-        "mpi_impl": "intel"
+        "num_workers": 1,
+        "mpi_impl": "open"
     }
 }
