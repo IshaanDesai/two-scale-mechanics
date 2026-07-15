@@ -4,3 +4,4 @@ rm -rfv __pycache__
 rm -rfv precice-profiling/
 rm -fv .nfs*
 rm -fv MODEL_*
+rm -rfv .venv
