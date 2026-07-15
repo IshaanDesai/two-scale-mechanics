@@ -1,7 +1,7 @@
 {
-    "micro_file_name": "ruc_nasmat",
+    "micro_file_names": ["ruc_nasmat"],
     "coupling_params": {
-        "precice_config_file_name": "../precice-config.xml",
+        "precice_config_file_name": "../precice-config-for-nasmat.xml",
         "macro_mesh_name": "meso-mesh",
         "read_data_names": ["rve_id", "mod_id", "ruc_size", "strains1to3", "strains4to6"],
         "write_data_names": ["conv",
