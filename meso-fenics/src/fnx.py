@@ -85,10 +85,10 @@ class NonlinearProblemStep:
 
         self._solve_ksp()
         if self.du_eff is not None:
-            self.du_eff.x.array[:] = self.du
+            self.du_eff.x.array[:] = self.du.x.array[:]
             self.du_eff.x.scatter_forward()
 
-        self.uh.x.array[:] = self.uh + self.du
+        self.uh.x.array[:] = self.uh.x.array[:] + self.du.x.array[:]
         self.uh.x.scatter_forward()
 
         self.last_correction = self.du.x.petsc_vec.norm(0)
