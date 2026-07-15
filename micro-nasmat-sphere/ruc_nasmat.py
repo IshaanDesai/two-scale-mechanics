@@ -3,7 +3,11 @@ Solve RVE using NASMAT: https://software.nasa.gov/software/LEW-20244-1
 """
 import numpy as np
 from pynasmat import Model, Constituent, Ruc
-from pynasmat.constants import MAT_TRANSVERSE_ISOTROPIC, RUC_ARCHID_SQPACK_1FIBER, RUC_MODID_GMC_2D
+from pynasmat.constants import (
+    MAT_TRANSVERSE_ISOTROPIC,
+    RUC_ARCHID_SQPACK_1FIBER,
+    RUC_MODID_GMC_2D,
+)
 
 
 class MicroSimulation:
@@ -43,7 +47,10 @@ class MicroSimulation:
 
         # Solving RVE using NASMAT
         cmat = model.homogenize(print_output=0)
-        print("ruc_nasmat.py OUTPUT >>> homogenization completed for RVE ID: ", self._rve_id)
+        print(
+            "ruc_nasmat.py OUTPUT >>> homogenization completed for RVE ID: ",
+            self._rve_id,
+        )
 
         # Stress calculation
         stresses = np.zeros((6))
