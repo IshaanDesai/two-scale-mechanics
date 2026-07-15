@@ -117,6 +117,10 @@ class Config:
         Types of state data to write.
     simulation_init_tan : bool
         Whether to initialize the simulation using tangent.
+    simulation_prc_path : str
+        Path to preCICE config file
+    simulation_slurm_id : str
+        Slurm ID for simulation. (job id)
     """
 
     def __init__(self):
@@ -137,6 +141,7 @@ class Config:
         self._problem_alpha = None
         self._problem_strain_type = None
         self._problem_elem_degree = None
+        self._problem_lin_ord1 = None
 
         self._simulation_type = None
         self._simulation_input = None
@@ -144,6 +149,11 @@ class Config:
         self._simulation_wstate = None
         self._simulation_wstate_t = None
         self._simulation_init_tan = None
+        self._simulation_prc_path = None
+        self._simulation_slurm_id = None
+        self._simulation_wcheckpoint = None
+        self._simulation_rcheckpoint = None
+        self._simulation_couple_tight = None
 
         self._output_path = None
 
@@ -209,12 +219,14 @@ class Config:
             self._problem_elem_degree = get_else(
                 self._data["problem"]["elem_degree"], 2
             )
+            self._problem_lin_ord1 = get_else(self._data["problem"]["lin_ord1"], False)
         else:
             self._problem_lambda = 10.0
             self._problem_mu = 5.0
             self._problem_alpha = 100.0
             self._problem_strain_type = "small_strain"
             self._problem_elem_degree = 2
+            self._problem_lin_ord1 = False
 
         # SIMULATION
         if self._data["simulation"] is None:
@@ -235,6 +247,21 @@ class Config:
         )
         self._simulation_init_tan = get_else(
             self._data["simulation"]["init_with_micro"], False
+        )
+        self._simulation_prc_path = get_else(
+            self._data["simulation"]["precice_xml_path"], None
+        )
+        self._simulation_slurm_id = get_else(
+            self._data["simulation"]["slurm_id"], "default"
+        )
+        self._simulation_wcheckpoint = get_else(
+            self._data["simulation"]["write_checkpoint"], None
+        )
+        self._simulation_rcheckpoint = get_else(
+            self._data["simulation"]["read_checkpoint"], None
+        )
+        self._simulation_couple_tight = get_else(
+            self._data["simulation"]["couple_tight"], False
         )
 
     @property
@@ -294,6 +321,10 @@ class Config:
         return self._problem_elem_degree
 
     @property
+    def problem_lin_ord1(self):
+        return self._problem_lin_ord1
+
+    @property
     def simulation_type(self):
         return self._simulation_type
 
@@ -310,9 +341,29 @@ class Config:
         return self._simulation_wstate
 
     @property
+    def simulation_write_checkpoint(self):
+        return self._simulation_wcheckpoint
+
+    @property
+    def simulation_read_checkpoint(self):
+        return self._simulation_rcheckpoint
+
+    @property
     def simulation_write_state_type(self):
         return self._simulation_wstate_t
 
     @property
     def simulation_init_with_micro(self):
         return self._simulation_init_tan
+
+    @property
+    def simulation_precice_xml_path(self):
+        return self._simulation_prc_path
+
+    @property
+    def simulation_slurm_id(self):
+        return self._simulation_slurm_id
+
+    @property
+    def simulation_couple_tight(self):
+        return self._simulation_couple_tight

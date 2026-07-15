@@ -48,13 +48,14 @@ In the following descriptions, if no default is provided, the entry is not optio
 
 ### Problem Block
 
-| Name        | Type  | Description                          | Default      | Options                    |
-|-------------|-------|--------------------------------------|--------------|----------------------------|
-| lambda      | float | TODO                                 | 10.0         | -                          |
-| mu          | float | TODO                                 | 5.0          | -                          |
-| alpha       | float | TODO                                 | 100.0        | -                          |
-| strain_type | str   | Select between small or large strain | small_strain | small_strain, large_strain |
-| elem_degree | int   | Element Degree                       | 2            | -                          |
+| Name        | Type  | Description                                | Default      | Options                    |
+|-------------|-------|--------------------------------------------|--------------|----------------------------|
+| lambda      | float | TODO                                       | 10.0         | -                          |
+| mu          | float | TODO                                       | 5.0          | -                          |
+| alpha       | float | TODO                                       | 100.0        | -                          |
+| strain_type | str   | Select between small or large strain       | small_strain | small_strain, large_strain |
+| elem_degree | int   | Element Degree                             | 2            | -                          |
+| lin_ord1    | bool  | Use first order taylor approx for stresses | False        | -                          |
 
 ### Simulation Block
 
@@ -65,3 +66,6 @@ In the following descriptions, if no default is provided, the entry is not optio
 | micro_type       | str       | What micro solver is being used in the coupled case                 | - (only if CoupledSim)       | ADA, PYFANS, NASMAT                   |
 | write_state      | str       | Path to which internal meso state should be written to in h5 format | None                         | -                                     |
 | write_state_type | list(str) | What data should be written                                         | None                         | E (eps), S (sig), U (displacement)    |
+| write_checkpoint | str       | If provided: path to checkpoint                                     | None                         | -                                     |
+| read_checkpoint  | str       | If provided: path to checkpoint                                     | None                         | -                                     |
+| couple_tight     | bool      | Couple on every meso/macro iteration                                | False                        | -                                     |
