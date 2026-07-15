@@ -6,6 +6,8 @@
 	<sink type="stream" output="stdout"  filter= "%Severity% > debug" enabled="true" />
     </log>
 
+    <!--profiling directory="." /-->
+
     <data:vector name="stresses1to3"/>
     <data:vector name="stresses4to6"/>
     <data:vector name="strains1to3"/>
@@ -17,8 +19,10 @@
     <data:vector name="cmat5"/>
     <data:vector name="cmat6"/>
     <data:vector name="cmat7"/>
-    <data:scalar name="active_state"/>
-    <data:scalar name="active_steps"/>
+    <data:scalar name="Active-State"/>
+    <data:scalar name="Active-Steps"/>
+    <data:scalar name="rank_of_sim"/>
+    <data:scalar name="model_resolution"/>
 
     <mesh name="meso-mesh" dimensions="3">
        <use-data name="stresses1to3"/>
@@ -32,8 +36,10 @@
        <use-data name="cmat5"/>
        <use-data name="cmat6"/>
        <use-data name="cmat7"/>
-       <use-data name="active_state"/>
-       <use-data name="active_steps"/>
+       <use-data name="Active-State"/>
+       <use-data name="Active-Steps"/>
+       <use-data name="rank_of_sim"/>
+       <use-data name="model_resolution"/>
     </mesh>
 
     <participant name="Meso-structure">
@@ -64,8 +70,10 @@
       <write-data name="cmat5" mesh="meso-mesh"/>
       <write-data name="cmat6" mesh="meso-mesh"/>
       <write-data name="cmat7" mesh="meso-mesh"/>
-      <write-data name="active_state" mesh="meso-mesh"/>
-      <write-data name="active_steps" mesh="meso-mesh"/>
+      <write-data name="Active-State" mesh="meso-mesh"/>
+      <write-data name="Active-Steps" mesh="meso-mesh"/>
+      <write-data name="rank_of_sim" mesh="meso-mesh"/>
+      <write-data name="model_resolution" mesh="meso-mesh"/>
       <export:vtu directory="precice-exports" />
     </participant>
 
@@ -85,10 +93,11 @@
       <exchange data="cmat5" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat6" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
       <exchange data="cmat7" mesh="meso-mesh" from="Micro-Manager" to="Meso-structure"/>
-      <exchange data="strains1to3" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
-      <exchange data="strains4to6" mesh="meso-mesh" from="Meso-structure" to="Micro-Manager"/>
+      <exchange data="strains1to3" mesh="meso-mesh" initialize="true" from="Meso-structure" to="Micro-Manager"/>
+      <exchange data="strains4to6" mesh="meso-mesh" initialize="true" from="Meso-structure" to="Micro-Manager"/>
 
-      <max-iterations value="100"/>
+      <max-iterations value="1000"/>
+      <min-iterations value="2" />
       <relative-convergence-measure limit="1e-8" data="stresses1to3" mesh="meso-mesh"/>
       <relative-convergence-measure limit="1e-8" data="stresses4to6" mesh="meso-mesh"/>
       <!--acceleration:IQN-ILS>

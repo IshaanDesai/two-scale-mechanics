@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Optional
 
 import numpy as np
@@ -5,11 +6,125 @@ import ufl
 from mpi4py import MPI
 from petsc4py import PETSc
 from dolfinx import fem, mesh, io
-from dolfinx.fem.petsc import NonlinearProblem, LinearProblem
+from dolfinx.fem.petsc import (
+    NonlinearProblem,
+    LinearProblem,
+    assign,
+    assemble_vector,
+    assemble_matrix,
+    create_vector,
+    create_matrix,
+    apply_lifting,
+    set_bc,
+)
 import gmsh
 
 from .config import Config
 from .meshes import Mesh
+
+
+class NonlinearProblemStep:
+    def __init__(
+        self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None, du_eff=None
+    ):
+        self.res = fem.form(F)
+        self.jac = fem.form(J)
+        self.du = fem.Function(uh.function_space)
+        self.uh = uh
+        self.du_eff = du_eff
+        self.A = create_matrix(self.jac)
+        self.L = create_vector(fem.extract_function_spaces(self.res))
+
+        self.bcs = bcs
+        self.iter = 0
+        self.max_iter = 100
+        self.threshold = 1e-10
+        self.solver = PETSc.KSP().create(comm)
+        self.solver.setOperators(self.A)
+        opts = PETSc.Options()
+        if options is not None:
+            if "ksp_max_it" in options:
+                self.max_iter = options["ksp_max_it"]
+            if "ksp_rtol" in options:
+                self.threshold = options["ksp_rtol"]
+            if "ksp_type" in options:
+                opts["ksp_type"] = options["ksp_type"]
+            if "pc_type" in options:
+                opts["pc_type"] = options["pc_type"]
+            if "pc_hypre_type" in options:
+                opts["pc_hypre_type"] = options["pc_hypre_type"]
+            if "pc_hypre_boomeramg_max_iter" in options:
+                opts["pc_hypre_boomeramg_max_iter"] = options[
+                    "pc_hypre_boomeramg_max_iter"
+                ]
+            if "pc_hypre_boomeramg_cycle_type" in options:
+                opts["pc_hypre_boomeramg_cycle_type"] = options[
+                    "pc_hypre_boomeramg_cycle_type"
+                ]
+        # opts.prefixPush(self.solver.getOptionsPrefix())
+        self.solver.setFromOptions()
+        # opts.prefixPop()
+        self.pc = self.solver.getPC()
+
+        self.last_correction = self.threshold * 10
+        self.last_res = 1
+        self.construct_L_res = partial(
+            NonlinearProblemStep._compute_residual_vec,
+            self.L,
+            self.res,
+            self.jac,
+            self.bcs,
+            self.uh,
+        )
+
+    def solve(self):
+        if self.iter >= self.max_iter:
+            return True
+        if self.last_correction < self.threshold:
+            return True
+
+        self._solve_ksp()
+        if self.du_eff is not None:
+            self.du_eff.x.array[:] = self.du.x.array[:]
+            self.du_eff.x.scatter_forward()
+
+        self.uh.x.array[:] = self.uh.x.array[:] + self.du.x.array[:]
+        self.uh.x.scatter_forward()
+
+        self.last_correction = self.du.x.petsc_vec.norm(0)
+        self.last_res = self.L.norm(0)
+        print(
+            f"Solving KSP - iter {self.iter} du-norm: {self.last_correction} res-norm: {self.last_res}",
+            flush=True,
+        )
+        return False
+
+    def _solve_ksp(self):
+        self.construct_L_res()
+        self.A.zeroEntries()
+        assemble_matrix(self.A, self.jac, bcs=self.bcs)
+        self.A.assemble()
+
+        self.solver.solve(self.L, self.du.x.petsc_vec)
+        self.du.x.scatter_forward()
+
+        self.iter += 1
+
+    @staticmethod
+    def _compute_residual_vec(L, res, jac, bcs, uh):
+        with L.localForm() as loc_L:
+            loc_L.set(0)
+        assemble_vector(L, res)
+        L.ghostUpdate(addv=PETSc.InsertMode.ADD, mode=PETSc.ScatterMode.REVERSE)
+        L.scale(-1)
+
+        apply_lifting(L, [jac], [bcs], x0=[uh.x.petsc_vec], alpha=1)
+        set_bc(L, bcs, uh.x.petsc_vec, 1.0)
+        L.ghostUpdate(
+            addv=PETSc.InsertMode.INSERT_VALUES, mode=PETSc.ScatterMode.FORWARD
+        )
+
+        return L
 
 
 class Evaluator:
@@ -90,12 +205,12 @@ class MesoProblem:
             "snes_monitor": None,
             "ksp_error_if_not_converged": True,
             "ksp_type": "gmres",
-            "ksp_rtol": 1e-10,
+            "ksp_rtol": 1e-8,
             "ksp_max_it": 1000,
             "ksp_monitor": None,
             "pc_type": "hypre",
             "pc_hypre_type": "boomeramg",
-            "pc_hypre_boomeramg_max_iter": 1,
+            "pc_hypre_boomeramg_max_iter": 3,
             "pc_hypre_boomeramg_cycle_type": "v",
         }
 
@@ -107,12 +222,19 @@ class MesoProblem:
         # FEM
         element_degree = config.problem_element_degree
         self.V = fem.functionspace(self.mesh.domain, ("CG", element_degree, (3,)))
-        self.W3 = fem.functionspace(self.mesh.domain, ("CG", element_degree, (3,)))
+
+        def get_w_elem(shape):
+            if element_degree <= 1:
+                return "DG", 0, shape
+            return "CG", element_degree - 1, shape
+
+        w3_elem = get_w_elem((3,))
+        self.W3 = fem.functionspace(self.mesh.domain, w3_elem)
         self.uh = fem.Function(self.V)
         self.uh.name = "displacement"
         self.u = ufl.TrialFunction(self.V)
         self.v = ufl.TestFunction(self.V)
-        self.vm_stress_fun = fem.Function(self.V)
+        self.vm_stress_fun = fem.Function(self.W3)
         self.vm_stress_fun.name = "von_mises_stress"
 
         self.bc_dc = self.mesh.get_bc_diriclet(self.V)
@@ -121,10 +243,8 @@ class MesoProblem:
         self.is_small_strain = None
         if config.problem_strain_type == "small_strain":
             self.is_small_strain = True
-            self.W = fem.functionspace(self.mesh.domain, ("CG", element_degree, (6,)))
-            self.WT = fem.functionspace(
-                self.mesh.domain, ("CG", element_degree, (6, 6))
-            )
+            self.W = fem.functionspace(self.mesh.domain, get_w_elem((6,)))
+            self.WT = fem.functionspace(self.mesh.domain, get_w_elem((6, 6)))
 
             self.eps_var = ufl.variable(self.symgrad_mandel(self.uh))
             self.sig_fun = fem.Function(self.W)
@@ -146,36 +266,43 @@ class MesoProblem:
             )
         elif config.problem_strain_type == "large_strain":
             self.is_small_strain = False
-            self.W = fem.functionspace(self.mesh.domain, ("CG", element_degree, (3, 3)))
-            self.WT = None  # only use tangent implicitly
+            self.W = fem.functionspace(self.mesh.domain, get_w_elem((3, 3)))
+            self.WT = fem.functionspace(self.mesh.domain, get_w_elem((3, 3, 3, 3)))
 
             Id = ufl.Identity(3)
-            self.F = Id + ufl.grad(self.uh)
+            self.F = ufl.variable(Id + ufl.grad(self.uh))
             self.eps_exp = fem.Constant(self.mesh.domain, 0.5) * (
                 self.F.T * self.F - Id
             )
             self.eps_var = ufl.variable(self.eps_exp)
             self.sig_fun = fem.Function(self.W)
-            self.tan_fun = None  # only use tangent implicitly
+            self.tan_fun = fem.Function(self.WT)
 
             self.psi_exp = self.calc_psi()
             self.sigma_exp = ufl.diff(self.psi_exp, self.eps_var)
-            self.tangent_exp = None
+            self.tangent_exp = ufl.diff(self.sigma_exp, self.F)
 
             self.meso_res = ufl.inner(
                 self.F * self.sigma_exp, ufl.grad(self.v)
             ) * ufl.dx - self.bc_nm(self.v)
-            self.meso_jac = ufl.derivative(self.meso_res, self.uh, self.u)
+            self.meso_jac = (
+                ufl.inner(
+                    ufl.derivative(self.F, self.uh, self.u) * self.sigma_exp
+                    + self.F * ufl.derivative(self.sigma_exp, self.uh, self.u),
+                    ufl.grad(self.v),
+                )
+                * ufl.dx
+            )
         else:
             raise ValueError("Unknown strain type")
 
-        self.meso_problem = NonlinearProblem(
-            self.meso_res,
+        self.meso_problem = NonlinearProblemStep(
+            self.mesh.domain.comm,
             self.uh,
-            bcs=self.bc_dc,
-            J=self.meso_jac,
-            petsc_options=self.petsc_options,
-            petsc_options_prefix="nonlinpoisson",
+            self.meso_res,
+            self.meso_jac,
+            self.bc_dc,
+            self.petsc_options,
         )
 
     def solve(self):
@@ -185,16 +312,17 @@ class MesoProblem:
         This method solves the nonlinear problem and interpolates the
         stress tensor and (for small strain) tangent modulus.
         """
-        self.meso_problem.solve()
+        while not self.meso_problem.solve():
+            pass
 
         sig_eval = Evaluator(ufl.variable(self.sigma_exp), self.W).interpolate()
         self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
         self.sig_fun.x.scatter_forward()
 
-        if self.is_small_strain:
-            tan_eval = Evaluator(ufl.variable(self.tangent_exp), self.WT).interpolate()
-            self.tan_fun.x.array[:] = tan_eval.var_val.x.array[:]
-            self.tan_fun.x.scatter_forward()
+        # if self.is_small_strain:
+        tan_eval = Evaluator(ufl.variable(self.tangent_exp), self.WT).interpolate()
+        self.tan_fun.x.array[:] = tan_eval.var_val.x.array[:]
+        self.tan_fun.x.scatter_forward()
 
     def calc_psi(self):
         """
@@ -297,35 +425,67 @@ class MultiscaleProblem(MesoProblem):
 
     def __init__(self, config: Config, mesh: Mesh):
         super().__init__(config, mesh)
+        self.lin_ord1 = config.problem_lin_ord1
+        self.couple_tight = config.simulation_couple_tight
 
+        self.uh_old = fem.Function(self.V)
+        self.uh_old.x.array[:] = 0
+        self.uh_old.x.scatter_forward()
+        self.sig_old = fem.Function(self.W)
+        self.sig_old.x.array[:] = 0
+        self.sig_old.x.scatter_forward()
+        self.du_eff = fem.Function(self.V)
+        # self.du_eff.x.array[:] = 0
+        # self.du_eff.x.scatter_forward()
         if self.is_small_strain:
-            a = (
+            if self.lin_ord1:
+                sig = self.sig_fun
+            else:
+                sig = ufl.variable(ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh)))
+            self.res = ufl.inner(
+                sig, self.symgrad_mandel(self.v)
+            ) * ufl.dx - self.bc_nm(self.v)
+            self.jac = (
                 ufl.inner(
                     ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)),
                     self.symgrad_mandel(self.v),
                 )
                 * ufl.dx
             )
-            L = self.bc_nm(self.v)
-            self.ms_problem = LinearProblem(
-                a=a,
-                L=L,
-                bcs=self.bc_dc,
-                petsc_options={"ksp_type": "preonly", "pc_type": "lu"},
-                petsc_options_prefix="Poisson",
+            self.ms_problem = NonlinearProblemStep(
+                self.mesh.domain.comm,
+                self.uh,
+                self.res,
+                self.jac,
+                self.bc_dc,
+                self.petsc_options,
+                self.du_eff,
             )
         else:
             self.res = ufl.inner(
                 self.F * self.sig_fun, ufl.grad(self.v)
             ) * ufl.dx - self.bc_nm(self.v)
-            self.jac = ufl.derivative(self.res, self.uh, self.u)
-            self.ms_problem = NonlinearProblem(
-                self.meso_res,
+            i, j, k, l = ufl.indices(4)
+            self.jac = (
+                ufl.inner(
+                    ufl.derivative(self.F, self.uh, self.u) * self.sig_fun
+                    + self.F
+                    * ufl.as_tensor(
+                        self.tan_fun[i, j, k, l]
+                        * ufl.derivative(self.F, self.uh, self.u)[k, l],
+                        (i, j),
+                    ),
+                    ufl.grad(self.v),
+                )
+                * ufl.dx
+            )
+            self.ms_problem = NonlinearProblemStep(
+                self.mesh.domain.comm,
                 self.uh,
-                bcs=self.bc_dc,
-                J=self.meso_jac,
-                petsc_options=self.petsc_options,
-                petsc_options_prefix="nonlinpoisson",
+                self.res,
+                self.jac,
+                self.bc_dc,
+                self.petsc_options,
             )
 
     def solve_meso(self):
@@ -342,9 +502,31 @@ class MultiscaleProblem(MesoProblem):
         Solve problem approximately only using micro-scale tangent.
         Use as first guess for subsequent iterations.
         """
-        sig = ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh))
-        res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(self.v)
-        jac = ufl.derivative(res, self.uh, self.u)
+        if self.is_small_strain:
+            sig = ufl.dot(self.tan_fun, self.symgrad_mandel(self.uh))
+            res = ufl.inner(sig, self.symgrad_mandel(self.v)) * ufl.dx - self.bc_nm(
+                self.v
+            )
+            jac = (
+                ufl.inner(
+                    ufl.dot(self.tan_fun, self.symgrad_mandel(self.u)),
+                    self.symgrad_mandel(self.v),
+                )
+                * ufl.dx
+            )
+        else:
+            # i, j, k, l = ufl.indices(4)
+            # eps = fem.Constant(self.mesh.domain, 0.5) * (self.F.T * self.F - ufl.Identity(3))
+            # sig = ufl.as_tensor(self.tan_fun[i, j, k, l] * eps[k, l], (i, j))
+            # res = ufl.inner(self.F * sig, ufl.grad(self.v)) * ufl.dx - self.bc_nm(self.v)
+            # dF = ufl.derivative(self.F, self.uh, self.u)
+            # jac = ufl.inner(dF * sig + self.F * ufl.as_tensor(self.tan_fun[i, j, k, l] * dF[k, l], (i, j)), ufl.grad(self.v)) * ufl.dx
+
+            # something wrong here, for now raise error
+            raise NotImplementedError(
+                "Initialization with micro-scale only supported for small strain"
+            )
+
         problem = NonlinearProblem(
             res,
             self.uh,
@@ -360,9 +542,27 @@ class MultiscaleProblem(MesoProblem):
         self.sig_fun.x.scatter_forward()
 
     def solve(self):
-        if self.is_small_strain:
-            result = self.ms_problem.solve()
-            self.uh.x.array[:] = result.x.array[:]
-            self.uh.x.scatter_forward()
-        else:
-            self.ms_problem.solve()
+        self.uh_old.x.array[:] = self.uh.x.array[:]
+        self.uh_old.x.scatter_forward()
+        self.sig_old.x.array[:] = self.sig_fun.x.array[:]
+        self.sig_old.x.scatter_forward()
+        while True:
+            done = self.ms_problem.solve()
+            if self.couple_tight:
+                break
+            if self.lin_ord1:
+                sig_eval = Evaluator(
+                    ufl.variable(
+                        self.sig_old
+                        + ufl.dot(
+                            self.tan_fun, self.symgrad_mandel(self.uh - self.uh_old)
+                        )
+                    ),
+                    self.W,
+                ).interpolate()
+                self.sig_fun.x.array[:] = sig_eval.var_val.x.array[:]
+                self.sig_fun.x.scatter_forward()
+            if done:
+                break
+        self.ms_problem.last_res = 1.0
+        self.ms_problem.last_correction = self.ms_problem.threshold * 10
