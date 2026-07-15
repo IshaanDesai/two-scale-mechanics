@@ -2,6 +2,7 @@ import numpy as np
 
 
 def switching_function(resolution, location, t, input, prev_output):
+    # marks a slice of width 0.15 of the meso bar mesh on the left most end (has DC BC)
     domain_inner = np.array([[-0.01, -0.01, -0.01], [0.15, 1.01, 1.01]])
     point = np.array(location)
 

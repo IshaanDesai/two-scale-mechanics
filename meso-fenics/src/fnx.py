@@ -23,151 +23,6 @@ from .config import Config
 from .meshes import Mesh
 
 
-class Anderson_AdaGuard:
-    def __init__(self, r=1e-4):
-        self.w_hist = list()
-        self.u_hist = list()
-        self.r = r
-
-    def insert(self, w: np.ndarray, u: np.ndarray):
-        self.w_hist.append(w)
-        self.u_hist.append(u)
-        if len(self.w_hist) > 2:
-            self.w_hist.pop(0)
-            self.u_hist.pop(0)
-
-    def gamma_safeguard(self, gamma: float):
-        nu = np.linalg.norm(self.w_hist[1]) / np.linalg.norm(self.w_hist[0])
-        r = np.minimum(nu, self.r)
-        beta = r * nu
-
-        if gamma == 0 or gamma >= 1:
-            return 0
-        elif np.abs(gamma) / np.abs(1 - gamma) > beta:
-            return beta / (gamma * (beta * np.sign(gamma)))
-        else:
-            return 0
-
-    def accelerate(self, du: fem.Function, uh_old: fem.Function):
-        self.insert(du.x.array.copy(), uh_old.x.array.copy())
-        if len(self.w_hist) == 1:
-            return self.w_hist[0]
-
-        delta_w = self.w_hist[1] - self.w_hist[0]
-        delta_w2_sum = np.sum(delta_w * delta_w)
-        if delta_w2_sum == 0.0:
-            return self.w_hist[1]
-        gamma = np.inner(delta_w, self.w_hist[1]) / delta_w2_sum
-        lam = self.gamma_safeguard(gamma)
-
-        delta_u = self.u_hist[1] - self.u_hist[0]
-        return self.w_hist[1] - lam * gamma * (delta_u + delta_w)
-
-
-class LineSearchStep:
-    def __init__(
-        self,
-        uh: fem.Function,
-        du_eff: Optional[fem.Function],
-        calc_res: callable,
-        max_iter=10,
-        alpha_start=1.0,
-        tau=0.8,
-        alpha_min=1e-4,
-        r=1e-4,
-    ):
-        self.uh = uh
-        self.du_eff = du_eff
-        self.calc_res = calc_res
-        self.max_iter = max_iter
-        self.alpha_start = alpha_start
-        self.alpha_min = alpha_min
-        self.tau = tau
-        self.reduction_factor = 0.5
-
-        self.is_active = False
-        self.curr_alpha = alpha_start
-        self.uh0 = np.zeros_like(uh.x.array)
-        self.res0 = 0
-        self.last_res = self.res0
-        self.curr_du = None
-        self.iter = 0
-        self.suf_decrease = 1e-3
-
-        self.aa = Anderson_AdaGuard(r)
-
-    def is_searching(self):
-        return self.is_active
-
-    def initialize(self, du: fem.Function):
-        # call after ksp solve
-        self.is_active = True
-        self.iter = 0
-        self.curr_alpha = min(self.alpha_start, 1.2 * self.curr_alpha)
-        self.uh0[:] = self.uh.x.array
-        self.res0 = self.calc_res().norm(0)
-        self.last_res = self.res0
-
-        du_aa = self.aa.accelerate(du, self.uh)
-        self.curr_du = du_aa
-        self.update_uh(self.curr_alpha, du_aa)
-
-    def step(self):
-        new_res = self.calc_res().norm(0)
-        ignore_res_check = False
-        if self.iter == 0:  # just computed R(u + 1 * du) = F
-            if new_res <= (1 - self.suf_decrease * self.curr_alpha) * self.res0 or True:
-                # no need to perform LS
-                self.is_active = False
-                return True
-            else:
-                print(
-                    f"Solving LS - iter: {self.iter}, alpha: 0, res: {self.res0}",
-                    flush=True,
-                )
-                ignore_res_check = True
-
-        if not ignore_res_check and (new_res >= self.last_res):
-            self.is_active = False
-            print(
-                f"Solving LS - iter: {self.iter}, bad alpha: {self.curr_alpha}, res: {new_res}",
-                flush=True,
-            )
-            self.curr_alpha /= self.tau
-            return True
-
-        if new_res < self.res0 * self.reduction_factor:
-            self.is_active = False
-            print(
-                f"Final LS - iter: {self.iter}, accepted alpha: {self.curr_alpha}, res: {new_res}",
-                flush=True,
-            )
-            return True  # last attempt was accepted
-
-        self.last_res = new_res
-        self.curr_alpha *= self.tau
-        self.iter += 1
-
-        if self.curr_alpha < self.alpha_min or self.iter >= self.max_iter:
-            self.is_active = False
-            return True
-
-        print(
-            f"Solving LS - iter: {self.iter}, alpha: {self.curr_alpha}, res: {new_res}",
-            flush=True,
-        )
-        self.update_uh(self.curr_alpha, self.curr_du)
-        return False
-
-    def update_uh(self, alpha, du):
-        if self.du_eff is not None:
-            self.du_eff.x.array[:] = alpha * du
-            self.du_eff.x.scatter_forward()
-
-        self.uh.x.array[:] = self.uh0 + alpha * du
-        self.uh.x.scatter_forward()
-
-
 class NonlinearProblemStep:
     def __init__(
         self, comm, uh: fem.Function, F, J, bcs: list, options: dict = None, du_eff=None
@@ -222,27 +77,26 @@ class NonlinearProblemStep:
             self.uh,
         )
 
-        self.ls = LineSearchStep(self.uh, self.du_eff, self.construct_L_res)
-
     def solve(self):
         if self.iter >= self.max_iter:
             return True
         if self.last_correction < self.threshold:
             return True
 
-        if self.ls.is_searching():
-            success = self.ls.step()
-            if not success:
-                return False
-            self.last_correction = self.du.x.petsc_vec.norm(0) * self.ls.curr_alpha
-            self.last_res = self.L.norm(0)
-            print(
-                f"Solving KSP - iter {self.iter} du-norm: {self.last_correction} res-norm: {self.last_res}",
-                flush=True,
-            )
-
         self._solve_ksp()
-        self.ls.initialize(self.du)
+        if self.du_eff is not None:
+            self.du_eff.x.array[:] = self.du
+            self.du_eff.x.scatter_forward()
+
+        self.uh.x.array[:] = self.uh + self.du
+        self.uh.x.scatter_forward()
+
+        self.last_correction = self.du.x.petsc_vec.norm(0)
+        self.last_res = self.L.norm(0)
+        print(
+            f"Solving KSP - iter {self.iter} du-norm: {self.last_correction} res-norm: {self.last_res}",
+            flush=True,
+        )
         return False
 
     def _solve_ksp(self):
@@ -368,7 +222,14 @@ class MesoProblem:
         # FEM
         element_degree = config.problem_element_degree
         self.V = fem.functionspace(self.mesh.domain, ("CG", element_degree, (3,)))
-        self.W3 = fem.functionspace(self.mesh.domain, ("DG", 0, (3,)))
+
+        def get_w_elem(shape):
+            if element_degree <= 1:
+                return "DG", 0, shape
+            return "CG", element_degree - 1, shape
+
+        w3_elem = get_w_elem((3,))
+        self.W3 = fem.functionspace(self.mesh.domain, w3_elem)
         self.uh = fem.Function(self.V)
         self.uh.name = "displacement"
         self.u = ufl.TrialFunction(self.V)
@@ -382,8 +243,8 @@ class MesoProblem:
         self.is_small_strain = None
         if config.problem_strain_type == "small_strain":
             self.is_small_strain = True
-            self.W = fem.functionspace(self.mesh.domain, ("DG", 0, (6,)))
-            self.WT = fem.functionspace(self.mesh.domain, ("DG", 0, (6, 6)))
+            self.W = fem.functionspace(self.mesh.domain, get_w_elem((6,)))
+            self.WT = fem.functionspace(self.mesh.domain, get_w_elem((6, 6)))
 
             self.eps_var = ufl.variable(self.symgrad_mandel(self.uh))
             self.sig_fun = fem.Function(self.W)
@@ -405,8 +266,8 @@ class MesoProblem:
             )
         elif config.problem_strain_type == "large_strain":
             self.is_small_strain = False
-            self.W = fem.functionspace(self.mesh.domain, ("DG", 0, (3, 3)))
-            self.WT = fem.functionspace(self.mesh.domain, ("DG", 0, (3, 3, 3, 3)))
+            self.W = fem.functionspace(self.mesh.domain, get_w_elem((3, 3)))
+            self.WT = fem.functionspace(self.mesh.domain, get_w_elem((3, 3, 3, 3)))
 
             Id = ufl.Identity(3)
             self.F = ufl.variable(Id + ufl.grad(self.uh))

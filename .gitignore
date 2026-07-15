@@ -34,3 +34,14 @@ __pycache__/
 # FreeCAD files
 *.FCBak
 *.FCStd
+
+# Micro FANS files
+fenics-fans-scripts/output/*
+micro-fans-bar-sphere/sphere*.h5
+micro-fans-bar-sphere/micro-manager-pyfans-config-*.json
+micro-fans-bar-voro/voro*.h5
+micro-fans-bar-voro/micro-manager-pyfans-config-*.json
+micro-fans-notch-sphere/sphere*.h5
+micro-fans-notch-sphere/micro-manager-pyfans-config-*.json
+micro-fans-notch-voro/voro*.h5
+micro-fans-notch-voro/micro-manager-pyfans-config-*.json

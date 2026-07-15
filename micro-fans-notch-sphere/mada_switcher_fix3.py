@@ -2,7 +2,10 @@ import numpy as np
 
 
 def switching_function(resolution, location, t, input, prev_output):
+    # marks a cuboid region in the center of the meso notch mesh
     domain_inner = np.array([[-0.01, 0.46, -0.025], [0.31, 0.54, 0.075]])
+    # marks a larger cuboid region in the center of the meso notch mesh
+    # includes the inner region
     domain_middle = np.array([[-0.01, 0.375, -0.025], [0.31, 0.625, 0.075]])
     point = np.array(location)
 
