@@ -148,6 +148,8 @@ class Config:
         self._simulation_micro_t = None
         self._simulation_wstate = None
         self._simulation_wstate_t = None
+        self._simulation_wvtk = None
+        self._simulation_wvtk_t = None
         self._simulation_init_tan = None
         self._simulation_prc_path = None
         self._simulation_slurm_id = None
@@ -245,6 +247,10 @@ class Config:
         self._simulation_wstate_t = get_else(
             self._data["simulation"]["write_state_type"], None
         )
+        self._simulation_wvtk = get_else(self._data["simulation"]["write_vtk"], None)
+        self._simulation_wvtk_t = get_else(
+            self._data["simulation"]["write_vtk_type"], None
+        )
         self._simulation_init_tan = get_else(
             self._data["simulation"]["init_with_micro"], False
         )
@@ -341,6 +347,10 @@ class Config:
         return self._simulation_wstate
 
     @property
+    def simulation_write_vtk(self):
+        return self._simulation_wvtk
+
+    @property
     def simulation_write_checkpoint(self):
         return self._simulation_wcheckpoint
 
@@ -351,6 +361,10 @@ class Config:
     @property
     def simulation_write_state_type(self):
         return self._simulation_wstate_t
+
+    @property
+    def simulation_write_vtk_type(self):
+        return self._simulation_wvtk_t
 
     @property
     def simulation_init_with_micro(self):
