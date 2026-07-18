@@ -18,6 +18,7 @@ from dolfinx import io, fem
 
 import numpy as np
 import h5py
+import os
 
 
 class Simulation:
@@ -55,6 +56,8 @@ class Simulation:
         self.problem = None
         self._write_state = config.simulation_write_state
         self._write_state_type = config.simulation_write_state_type
+        self._write_vtk = config.simulation_write_vtk
+        self._write_vtk_type = config.simulation_write_vtk_type
         self._write_checkpoint = config.simulation_write_checkpoint
         self._read_checkpoint = config.simulation_read_checkpoint
 
@@ -140,32 +143,100 @@ class Simulation:
         ) as vtx:
             vtx.write(t)
 
+        eval = Evaluator(self.problem.eps_var, self.problem.W)
+        eval.interpolate()
+        eval.var_val.name = "strain"
+        self.problem.sig_fun.name = "stress"
+        self.problem.tan_fun.name = "tangent"
+        write_targets = {
+            "E": eval.var_val,
+            "S": self.problem.sig_fun,
+            "T": self.problem.tan_fun,
+            "U": self.problem.uh,
+        }
+
+        # ==================
+        # write VTK via XDMF
+        if self._write_vtk is not None and type(self._write_vtk_type) == list:
+            # ==================
+            # first write XDMF
+            written_keys = []
+            write_targets["VM"] = self.problem.vm_stress_fun
+            for key in self._write_vtk_type:
+                if key not in write_targets:
+                    continue
+
+                with io.XDMFFile(
+                    MPI.COMM_WORLD, f"{self._write_vtk}_{key}_{n}{iter}.xdmf", "w"
+                ) as xdmf:
+                    xdmf.write_mesh(self.mesh.domain)
+                    xdmf.write_function(write_targets[key])
+                written_keys.append(key)
+            del write_targets["VM"]
+
+            # ==================
+            # convert to vtk
+            if MPI.COMM_WORLD.Get_rank() == 0:
+                try:
+                    import meshio
+                except ImportError:
+                    print(
+                        "Failed to import meshio. Skipping VTK conversion. Please convert to VTK manually.",
+                        flush=True,
+                    )
+                    meshio = None
+
+                if meshio is not None:
+
+                    def safe_delete(path):
+                        if not os.path.exists(path):
+                            return
+                        if not os.path.isfile(path):
+                            return
+                        os.remove(path)
+
+                    xdmf_entries = []
+                    for key in written_keys:
+                        with meshio.xdmf.TimeSeriesReader(
+                            f"{self._write_vtk}_{key}_{n}{iter}.xdmf"
+                        ) as reader:
+                            points, cells = reader.read_points_cells()
+                            if reader.num_steps != 1:
+                                raise NotImplementedError("This should not happen!")
+                            _, point_data, cell_data = reader.read_data(0)
+                            xdmf_entries.append([points, cells, point_data, cell_data])
+                        safe_delete(f"{self._write_vtk}_{key}_{n}{iter}.xdmf")
+                        safe_delete(f"{self._write_vtk}_{key}_{n}{iter}.h5")
+
+                    point_data = {}
+                    cell_data = {}
+                    for points, cells, point_data_part, cell_data_part in xdmf_entries:
+                        point_data.update(point_data_part)
+                        cell_data.update(cell_data_part)
+                    mesh = meshio.Mesh(points, cells, point_data, cell_data)
+                    mesh.write(f"{self._write_vtk}_{n}{iter}.vtk")
+
         if self._write_state is not None and type(self._write_state_type) == list:
+            write_target_data = {
+                "E": (self._coords_W, "strain_data"),
+                "S": (self._coords_W, "stress_data"),
+                "T": (self._coords_WT, "tangent_data"),
+                "U": (-1, "displacement_data"),
+            }
+
             with h5py.File(f"{self._write_state}_{n}{iter}{rank}.h5", "w") as f:
-                if "E" in self._write_state_type and self._coords_W is not None:
-                    eval = Evaluator(self.problem.eps_var, self.problem.W)
-                    eval.interpolate()
-                    eps = convert_fenicsx_to_precice(eval.var_val, self._coords_W, 25)
-                    f.create_dataset("strain_data", data=eps)
+                for key in self._write_state_type:
+                    if key not in write_target_data:
+                        continue
 
-                if "S" in self._write_state_type and self._coords_W is not None:
-                    sig = convert_fenicsx_to_precice(
-                        self.problem.sig_fun, self._coords_W, 25
-                    )
-                    f.create_dataset("stress_data", data=sig)
-
-                if (
-                    "T" in self._write_state_type
-                    and self._coords_WT is not None
-                    and self.problem.tan_fun is not None
-                ):
-                    tan = convert_fenicsx_to_precice(
-                        self.problem.tan_fun, self._coords_WT, 25
-                    )
-                    f.create_dataset("tangent_data", data=tan)
-
-                if "U" in self._write_state_type:
-                    f.create_dataset("displacement_data", data=self.problem.uh.x.array)
+                    coords, name = write_target_data[key]
+                    fun = write_targets[key]
+                    if any([v is None for v in [coords, name, fun]]):
+                        continue
+                    data = fun.x.array
+                    if coords != -1:
+                        data = convert_fenicsx_to_precice(fun, coords, 25)
+                    f.create_dataset(name, data=data)
 
         if self._write_checkpoint is not None and type(self._write_checkpoint) == str:
             with h5py.File(f"{self._write_checkpoint}{rank}.h5", "w") as f:

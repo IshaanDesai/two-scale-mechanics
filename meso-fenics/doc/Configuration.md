@@ -66,6 +66,8 @@ In the following descriptions, if no default is provided, the entry is not optio
 | micro_type       | str       | What micro solver is being used in the coupled case                 | - (only if CoupledSim)       | ADA, PYFANS, NASMAT                   |
 | write_state      | str       | Path to which internal meso state should be written to in h5 format | None                         | -                                     |
 | write_state_type | list(str) | What data should be written                                         | None                         | E (eps), S (sig), U (displacement)    |
+| write_state      | str       | Path to which internal meso state should be written to in h5 format | None                         | -                                     |
+| write_state_type | list(str) | What data should be written                                         | None                         | E (eps), S (sig), U (displacement)    |
 | write_checkpoint | str       | If provided: path to checkpoint                                     | None                         | -                                     |
 | read_checkpoint  | str       | If provided: path to checkpoint                                     | None                         | -                                     |
 | couple_tight     | bool      | Couple on every meso/macro iteration                                | False                        | -                                     |

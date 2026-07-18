@@ -19,7 +19,7 @@
   "simulation": {
     "type": "MesoSim",
     "micro_type": "NONE",
-    "write_state": "output/bar_strain",
-    "write_state_type": ["E"]
+    "write_vtk": "output/bar-over-xdmf-test",
+    "write_vtk_type": ["E", "S", "T", "U", "VM"]
   }
 }
