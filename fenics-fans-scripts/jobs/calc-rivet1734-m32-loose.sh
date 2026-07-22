@@ -49,13 +49,14 @@ mkdir -p ../../output/${SLURM_JOB_NAME}/${SLURM_JOB_ID}
 JOB_DIR=$(path::get_full .)
 OUT_DIR=$(path::get_full ../../output/${SLURM_JOB_NAME}/${SLURM_JOB_ID})
 TSM_PATH=$(path::get_tsm)
-MESO_PATH=$(path::get_full "../../../meso-fenics-loose")
+MESO_PATH=$(path::get_full "../../../meso-fenics")
 MICRO_PATH="${TSM_PATH}/micro-fans-rivet"
 
 cp $TSM_PATH/precice-config-fans-small-strain.xml ./precice-config.xml
 cp $MESO_PATH/examples/coupled-rivet/config-coupled-rivet.json ./config-meso.json
 cp $MICRO_PATH/PyFANS.so ./
 cp $MICRO_PATH/input.json ./
+cp $MICRO_PATH/pyfans-config.json ./
 cp $MICRO_PATH/micro-manager-pyfans-config-stateless.json ./micro-manager-config.json
 cp $MICRO_PATH/sphere3p32.h5 ./
 
