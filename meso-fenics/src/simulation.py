@@ -225,6 +225,7 @@ class Simulation:
             }
 
             with h5py.File(f"{self._write_state}_{n}{iter}{rank}.h5", "w") as f:
+
                 def extract_first(val):
                     if isinstance(val, tuple):
                         return val[0]
