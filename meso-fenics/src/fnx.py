@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 import ufl
 from mpi4py import MPI
+import gmsh
 from petsc4py import PETSc
 from dolfinx import fem, mesh, io
 from dolfinx.fem.petsc import (
@@ -17,7 +18,6 @@ from dolfinx.fem.petsc import (
     apply_lifting,
     set_bc,
 )
-import gmsh
 
 from .config import Config
 from .meshes import Mesh

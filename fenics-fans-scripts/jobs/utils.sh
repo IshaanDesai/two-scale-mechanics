@@ -3,9 +3,10 @@
 load_env() {
     echo "Loading the necessary modules"
     module load slurm_setup
-    module load stack/24.5.0
+    module load stack/24.6.0
     module load intel-toolkit
-    module switch intel/2025.1.1 gcc/14.3.0
+    module switch intel/2025.3.0 gcc/14.3.0
+    module load intel-mpi/2021.17.0
     module load boost/1.84.0-gcc14-impi
     module load eigen/3.4.0-gcc14
     module load fftw/3.3.10-gcc14-impi-openmp
@@ -13,13 +14,10 @@ load_env() {
     module load hypre/2.32.0-gcc14-impi
     module load scotch/7.0.4-gcc14-impi-i64
     module load parmetis/4.0.3-gcc14-impi-i64-r64
-    module load autoconf/
-    module load glib
-    module load pkg-config/
-    module load zlib
-    module load python/3.10.12-extended
+    module load autoconf glib pkg-config zlib
+    module load python/3.14.0
     export SLURM_EAR_LOAD_MPI_VERSION="intel"
-    source ~/venv/py310/bin/activate
+    source ~/venv/py314/bin/activate
 }
 
 path::get_full() (
@@ -42,6 +40,7 @@ edit::meso_input() {
 
     sed -Ei "s#\"output_path\".*\$#\"output_path\": \"${meso_out}\",#g" "$file"
     sed -Ei "s#\"write_state\".*\$#\"write_state\": \"${meso_state_out}\",#g" "$file"
+    sed -Ei "s#\"write_vtk\".*\$#\"write_vtk\": \"${meso_out}\",#g" "$file"
     sed -Ei "s#\"precice_xml_path\".*\$#\"precice_xml_path\": \"${precice_path}\",#g" "$file"
     sed -Ei "s#\"slurm_id\".*\$#\"slurm_id\": \"${SLURM_JOB_ID}\",#g" "$file"
 }
@@ -72,14 +71,15 @@ edit::precice_input() {
     local file="$1"
     local log_out="$2"
     local prof_dir="$3"
-    local export_dir="$4"
+    #local export_dir="$4"
     local exch_dir="$5"
     local me_ranks="$6"
     local mm_ranks="$7"
 
     sed -Ei "s#<sink.*\$#<sink type=\"file\" output=\"${log_out}\" filter=\"%Severity% > debug\" enabled=\"true\" />#g" "$file"
-    sed -Ei "s#<!--profiling.*\$#<profiling directory=\"${prof_dir}\" />#g" "$file"
-    sed -Ei "s#<export:vtu.*\$#<export:vtu directory=\"${export_dir}\" />#g" "$file"
+    sed -Ei "s#<!--profiling.*\$#<profiling flush-every=\"0\" directory=\"${prof_dir}\" />#g" "$file"
+    #sed -Ei "s#<export:vtu.*\$#<export:vtu directory=\"${export_dir}\" />#g" "$file"
+    sed -Ei "s#<export:vtu.*\$##g" "$file"
 
     if [[ $me_ranks -gt 1  &&  $mm_ranks -gt 1 ]]; then
         sed -Ei "s#<m2n:sockets.*\$#<m2n:sockets acceptor=\"Meso-structure\" connector=\"Micro-Manager\" exchange-directory=\"${exch_dir}\" network=\"ib0\" use-two-level-initialization=\"true\" />#g" "$file"

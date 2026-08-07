@@ -225,6 +225,12 @@ class Simulation:
             }
 
             with h5py.File(f"{self._write_state}_{n}{iter}{rank}.h5", "w") as f:
+
+                def extract_first(val):
+                    if isinstance(val, tuple):
+                        return val[0]
+                    return val
+
                 for key in self._write_state_type:
                     if key not in write_target_data:
                         continue
@@ -234,8 +240,9 @@ class Simulation:
                     if any([v is None for v in [coords, name, fun]]):
                         continue
                     data = fun.x.array
-                    if coords != -1:
+                    if type(coords) != int:
                         data = convert_fenicsx_to_precice(fun, coords, 25)
+                        data = extract_first(data)
                     f.create_dataset(name, data=data)
 
         if self._write_checkpoint is not None and type(self._write_checkpoint) == str:
@@ -573,7 +580,7 @@ class CoupledSim(Simulation):
                     base_conf = json.load(infile)
 
                 if prc_path is not None:
-                    base_conf["config_file_name"] = prc_path
+                    base_conf["precice_config_file_path"] = prc_path
 
                 with open(adapter_config_path_run, "w") as outfile:
                     json.dump(base_conf, outfile, indent=4)

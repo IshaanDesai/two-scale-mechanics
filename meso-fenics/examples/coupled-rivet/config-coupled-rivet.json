@@ -1,7 +1,7 @@
 {
   "output_path": "output/coupled-rivet-lin-1734-iacc",
   "mesh": {
-    "path": "examples/coupled-rivet/rivettest_1_1734el.xdmf",
+    "path": "examples/coupled-rivet/rivettest_1_53790el.xdmf",
     "bc_dc_use_tag": false,
     "bc_dc_locator": "plane_yz_low",
     "bc_nm_use_tag": false,
@@ -22,6 +22,8 @@
     "micro_type": "PYFANS",
     "write_state": "output/coupled_rivet_state_lin_1734_iacc",
     "write_state_type": ["S", "U", "E"],
+    "write_vtk": "output/coupled_rivet_lin_1734_iacc",
+    "write_vtk_type": ["E", "S", "T", "U", "VM"],
     "init_with_micro": false,
     "precice_xml_path": "../../precice-config-fans-small-strain.xml",
     "slurm_id": "default",

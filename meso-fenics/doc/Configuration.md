@@ -59,15 +59,15 @@ In the following descriptions, if no default is provided, the entry is not optio
 
 ### Simulation Block
 
-| Name             | Type      | Description                                                         | Default                      | Options                               |
-|------------------|-----------|---------------------------------------------------------------------|------------------------------|---------------------------------------|
-| type             | str       | What simulation method to use                                       | -                            | MesoSim, PseudoCoupledSim, CoupledSim |
-| input            | str       | Path to input h5 file if PseudoCoupledSim is used                   | - (only if PseudoCoupledSim) | -                                     |
-| micro_type       | str       | What micro solver is being used in the coupled case                 | - (only if CoupledSim)       | ADA, PYFANS, NASMAT                   |
-| write_state      | str       | Path to which internal meso state should be written to in h5 format | None                         | -                                     |
-| write_state_type | list(str) | What data should be written                                         | None                         | E (eps), S (sig), U (displacement)    |
-| write_state      | str       | Path to which internal meso state should be written to in h5 format | None                         | -                                     |
-| write_state_type | list(str) | What data should be written                                         | None                         | E (eps), S (sig), U (displacement)    |
-| write_checkpoint | str       | If provided: path to checkpoint                                     | None                         | -                                     |
-| read_checkpoint  | str       | If provided: path to checkpoint                                     | None                         | -                                     |
-| couple_tight     | bool      | Couple on every meso/macro iteration                                | False                        | -                                     |
+| Name             | Type      | Description                                                          | Default                      | Options                                                                  |
+|------------------|-----------|----------------------------------------------------------------------|------------------------------|--------------------------------------------------------------------------|
+| type             | str       | What simulation method to use                                        | -                            | MesoSim, PseudoCoupledSim, CoupledSim                                    |
+| input            | str       | Path to input h5 file if PseudoCoupledSim is used                    | - (only if PseudoCoupledSim) | -                                                                        |
+| micro_type       | str       | What micro solver is being used in the coupled case                  | - (only if CoupledSim)       | ADA, PYFANS, NASMAT                                                      |
+| write_state      | str       | Path to which internal meso state should be written to in h5 format  | None                         | -                                                                        |
+| write_state_type | list(str) | What data should be written                                          | None                         | E (eps), S (sig), U (displacement), T (tangent)                          |
+| write_vtk        | str       | Path to which internal meso state should be written to in vtk format | None                         | -                                                                        |
+| write_vtk_type   | list(str) | What data should be written                                          | None                         | E (eps), S (sig), U (displacement), T (tangent), VM (van Mises stresses) |
+| write_checkpoint | str       | If provided: path to checkpoint                                      | None                         | -                                                                        |
+| read_checkpoint  | str       | If provided: path to checkpoint                                      | None                         | -                                                                        |
+| couple_tight     | bool      | Couple on every meso/macro iteration                                 | False                        | -                                                                        |
