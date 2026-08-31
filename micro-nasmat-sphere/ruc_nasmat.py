@@ -2,9 +2,6 @@
 Solve RVE using NASMAT: https://software.nasa.gov/software/LEW-20244-1
 """
 import numpy as np
-from ctypes import cdll, byref, c_double, POINTER
-import time
-
 from pynasmat import Model, Constituent, Ruc
 from pynasmat.constants import (
     MAT_TRANSVERSE_ISOTROPIC,
@@ -25,24 +22,18 @@ class MicroSimulation:
         self._ruc_size = 5
         self._first_run_done = False
 
-    def initialize(self):
-        """
-        Initialize the simulation.
-        """
-        pass
-
     def solve(self, macro_data, dt):
         assert dt != 0
 
         # In the first iteration, the macro input data is zero, hence using the default values
-        if not self._first_run_done:
-            rve_id = self._rve_id
-            mod_id = self._mod_id
-            ruc_size = self._ruc_size
-        else:
-            rve_id = int(macro_data["rve_id"])
-            mod_id = int(macro_data["mod_id"])
-            ruc_size = int(macro_data["ruc_size"])
+        # if not self._first_run_done:
+        #     rve_id = self._rve_id
+        #     mod_id = self._mod_id
+        #     ruc_size = self._ruc_size
+        # else:
+        #     rve_id = int(macro_data["rve_id"])
+        #     mod_id = int(macro_data["mod_id"])
+        #     ruc_size = int(macro_data["ruc_size"])
 
         # Processing input data
         strains = np.zeros((6))
@@ -51,17 +42,21 @@ class MicroSimulation:
             strains[i + 3] = float(macro_data["strains4to6"][i])
 
         # Building NASMAT Model
-        model = self._build_nasmat_model(rve_id, mod_id, ruc_size)
+        # model = self._build_nasmat_model(rve_id, mod_id, ruc_size)
+        model = self._build_nasmat_model(self._rve_id, self._mod_id, self._ruc_size)
 
         # Solving RVE using NASMAT
         cmat = model.homogenize(print_output=0)
-        print("Homogenization completed for RVE ID: ", rve_id)
+        print(
+            "ruc_nasmat.py OUTPUT >>> homogenization completed for RVE ID: ",
+            self._rve_id,
+        )
 
         # Stress calculation
         stresses = np.zeros((6))
         stresses = np.dot(cmat, strains)
 
-        print("cmat: ", cmat)
+        print("ruc_nasmat.py OUTPUT >>> cmat: ", cmat)
 
         self._first_run_done = True
 
@@ -75,7 +70,7 @@ class MicroSimulation:
             "cmat5": cmat[2][3:6],
             "cmat6": cmat[3][3:6],
             "cmat7": np.array(list(cmat[4][4:6]) + list(cmat[5][5:6])),
-            "conv": 1,
+            # "conv": 1, This variable is only for debugging, if required.
         }
 
     def get_state(self):

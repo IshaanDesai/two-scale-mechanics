@@ -10,4 +10,4 @@ pip install .
 
 cd ../
 
-./run_micromanager_nasmat.sh
+micro-manager-precice micro-manager-config.json

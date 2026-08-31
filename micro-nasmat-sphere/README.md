@@ -4,7 +4,10 @@ This code solves a single fiber micro simulation using [NASMAT](https://software
 
 ## Running
 
-The file `ruc_nasmat.py` uses the Python interface of NASMAT, called pynasmat. pynasmat requires a NASMAT library file to access the core functionality. pynasmat detects this library file by looking up the path `NASMAT_LIB`. Set the path `NASMAT_LIB` before running the Micro Manager.
+The file `ruc_nasmat.py` uses the Python interface of NASMAT, called pynasmat.
+pynasmat requires a NASMAT library file to access the core functionality.
+pynasmat detects this library file by looking up the path `NASMAT_LIB`.
+Set the path `NASMAT_LIB` to the folder containing `libNASMAT.so`.
 
 Run the Micro Manager in the following way
 
@@ -19,3 +22,5 @@ mpiexec -n <number-of-procs> micro-manager-precice micro-manager-config.json
 ```
 
 by adding the number of processors you wish to solve with.
+
+If the `pynasmat/` folder is in the same directory, directly use the script `run.sh`.
